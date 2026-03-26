@@ -36,6 +36,7 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 
 | Rule | Purpose |
 |------|---------|
+| `error-handling` | Mandatory debug logging and user-friendly error messages in all languages |
 | `flutter-l10n-rules` | Text principles for Flutter localization (tone, glossary, ICU) |
 | `project-docs` | Enforces `docs/` folder as single source of truth |
 | `stitch-design-workflow` | Gated design workflow with Stitch MCP |
