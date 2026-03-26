@@ -28,6 +28,7 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 | Agent | Purpose |
 |-------|---------|
 | `doc-keeper` | Background agent that syncs project docs |
+| `flutter-l10n-agent` | Flutter l10n specialist — executes individual pipeline steps when spawned by skills |
 | `stitch-ui-ux-designer` | Designs core screens in Stitch MCP |
 | `ui-ux-developer` | Implements UI from Stitch designs + design.md |
 
@@ -35,6 +36,7 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 
 | Rule | Purpose |
 |------|---------|
+| `flutter-l10n-rules` | Text principles for Flutter localization (tone, glossary, ICU) |
 | `project-docs` | Enforces `docs/` folder as single source of truth |
 | `stitch-design-workflow` | Gated design workflow with Stitch MCP |
 | `skill-selection` | Auto-evaluate and invoke relevant skills per prompt |
@@ -44,6 +46,12 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 
 | Skill | Purpose |
 |-------|---------|
+| `flutter-l10n` | Full pipeline orchestrator with approval gates (audit → harmonize → extract → translate → status) |
+| `flutter-l10n-audit` | Scan for hardcoded strings, audit against text principles |
+| `flutter-l10n-harmonize` | Cross-string consistency analysis and deduplication |
+| `flutter-l10n-extract` | Extract strings to ARB files, replace with AppLocalizations |
+| `flutter-l10n-translate` | Translate ARB keys via ChatGPT API (incremental) |
+| `flutter-l10n-status` | Translation coverage dashboard per locale |
 | `update-docs` | Gathers git context and spawns doc-keeper to sync docs |
 
 ## Adding a New Skill

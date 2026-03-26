@@ -63,7 +63,7 @@ For each screen marked as **core** in design.md:
 
 For screens marked as **non-core** in design.md:
 1. Read the screen's description and purpose from design.md or the project plan
-2. Identify the closest core screen pattern (e.g., "this is another list view like Quest Feed")
+2. Identify the closest core screen pattern (e.g., "this is another list view like the main feed")
 3. Compose the screen using existing components from the library
 4. Apply the same spacing, typography, and color patterns
 5. Be creative with layout arrangement, but stay within the design system
