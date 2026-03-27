@@ -52,6 +52,7 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 | `flutter-l10n-harmonize` | Cross-string consistency analysis and deduplication |
 | `flutter-l10n-extract` | Extract strings to ARB files, replace with AppLocalizations |
 | `flutter-l10n-translate` | Translate ARB keys via ChatGPT API (incremental) |
+| `flutter-l10n-verify` | Post-translation quality gate (cross-locale consistency, code-switching, dead keys) |
 | `flutter-l10n-status` | Translation coverage dashboard per locale |
 | `update-docs` | Gathers git context and spawns doc-keeper to sync docs |
 

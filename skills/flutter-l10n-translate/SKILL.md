@@ -40,7 +40,11 @@ If it exists, verify it's up to date with the current spec.
 The script MUST:
 
 1. **Read `app_en.arb`** as the source of truth for all keys and English values
-2. **Read `docs/glossary.md`** to build the no-translate term list
+2. **Read `docs/glossary.md`** to build term lists by tier:
+   - `[keep]` terms → pass as "DO NOT translate" list
+   - `[translate]` terms → pass as "MUST translate natively" list with hints
+   - `[technical]` terms → excluded (never in user-facing text)
+   - Terms without a tier tag → default to `[translate]`
 3. **Read `docs/tone.md` or `docs/design.md`** for product voice/tone context
 4. **Read each target `app_<locale>.arb`** to find untranslated keys:
    - Keys where `@key` metadata has `"x-translated": false`
@@ -99,17 +103,24 @@ PRODUCT CONTEXT:
 
 CRITICAL RULES:
 1. Match the product's tone: {tone_description}
-2. DO NOT translate these terms — keep them exactly as-is in English:
-   {comma_separated_glossary_terms}
-3. Preserve ALL ICU MessageFormat syntax exactly as-is:
+2. KEEP these terms exactly as-is in English (brand/product names):
+   {comma_separated_keep_terms}
+3. TRANSLATE these terms into their natural {target_language_name} equivalent
+   (do NOT keep the English word — use the native word):
+   {comma_separated_translate_terms_with_hints}
+4. Preserve ALL ICU MessageFormat syntax exactly as-is:
    - Plural: {count, plural, one{...} other{...}}
    - Select: {gender, select, male{...} female{...} other{...}}
    - Nested: any combination of the above
-4. Preserve ALL placeholders exactly: {userName}, {count}, {date}, etc.
-5. Keep translations concise — these appear on mobile screens with limited space
-6. Translations must sound natural in {target_language_name}, not like literal
+5. Preserve ALL placeholders exactly: {userName}, {count}, {date}, etc.
+6. Keep translations concise — these appear on mobile screens with limited space
+7. Translations must sound natural in {target_language_name}, not like literal
    word-for-word translation from English
-7. For formal/informal address: use {formality_level} register
+8. NEVER mix English nouns into {target_language_name} sentences unless the term
+   is in the [keep] list above. If you are unsure of the native equivalent for
+   a domain term, use the most common {target_language_name} equivalent used in
+   gaming/app contexts
+9. For formal/informal address: use {formality_level} register
 
 OUTPUT FORMAT:
 Return a JSON object mapping each key to its translated string.

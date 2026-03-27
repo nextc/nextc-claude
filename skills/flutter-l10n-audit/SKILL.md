@@ -100,6 +100,89 @@ For each found string, check:
 | **Concatenation** | Are fragments concatenated instead of using one key? | CONCATENATED |
 | **Accessibility** | Does this image/icon lack a semantic label? | MISSING_A11Y |
 | **Already extracted** | Is this already in `app_en.arb`? | ALREADY_EXTRACTED |
+| **Nav label mismatch** | Does this nav label use the same l10n key as the destination screen title? | NAV_LABEL_MISMATCH |
+| **Verb mismatch** | Does the feedback message verb match the action button verb? | VERB_MISMATCH |
+| **Dialog title mismatch** | Does the confirmation dialog title reference the same action as the trigger? | DIALOG_TITLE_MISMATCH |
+| **Tutorial drift** | Does tutorial/onboarding text use the actual screen title (base noun must match)? | TUTORIAL_DRIFT |
+| **Dead key** | Is this key referenced in any Dart source (excluding generated `app_localizations_*.dart`)? | DEAD_KEY |
+| **Hardcoded route** | Does this `context.go()`/`context.push()` use a string literal instead of `AppRoutes.xxx`? | HARDCODED_ROUTE |
+| **Untranslated domain term** | Is a `[translate]` glossary term kept as English in a locale? | UNTRANSLATED_DOMAIN_TERM |
+| **Stale source ref** | Does the `x-source` annotation in `app_en.arb` point to a valid file:line? | STALE_SOURCE_REF |
+
+### Step 4b: Navigation Label Consistency Scan
+
+Scan for navigation label mismatches using two parallel agents:
+
+**Agent A — Screen Title Map:**
+For each screen under `lib/features/*/screens/*.dart`, extract:
+- File path
+- AppBar title l10n key (e.g., `l10n.feedTitle`)
+- Title value from `app_en.arb`
+
+**Agent B — Navigation Call Site Map:**
+For each `context.go()`, `context.push()`, `context.pushReplacement()` call, extract:
+- File path and line number
+- Label l10n key on the tappable widget (button, card, menu item, FAB tooltip, etc.)
+- Destination route
+
+**Cross-reference:**
+For each navigation call site, check if the label key matches the destination screen's
+title key. Flag mismatches as `NAV_LABEL_MISMATCH`. Exclude exceptions defined in
+`flutter-l10n-rules.md` (empty state CTAs, back buttons, dynamic titles, screens without
+AppBar titles, cross-domain action buttons).
+
+Also flag any `context.go()`/`context.push()` using a string literal instead of
+`AppRoutes.xxx` as `HARDCODED_ROUTE`.
+
+**Important:** Always verify l10n key values from `app_en.arb` directly — do not
+rely on approximated values from code scanning, as key names can be misleading.
+
+### Step 4c: Action ↔ Feedback Verb Scan
+
+For each async action triggered by a button (GradientButton, ElevatedButton, TextButton):
+1. Extract the button label l10n key and its verb (e.g., "Submit" from "Submit Post")
+2. Find the success/error feedback message (snackbar, dialog) triggered on completion
+3. Extract the feedback message's verb (e.g., "shared" from "Post shared!")
+4. Flag as `VERB_MISMATCH` if the verbs differ
+
+### Step 4d: Dialog ↔ Trigger Consistency Scan
+
+For each `showDialog()` / `showModalBottomSheet()` call:
+1. Find the button/action that triggers it and extract its label
+2. Extract the dialog's title l10n key
+3. Flag as `DIALOG_TITLE_MISMATCH` if the dialog title doesn't reference the same action
+4. Also flag any hardcoded strings in dialogs (not using l10n keys) as hardcoded findings
+
+### Step 4e: Tutorial ↔ UI Consistency Scan
+
+For each tutorial file (`*_tutorial.dart`) and `onboarding_screen.dart`:
+1. Extract all feature/screen name references from tutorial text
+2. Cross-reference with actual screen title l10n keys
+3. Flag as `TUTORIAL_DRIFT` if the base noun doesn't match (articles/possessives like "The"/"Your" are OK)
+
+### Step 4f: Dead Key Detection
+
+After identifying any key replacements or removals, grep each potentially dead key
+across `lib/` excluding `lib/l10n/`. If zero Dart source references remain,
+flag as `DEAD_KEY`.
+
+### Step 4g: Cross-Locale Term Consistency
+
+For each `[translate]` term in `docs/glossary.md`:
+1. Grep all ARB files for keys containing that term (e.g., all keys with "team" in the name)
+2. Check if the English source term appears untranslated in any locale's value
+3. Flag as `UNTRANSLATED_DOMAIN_TERM` if a `[translate]` term is kept as English in a locale
+
+This catches AI translator inconsistency where some locales properly translate domain
+terms while others keep the English word embedded in translated text.
+
+Also check for "code-switching" — values that are mostly in the target language but
+contain English nouns (e.g., "Trung Tâm Team" where "Team" should be natively translated).
+
+### Step 4h: Source Reference Validation
+
+Sample-check `x-source` annotations in `app_en.arb` to verify they point to valid
+file:line locations. Flag stale references as `STALE_SOURCE_REF`.
 
 ### Step 5: Present Findings
 
@@ -114,18 +197,61 @@ Output a report in this format:
 
 | # | File:Line | Current Text | Issue | Proposed Text | Reason |
 |---|-----------|-------------|-------|---------------|--------|
-| 1 | lib/features/tasks/task_card.dart:42 | "Add Task" | INCONSISTENT_TERM | "Create Task" | Glossary uses "Create" for this action |
+| 1 | lib/features/items/item_card.dart:42 | "Add Item" | INCONSISTENT_TERM | "Create Item" | Glossary uses "Create" for this action |
 | 2 | lib/features/notes/note_list.dart:15 | "No notes yet" | WEAK_LABEL | "No notes yet. Create your first note to get started." | Empty state needs guidance |
 | ... | | | | | |
 
 ### Already Extracted (no action needed)
-- `taskTitle` → lib/features/tasks/task_card.dart:10
+- `itemTitle` → lib/features/items/item_card.dart:10
 - `settingsLabel` → lib/features/settings/settings_screen.dart:5
+
+### Navigation Label Mismatches
+
+| # | Source File:Line | Nav Label Key → Value | Destination Screen Title Key → Value |
+|---|-----------------|----------------------|-------------------------------------|
+| 1 | home_screen.dart:88 | menuActivityLog → "Activity Log" | activityFeedTitle → "Activity Feed" |
+
+### Hardcoded Routes
+
+| # | File:Line | Hardcoded Path | Should Be |
+|---|-----------|---------------|-----------|
+| 1 | dashboard_screen.dart:153 | '/projects' | AppRoutes.projectList |
+
+### Verb Mismatches (action ↔ feedback)
+
+| # | Action (File:Line) | Button Verb | Feedback (File:Line) | Feedback Verb |
+|---|-------------------|-------------|---------------------|---------------|
+| 1 | create_post_screen.dart:202 | "Submit" | create_post_screen.dart:134 | "shared" |
+
+### Dialog Title Mismatches
+
+| # | Trigger (File:Line) | Trigger Label | Dialog Title (File:Line) | Dialog Title |
+|---|-------------------|---------------|------------------------|-------------|
+| 1 | settings_screen.dart:164 | "Delete Account" | delete_account_dialog.dart:30 | "Point of No Return" |
+
+### Tutorial ↔ UI Drift
+
+| # | Tutorial (File:Line) | Tutorial Text | Actual Screen Title | Gap |
+|---|---------------------|--------------|--------------------|----|
+| 1 | onboarding_tutorial.dart:12 | "Your Activity" | "Activity Feed" | Different name |
+
+### Dead Keys (no source references)
+
+| Key | Last Used In | Reason |
+|-----|-------------|--------|
+| menuActivityLog | home_screen.dart | Replaced by activityFeedTitle |
 
 ### Summary
 - Hardcoded strings needing extraction: 75
 - Strings with issues needing rewrite: 12
 - Strings already in app_en.arb: 12
+- Navigation label mismatches: 3
+- Verb mismatches: 1
+- Dialog title mismatches: 1
+- Tutorial drift: 2
+- Hardcoded routes: 1
+- Dead keys to remove: 2
+- Stale source refs: 0
 ```
 
 ### Step 6: Wait for Approval

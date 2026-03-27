@@ -2,7 +2,7 @@
 name: flutter-l10n
 description: >
   Run the full Flutter localization pipeline: audit → harmonize → extract →
-  translate → status. Each step with approval gates pauses for
+  translate → verify → status. Each step with approval gates pauses for
   user review before proceeding. Supports incremental updates.
   Use when: user says "flutter-l10n", "localize", "l10n", "run l10n pipeline",
   "localize my app", or wants the full localization workflow.
@@ -51,7 +51,18 @@ Invoke the `flutter-l10n-translate` skill with `--all`.
 - Uses ChatGPT API via `scripts/flutter_translate.py`
 - Validates translations (placeholders, ICU syntax, glossary terms)
 
-### Step 5: Status
+### Step 5: Verify
+
+Invoke the `flutter-l10n-verify` skill.
+
+- Cross-locale term consistency (untranslated domain terms, code-switching)
+- Intra-locale term drift (same concept translated differently within a locale)
+- Action-feedback verb consistency across locales
+- Dead key detection and stale source reference validation
+- Present findings report
+- **GATE: Wait for user approval on fixes (re-translate, remove dead keys, etc.)**
+
+### Step 6: Status
 
 Invoke the `flutter-l10n-status` skill.
 
@@ -63,6 +74,7 @@ Invoke the `flutter-l10n-status` skill.
 Summarize what was done:
 - Number of strings audited, harmonized, extracted
 - Number of keys translated across how many locales
+- Verification issues found and fixed
 - Final coverage percentage
 - Suggest: "Run `flutter gen-l10n` again if you made manual edits to ARB files."
 
@@ -79,6 +91,7 @@ Users can also run any step independently:
 | `/flutter-l10n-translate --locale=ja` | Translate single locale |
 | `/flutter-l10n-translate --dry-run` | Preview without API calls |
 | `/flutter-l10n-translate --force` | Re-translate everything |
+| `/flutter-l10n-verify` | Post-translation quality check |
 | `/flutter-l10n-status` | Coverage dashboard only |
 
 ## Adding a New Locale

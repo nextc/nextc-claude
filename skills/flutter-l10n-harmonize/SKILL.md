@@ -127,9 +127,76 @@ Same exact string appearing in multiple locations that should share one key.
 Example: Error title `Something went wrong` used in 6 different files.
 Fix: Flag for extraction as a single shared key (e.g., `commonErrorTitle`).
 
+**18. Navigation label vs screen title drift**
+Nav labels (buttons, menu items, card titles, FAB tooltips) using a different l10n key
+than the destination screen's AppBar title. Even if the English text happens to match,
+different keys will diverge across translations.
+Example: Menu item uses `menuActivityLog` ("Activity Log") but screen title is
+`activityFeedTitle` ("Activity Feed").
+Fix: Nav label must use the same key as the destination screen title. Exceptions:
+empty state CTAs, back buttons, dynamic titles, screens without AppBar, cross-domain actions.
+
+**19. Route constant enforcement**
+`context.go()` or `context.push()` calls using hardcoded string literals instead of
+`AppRoutes.xxx` constants. String literals bypass refactoring tools, create silent dead
+routes, and are invisible to navigation audits.
+Example: `context.go('/projects')` instead of `context.go(AppRoutes.projectList)`.
+Fix: Replace with the corresponding `AppRoutes` constant.
+
+**20. Dead l10n keys**
+Keys in `app_en.arb` that are no longer referenced in any Dart source file (excluding
+generated `lib/l10n/app_localizations_*.dart`). Often caused by replacing a nav label
+key with the screen title key without cleaning up the old one.
+Fix: Remove from ALL ARB files (en + translations), then regenerate with `flutter gen-l10n`.
+
+**21. Action verb ↔ feedback verb echo**
+Success/error feedback messages using a different verb than the button that triggered the action.
+Example: Button says "Submit Post" but snackbar says "Post shared!" — verb changed from "submit" to "shared".
+Fix: Feedback verb MUST be the past participle of the action button verb. "Submit Post" → "Post submitted!"
+
+**22. Dialog title ↔ trigger action clarity**
+Confirmation dialog titles that don't reference the same action as the trigger button, or use
+thematic/dramatic titles instead of action-specific ones.
+Example: Button says "Delete Account" but dialog title is "Point of No Return".
+Fix: Destructive dialog titles MUST name the action explicitly: "Delete Account?" Thematic
+titles are only allowed in empty states, onboarding, and tutorials — never in destructive dialogs.
+
+**23. Tutorial/onboarding ↔ actual screen title alignment**
+Tutorial text that names features or screens differently than the actual AppBar titles.
+Example: Tutorial says "Your Activity" but screen title is "Activity Feed".
+Fix: Base noun in tutorial MUST match screen title l10n key. Articles ("The") and possessives
+("Your") may be added for warmth, but the noun must be identical.
+
+**24. Article/possessive prefix consistency**
+Same feature referred to with and without "The"/"Your" prefix across different contexts without
+a clear pattern.
+Example: "The Feed" (screen title) vs "Feed" (nav reference) vs "Your Feed" (tutorial).
+Fix: Define a canonical form per feature. Screen titles are source of truth. Tutorials may add
+"Your" prefix. All other references must match the screen title exactly.
+
+**25. Multi-verb feature actions**
+Same feature's primary action described with multiple different verbs across the codebase.
+Example: Project creation uses "Craft" (screen title), "Add" (button), "Create" (tutorial).
+Fix: One canonical verb per feature action, enforced via glossary. All contexts (screen title,
+button, tutorial, feedback, error message) must use the same verb.
+
+**26. Cross-locale term translation consistency**
+Domain terms classified as `[translate]` in the glossary that are natively translated in some
+locales but kept as English in others. AI translators are especially prone to this — they may
+translate "library" to "bibliothèque" in French but leave it as "Library" in Vietnamese or Malay.
+Example: "Team Hub" → "Centre d'équipe" (fr, correct) vs "Trung Tâm Team" (vi, bug).
+Fix: Verify every `[translate]` glossary term is natively rendered in ALL locales. Grep ARB
+files for the English term appearing in non-English locale values — any match is a bug.
+
+**27. Code-switching in translations**
+Sentences mostly in the target language but containing untranslated English nouns or phrases.
+This signals the AI translator didn't know the native equivalent and fell back to English.
+Example: "Pusat Team" (id) — "Pusat" is Indonesian but "Team" is English.
+Fix: Replace with the fully native form. Check all keys containing the affected term.
+
 #### Open-Ended Exploration
 
-The 17 areas above are a starting checklist, not an exhaustive list. During
+The 27 areas above are a starting checklist, not an exhaustive list. During
 analysis, actively look for **any** additional patterns of inconsistency:
 
 - Sentence structure patterns (active vs passive voice mixing)
