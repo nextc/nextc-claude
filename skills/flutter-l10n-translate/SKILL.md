@@ -242,6 +242,26 @@ Before writing any translation:
 3. **Length check:** Warn if translation is >2x the English length (mobile UI concern)
 4. **Glossary check:** No-translate terms must appear unchanged in translation
 
+**CRITICAL — ICU Placeholder Validation Pitfalls:**
+
+The placeholder validator MUST only match ASCII identifiers (`[a-zA-Z_][a-zA-Z0-9_]*`)
+as placeholder names. Common bugs:
+
+- `\w+` in regex matches Unicode characters — Japanese, Chinese, Arabic text inside
+  ICU plural braces will be falsely flagged as "placeholders." Use `[a-zA-Z_]` instead.
+- Content words inside ICU branches are NOT placeholders. `one{yesterday}` contains
+  the word "yesterday" as display text, not a `{yesterday}` placeholder. The validator
+  must only extract names at the **top level** of the ICU expression, not inside
+  nested branch content.
+- Best approach: parse brace depth. Only extract identifiers at depth 0 (top-level
+  `{name}` or `{name, plural, ...}`). Ignore identifiers inside nested braces.
+
+### Script Runtime Notes
+
+- Always run with `PYTHONUNBUFFERED=1` or `python3 -u` to see progress in real-time.
+  Without this, output is buffered and invisible during long background runs.
+- The script should use `print(..., flush=True)` for all progress output.
+
 If validation fails for a key, skip it and add to the "failed keys" report.
 
 ## Incremental Guarantees

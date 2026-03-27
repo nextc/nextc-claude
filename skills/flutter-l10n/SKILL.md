@@ -96,6 +96,20 @@ Not part of the pipeline — run manually:
 - **New locale added:** translate processes all keys for that locale only
 - **Existing translations are NEVER overwritten** unless `--force` is used
 
+## Starting Fresh
+
+If existing translations are poor quality and the user wants to redo everything:
+
+1. Delete all ARB files (`lib/l10n/app_*.arb`)
+2. Run a delocalization pass: replace all `AppLocalizations` references back to
+   hardcoded English strings (recover mapping from git history of `app_en.arb`)
+3. Remove `AppLocalizations` imports, local variables, and function parameters
+4. Delete generated `lib/l10n/app_localizations*.dart` files
+5. Run `flutter analyze` to verify clean state
+6. Then run the full pipeline normally: audit → harmonize → extract → translate
+
+See the extract skill's "Starting Fresh (Delocalization)" section for details.
+
 ## Default Locales (20)
 
 ```

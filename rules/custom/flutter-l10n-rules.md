@@ -54,3 +54,55 @@ These rules apply to ALL user-facing text in Flutter projects that use the flutt
 - Cultural adaptation is preferred over literal accuracy when meaning is preserved
 - Numbers, dates, and currencies follow the target locale's conventions
 - For languages with formal/informal address (e.g., French tu/vous, German du/Sie), match the product's tone
+
+## Harmonize Rules (Cross-String Consistency)
+
+These rules are enforced by the `flutter-l10n-harmonize` skill during the pipeline.
+They apply to the English source strings before extraction to ARB files.
+
+### Error Messages
+- **Titles:** `Something went wrong` (generic, reusable key)
+- **Descriptions:** `[Object] could not be [action]. Please try again.` (passive, object-first)
+- NEVER use subjective patterns: ~~We couldn't~~, ~~Failed to~~, ~~Unable to~~
+- Error messages use **neutral tone** — no product-themed/medieval flavor
+
+### Feedback (SnackBars)
+- **Success celebrations:** exclamation mark — `Quest accepted!`, `Tale shared!`
+- **Informational confirmations:** period, no exclamation — `Copied to clipboard.`, `Feedback submitted.`
+- **Clipboard actions:** always `Copied to clipboard.` (one key for all)
+
+### Punctuation
+- **Titles/headers:** no trailing period
+- **Descriptions/body text:** trailing period
+- **Button labels:** no period, no exclamation
+- **Validator messages:** trailing period — `Please enter a guild name.`
+- **Hint text:** no trailing period
+
+### Capitalization
+- **Empty state titles:** Title Case — `No Tales Yet`, `No Guilds Yet`
+- **Section headers:** Title Case — `Quest Details`, `Danger Zone`
+- **Descriptions/body:** sentence case
+
+### Validation Messages
+- Pattern: `Please enter [field].` (unified, with trailing period)
+- NEVER: `[Field] is required` (inconsistent with the above)
+
+### Register
+- **No contractions** — use formal register: `do not` not `don't`, `is not` not `isn't`
+- Exception: tutorials may use light contractions (`you've`, `you're`) for casual tone
+
+### Ellipsis
+- ASCII `...` only (not Unicode `…` U+2026)
+
+### Empty State Pattern
+- Title: plural form — `No guilds yet` not `No guild yet`
+- Description: medieval RPG flavor is OK in empty states and onboarding
+- CTA label: unified action — `Browse Quests` for navigating to quest list
+
+### Tone Split
+- **Medieval RPG flavor:** empty states, onboarding, tutorials, feature headers
+- **Neutral/clear:** error messages, validation, system feedback, dialogs
+
+### Action Labels
+- One label per action — `Accept Quest` (not `Accept This Quest`)
+- Creation buttons include article — `Forge a Guild`, `Forge a Quest`

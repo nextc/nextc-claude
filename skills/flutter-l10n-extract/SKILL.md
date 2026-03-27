@@ -141,6 +141,18 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 - Strings in `const` widgets → remove `const` keyword if adding localization
 - Strings in static contexts (no `BuildContext`) → flag for manual review
 - Strings with interpolation → convert to ICU placeholders
+- **Tutorial files** that return `TutorialContent` as functions (not widgets):
+  change signature to accept `BuildContext? context`, get `l10n` from context
+  when available, fall back to English hardcoded strings when context is null.
+  Update all call sites to pass `context`.
+- **Provider/notifier error messages** (`errorMessage: '...'` in StateNotifiers):
+  these have no `BuildContext`. Keep hardcoded English strings and add
+  `// TODO(l10n): map to AppLocalizations at UI layer` comment. The UI layer
+  should map error codes to localized strings where context is available.
+- **Semantic labels with interpolation** (e.g., `Semantics(label: 'X. $var.')`):
+  these need parameterized ICU keys. Flag for manual review if complex.
+- **Import path:** Use `package:<app_name>/l10n/app_localizations.dart` (NOT
+  `package:flutter_gen/gen_l10n/...`) when `l10n.yaml` generates into `lib/l10n/`.
 
 ### Step 7: Run flutter gen-l10n
 
@@ -175,8 +187,37 @@ This skill is designed to be run repeatedly:
   flags all translations as stale
 - Deleting a widget → extract removes the orphaned key from all ARB files
 
+## Completeness Verification
+
+After replacing strings in all files, run a verification scan:
+
+1. Grep for remaining hardcoded `Text('...'` with alphabetic content
+2. Grep for remaining `hintText: '...', label: '...', title: '...'` patterns
+3. Grep for remaining `SnackBar(content: Text('...'` patterns
+4. Compare count of files with `AppLocalizations` import vs files that had strings
+
+Report any missed files. Common misses:
+- Widget files with dialogs (confirm delete, etc.)
+- Card widgets with inline dialogs
+- Files not in the main feature directories
+
 ## ARB File Ordering
 
 Keys in ARB files are ordered alphabetically by key name. Each key's `@key`
 metadata block immediately follows the key. Global metadata (`@@locale`,
 `@@last_modified`) comes first.
+
+## Starting Fresh (Delocalization)
+
+If existing translations are poor and the user wants to start over:
+
+1. Delete all `app_*.arb` files
+2. Replace all `AppLocalizations.of(context)!.keyName` calls back to hardcoded
+   English strings using the key→value mapping from the old `app_en.arb`
+   (recover from git if deleted)
+3. Remove `AppLocalizations` imports and local variable declarations
+4. Remove the `AppLocalizations` parameter from function signatures
+5. Update call sites that passed `AppLocalizations` as an argument
+6. Delete generated `lib/l10n/app_localizations*.dart` files
+7. Run `flutter analyze` to verify clean state
+8. Then run the normal pipeline: audit → harmonize → extract
