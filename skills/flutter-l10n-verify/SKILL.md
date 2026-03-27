@@ -91,16 +91,27 @@ For each action-feedback pair identified in the English source:
 This catches cases where the AI translator used different words for the same verb
 concept across related keys in the same locale.
 
-### Step 5: Consistency Across Related Keys
+### Step 5: Intra-Locale Term Consistency (Enhanced)
 
-For keys that share a common prefix (e.g., `teamHubTitle`, `teamCreateButton`,
-`teamEmptyTitle`):
-1. Extract the domain term from all related keys in each locale
-2. Check that the same locale uses the same translation for the shared concept
-3. Flag as `INTRA_LOCALE_TERM_DRIFT` if the same concept is translated differently
-   within a single locale
+For each `[translate]` glossary term:
+1. Identify the **canonical key** — the screen title key that defines how this term is translated in each locale (e.g., `projectsTitle` is canonical for "project")
+2. Extract the canonical translation for each locale from that key
+3. For ALL other keys whose English value contains the same term, check that the locale's translation uses the same native word (not a synonym)
+4. Flag as `INTRA_LOCALE_TERM_DRIFT` if a different word is used
 
-Example: French uses "équipe" in `teamHubTitle` but "groupe" in `teamEmptyTitle`.
+**Why screen titles are canonical:** Screen titles are the most visible, most reviewed translations. They set the term standard for the locale.
+
+**Common AI translator failure mode:** The AI translates keys in batches. If the canonical key is in batch 1 and a related key is in batch 3, the AI may pick a synonym because it lacks context. The translate script mitigates this by passing existing translations as context, but drift still occurs.
+
+**Fix approach:** Direct-edit the drifted value to use the canonical word, rather than re-translating (which may produce yet another synonym).
+
+### Step 5b: Post-Translation Term Validation
+
+For each `[translate]` glossary term, load the canonical native equivalent from `scripts/l10n_term_map.json` (if it exists). For each non-English locale:
+1. Check that the canonical key's translation matches (or is a grammatical form of) the term map entry
+2. If the term map says French "project" = "projet" but `projectsTitle` is translated as "programme", flag as `TERM_MAP_MISMATCH`
+
+This catches cases where the AI chose a valid but non-canonical translation that differs from the agreed-upon term.
 
 ### Step 6: Dead Key Detection
 
@@ -142,6 +153,12 @@ Output a structured report:
 | # | Locale | Concept | Key A (translation) | Key B (translation) |
 |---|--------|---------|--------------------|--------------------|
 | 1 | fr | team | teamHubTitle ("équipe") | teamEmptyTitle ("groupe") |
+
+### Term Map Mismatches
+
+| # | Locale | Term | Expected (from term map) | Canonical Key | Actual Translation |
+|---|--------|------|-------------------------|---------------|-------------------|
+| 1 | fr | project | projet | projectsTitle | programme |
 
 ### Dead Keys
 

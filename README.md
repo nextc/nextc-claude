@@ -47,7 +47,7 @@ The script is idempotent — safe to re-run after adding new skills or pulling u
 
 | Skill | Purpose |
 |-------|---------|
-| `flutter-l10n` | Full pipeline orchestrator with approval gates (audit → harmonize → extract → translate → status) |
+| `flutter-l10n` | Full pipeline orchestrator with approval gates (audit → harmonize → extract → translate → verify → status) |
 | `flutter-l10n-audit` | Scan for hardcoded strings, audit against text principles |
 | `flutter-l10n-harmonize` | Cross-string consistency analysis and deduplication |
 | `flutter-l10n-extract` | Extract strings to ARB files, replace with AppLocalizations |

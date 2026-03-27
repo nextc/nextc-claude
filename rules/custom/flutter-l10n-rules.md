@@ -39,6 +39,12 @@ Every term in `docs/glossary.md` MUST be classified into one of three translatio
 - AI translators frequently keep English domain terms as-is in some locales while translating them in others — this inconsistency MUST be caught and fixed
 - Cross-locale consistency: if a `[translate]` term is natively translated in 15 locales but kept as English in 5, the 5 are bugs
 
+### Enforcement
+
+- Every glossary term MUST have a tier tag (`[keep]`, `[translate]`, or `[technical]`). Terms without tags default to `[translate]`.
+- The translate script reads tier tags from the glossary and builds per-locale "MUST translate" instructions for `[translate]` terms.
+- A separate term map file (`scripts/l10n_term_map.json`) stores the canonical native equivalent for each `[translate]` term per locale. This is the single source of truth for what word to use.
+
 ## ICU MessageFormat
 
 - Parameterized strings MUST use ICU syntax: `{count, plural, one{1 item} other{{count} items}}`
@@ -46,6 +52,14 @@ Every term in `docs/glossary.md` MUST be classified into one of three translatio
 - NEVER hardcode plurals (e.g., "1 item" / "2 items" as separate keys)
 - NEVER concatenate translated fragments — use a single key with placeholders
 - Placeholders MUST be preserved exactly during translation: `{userName}`, `{count}`, etc.
+
+## Date and Number Formatting
+
+- `DateFormat` calls MUST pass the current locale: `DateFormat.yMMMMd(locale)`, not `DateFormat.yMMMMd()`
+- Omitting the locale parameter causes English date/number formatting regardless of app language
+- Get the locale from `Localizations.localeOf(context).toString()`
+- Never use hardcoded day/month name arrays — use `intl` package `DateFormat` with locale
+- Never use manual plural branches (`count == 1 ? '' : 's'`) — use ICU MessageFormat plural syntax in ARB keys
 
 ## Brevity & Clarity
 
@@ -71,6 +85,16 @@ Every term in `docs/glossary.md` MUST be classified into one of three translatio
 - Domain terms classified as `[translate]` in the glossary MUST use native equivalents — keeping the English word embedded in a translated sentence is a bug (e.g., "Thư Viện Library" mixing Vietnamese + English)
 - AI-generated translations are especially prone to inconsistent term handling across locales — always verify `[translate]` terms are natively rendered in EVERY locale, not just some
 - When reviewing AI translations, check for "code-switching" — sentences that are mostly in the target language but contain untranslated English nouns; this signals the translator didn't know the native equivalent
+
+### Intra-Locale Term Consistency (CRITICAL)
+
+- The SAME `[translate]` domain term MUST be translated with the SAME native word across ALL keys within a single locale
+- Example: if "project" is translated as "proyecto" in `projectsTitle`, it MUST also be "proyecto" in `dashboardSectionActive` — never "obra" (a synonym)
+- The translate script enforces this by:
+  1. Loading existing translations as context in each batch prompt
+  2. Providing the canonical native equivalent from `scripts/l10n_term_map.json`
+  3. Post-batch validation: rejecting translations that contain English `[translate]` terms
+- When the verify step detects intra-locale drift, fix by directly editing the ARB value to match the canonical word from the screen title key (screen titles are the source of truth for term choice)
 
 ## Harmonize Rules (Cross-String Consistency)
 
@@ -150,6 +174,19 @@ Tutorial and onboarding text that names a feature or screen MUST use the screen 
 - Tutorial says "Task Board" because the screen title is "Task Board" — not "Task List"
 - If the screen title key is `activityFeedTitle`, the tutorial must reference "Activity Feed" — not "Your Activity"
 - Articles ("The") and possessives ("Your") may be added for warmth in tutorials, but the base noun MUST match: "Your **Library**" is OK, "Your **Journal**" is not (if the screen is called "Library")
+
+## Tutorial Context Parameter
+
+- Tutorial functions MUST require `BuildContext` (non-nullable): `{required BuildContext context}`
+- Nullable `BuildContext?` with hardcoded English fallbacks is prohibited — it duplicates l10n values and drifts silently when l10n values change
+- All callers must pass `context: context`
+
+## Language Picker Display
+
+- Language selection UIs MUST display language names in their native script (e.g., "日本語" not "Japanese", "العربية" not "Arabic")
+- English names may be shown as subtitles for discoverability
+- Use a shared constant (`kSupportedLanguageOptions`) with both `label` (English) and `nativeLabel` (native script) fields
+- Never duplicate the language options list — all pickers must reference the shared constant
 
 ## Navigation Consistency (CRITICAL)
 

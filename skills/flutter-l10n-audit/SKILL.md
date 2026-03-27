@@ -72,6 +72,16 @@ BottomNavigationBarItem\(.*label:\s*['"]
 NavigationDestination\(.*label:\s*['"]
 ```
 
+**String interpolation plurals:**
+```
+\$\{.*\}.*==\s*1\s*\?\s*['"].*['"]
+```
+
+**Locale-less DateFormat:**
+```
+DateFormat\.\w+\(\)
+```
+
 **Each agent excludes:**
 - `debugPrint`, `log()`, `developer.log`
 - Route names and path strings (e.g., `'/home'`, `GoRoute(path:`)
@@ -108,6 +118,8 @@ For each found string, check:
 | **Hardcoded route** | Does this `context.go()`/`context.push()` use a string literal instead of `AppRoutes.xxx`? | HARDCODED_ROUTE |
 | **Untranslated domain term** | Is a `[translate]` glossary term kept as English in a locale? | UNTRANSLATED_DOMAIN_TERM |
 | **Stale source ref** | Does the `x-source` annotation in `app_en.arb` point to a valid file:line? | STALE_SOURCE_REF |
+| **Interpolated plural** | Is this a manual plural branch (`== 1 ? '' : 's'`) instead of ICU? | INTERPOLATED_PLURAL |
+| **Missing date locale** | Does this DateFormat call lack a locale parameter? | MISSING_DATE_LOCALE |
 
 ### Step 4b: Navigation Label Consistency Scan
 
@@ -234,6 +246,12 @@ Output a report in this format:
 | # | Tutorial (File:Line) | Tutorial Text | Actual Screen Title | Gap |
 |---|---------------------|--------------|--------------------|----|
 | 1 | onboarding_tutorial.dart:12 | "Your Activity" | "Activity Feed" | Different name |
+
+### Date Format Without Locale
+
+| # | File:Line | Current | Should Be |
+|---|-----------|---------|-----------|
+| 1 | date_detail.dart:23 | `DateFormat.yMMMMd()` | `DateFormat.yMMMMd(locale)` |
 
 ### Dead Keys (no source references)
 

@@ -45,11 +45,12 @@ The script MUST:
    - `[translate]` terms → pass as "MUST translate natively" list with hints
    - `[technical]` terms → excluded (never in user-facing text)
    - Terms without a tier tag → default to `[translate]`
-3. **Read `docs/tone.md` or `docs/design.md`** for product voice/tone context
-4. **Read each target `app_<locale>.arb`** to find untranslated keys:
+3. **Read `scripts/l10n_term_map.json`** for per-locale canonical native equivalents of `[translate]` terms. Inject the target locale's terms into the prompt so the AI uses the exact word agreed upon (e.g., French "project" = "projet"). If a new `[translate]` term has empty locale entries, the script should still instruct the AI to translate it natively — the AI's choice becomes the new canonical entry (update the term map after the run).
+4. **Read `docs/tone.md` or `docs/design.md`** for product voice/tone context
+5. **Read each target `app_<locale>.arb`** to find untranslated keys:
    - Keys where `@key` metadata has `"x-translated": false`
    - Keys present in `app_en.arb` but missing entirely from the target file
-5. **Skip** keys where `"x-translated": true` (unless `--force` is used)
+6. **Skip** keys where `"x-translated": true` (unless `--force` is used)
 
 ### Step 2: For New Locales — Clone Structure
 
@@ -143,10 +144,22 @@ Do not add any explanation — return ONLY the JSON object.
 - Temperature: 0.3 (consistent translations)
 - Response format: JSON object
 
+**Consistency context:**
+- Before each batch, include up to 20 existing translations from the locale's ARB file
+  in the user prompt as a "For reference" section. This prevents the AI from using
+  synonyms across batches (e.g., "projet" in batch 1, "programme" in batch 2).
+
 **Retry logic:**
 - Up to 3 retries per batch with exponential backoff (2s, 4s, 8s)
 - If a batch fails after 3 retries, log the failed keys and continue with next batch
 - Report all failed keys at the end
+
+**Post-batch validation:**
+- After each successful batch, validate that no `[translate]` domain terms were kept
+  as English (word-boundary regex match against the term map)
+- Keys that fail this check are retried individually with an enhanced prompt:
+  `"IMPORTANT: Replace '{english_term}' with '{native_equivalent}'."`
+- If retry also fails, the key is marked as failed in the report
 
 ### Step 5: Write Translations (Per Agent)
 
