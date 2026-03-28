@@ -88,9 +88,12 @@ docs/
 - Update frequency: when user-facing features are added or changed
 
 ### `docs/changelog.md`
-- User-facing changelog (not a git log dump)
+- **Human-readable changelog** — written for end-users, QC staff, and stakeholders
+- NEVER dump raw git commit messages, hashes, or `git log` output — git history belongs in git
 - Grouped by version or date
-- Short entries: "Added room sharing", "Fixed login on slow connections"
+- Short, plain-language entries describing what changed for the user: "Added room sharing", "Fixed login on slow connections"
+- Group related changes into single entries (e.g., multiple commits for one feature = one bullet)
+- Omit internal refactors, chore commits, and docs updates unless they affect user-facing behavior
 - Useful for both end-users and QC staff (know what's new to test)
 - Update frequency: every feature addition, bug fix, or notable change
 
