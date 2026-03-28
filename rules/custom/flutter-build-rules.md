@@ -36,29 +36,30 @@ Each entry follows this structure:
 
 ## Post-Build Artifact Rename
 
-After a successful build, rename the output artifacts to a consistent naming convention:
+After a successful build, rename the output artifacts **in-place** using `mv` (not `cp`):
 
-- **APK:** `{appname}_{version}_{build}.apk` (e.g., `questday_1.0.0_6.apk`)
-- **IPA:** `{appname}_{version}_{build}.ipa` (e.g., `questday_1.0.0_6.ipa`)
+- **APK:** `mv build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/{appname}_{version}_{build}.apk`
+- **IPA:** `mv build/ios/ipa/*.ipa build/ios/ipa/{appname}_{version}_{build}.ipa`
 
 Where `{appname}` is the project name in lowercase with no spaces (derived from the project directory or pubspec `name:` field).
 
-The renamed files stay in their original build output directories. The build report must show the **full path** to each renamed artifact.
+CRITICAL: Rename in the **original Gradle/Xcode output directory** — never copy or move to a different directory (e.g., do NOT use `flutter-apk/`).
 
 ## Build Report Format
 
 After build completes, report results in a table:
 
 ```
-| Platform | Status  | Path                                              |
-|----------|---------|----------------------------------------------------|
-| Android  | success | build/app/outputs/flutter-apk/questday_1.0.0_6.apk |
-| iOS      | success | build/ios/ipa/questday_1.0.0_6.ipa                  |
+| Platform | Status  | Artifact                   | Path                              |
+|----------|---------|----------------------------|-----------------------------------|
+| Android  | success | questday_1.0.0_7.apk       | build/app/outputs/apk/release/    |
+| iOS      | success | questday_1.0.0_7.ipa       | build/ios/ipa/                     |
 ```
 
+- **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
+- **Artifact column shows the renamed filename**
 - Show paths relative to project root, not absolute paths
-- Show file names only after rename (not the original Flutter output names)
-- If a platform fails, show `failed` status with a one-line error summary instead of path
+- If a platform fails, show `failed` status with a one-line error summary instead of artifact/path
 
 ## Version & Build Numbers
 

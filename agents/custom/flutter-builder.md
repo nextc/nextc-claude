@@ -55,14 +55,19 @@ flutter build ipa --export-method ad-hoc {dart_define_flag}
 
 ### Phase 4: Artifact Rename
 
-After a successful build, rename output artifacts to a consistent naming convention:
+After a successful build, rename output artifacts **in-place** using `mv` (never `cp`):
 
-- **APK:** `{appname}_{version}_{build}.apk`
-- **IPA:** `{appname}_{version}_{build}.ipa`
+```bash
+# APK — rename in the Gradle release output directory
+mv build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/{appname}_{version}_{build}.apk
+
+# IPA — rename in the Xcode output directory
+mv build/ios/ipa/*.ipa build/ios/ipa/{appname}_{version}_{build}.ipa
+```
 
 Where `{appname}` is the project name in lowercase with no spaces (from `pubspec.yaml` `name:` field).
 
-Renamed files stay in their original build output directories.
+CRITICAL: Rename in the **original build output directory** — never copy or move to a different directory (e.g., do NOT use `flutter-apk/`).
 
 ### Phase 5: Build Log
 
@@ -103,15 +108,16 @@ Entries are prepended (newest first) below the `# Build Log` header. NEVER delet
 Report results in a table:
 
 ```
-| Platform | Status  | Path                                              |
-|----------|---------|----------------------------------------------------|
-| Android  | success | build/app/outputs/flutter-apk/appname_1.0.0_6.apk  |
-| iOS      | success | build/ios/ipa/appname_1.0.0_6.ipa                   |
+| Platform | Status  | Artifact                   | Path                              |
+|----------|---------|----------------------------|-----------------------------------|
+| Android  | success | appname_1.0.0_7.apk        | build/app/outputs/apk/release/    |
+| iOS      | success | appname_1.0.0_7.ipa        | build/ios/ipa/                     |
 ```
 
+- **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
+- **Artifact column shows the renamed filename**
 - Show paths relative to project root
-- Show file names after rename (not the original Flutter output names)
-- If a platform fails, show `failed` status with a one-line error summary instead of path
+- If a platform fails, show `failed` status with a one-line error summary instead of artifact/path
 
 ### Phase 7: Git Commit & Tag
 

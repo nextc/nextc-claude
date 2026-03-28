@@ -98,14 +98,16 @@ After the agent completes, report:
 **Build report table:**
 
 ```
-| Platform | Status  | Path                                             |
-|----------|---------|--------------------------------------------------|
-| Android  | success | build/app/outputs/flutter-apk/app_1.0.0_6.apk   |
-| iOS      | success | build/ios/ipa/app_1.0.0_6.ipa                     |
+| Platform | Status  | Artifact                   | Path                              |
+|----------|---------|----------------------------|-----------------------------------|
+| Android  | success | app_1.0.0_7.apk            | build/app/outputs/apk/release/    |
+| iOS      | success | app_1.0.0_7.ipa            | build/ios/ipa/                     |
 ```
 
-- Show renamed artifact paths relative to project root
-- If a platform failed, show `failed` with a one-line error summary
+- **Path column shows the directory only** (no filename) — clickable in file explorer
+- **Artifact column shows the renamed filename**
+- Show paths relative to project root
+- If a platform failed, show `failed` with a one-line error summary instead of artifact/path
 
 **Additional info:**
 - Version committed: `{version}+{build}`
