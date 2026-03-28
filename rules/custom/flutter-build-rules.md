@@ -34,6 +34,32 @@ Each entry follows this structure:
 - Omit chore/refactor/docs commits unless they affect user-facing behavior
 - Never list raw commit hashes or subjects
 
+## Post-Build Artifact Rename
+
+After a successful build, rename the output artifacts to a consistent naming convention:
+
+- **APK:** `{appname}_{version}_{build}.apk` (e.g., `questday_1.0.0_6.apk`)
+- **IPA:** `{appname}_{version}_{build}.ipa` (e.g., `questday_1.0.0_6.ipa`)
+
+Where `{appname}` is the project name in lowercase with no spaces (derived from the project directory or pubspec `name:` field).
+
+The renamed files stay in their original build output directories. The build report must show the **full path** to each renamed artifact.
+
+## Build Report Format
+
+After build completes, report results in a table:
+
+```
+| Platform | Status  | Path                                              |
+|----------|---------|----------------------------------------------------|
+| Android  | success | build/app/outputs/flutter-apk/questday_1.0.0_6.apk |
+| iOS      | success | build/ios/ipa/questday_1.0.0_6.ipa                  |
+```
+
+- Show paths relative to project root, not absolute paths
+- Show file names only after rename (not the original Flutter output names)
+- If a platform fails, show `failed` status with a one-line error summary instead of path
+
 ## Version & Build Numbers
 
 - Version follows semver: `MAJOR.MINOR.PATCH`
