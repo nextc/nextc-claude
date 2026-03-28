@@ -28,9 +28,9 @@ flutter gen-l10n         # Regenerate l10n after ARB changes (in target projects
 
 ## Current Inventory
 
-**Agents:** doc-keeper, flutter-l10n-agent, stitch-ui-ux-designer, ui-ux-developer
-**Rules:** error-handling, flutter-l10n-rules, no-auto-testing, project-docs, skill-selection, stitch-design-workflow
-**Skills:** flutter-l10n (pipeline), flutter-l10n-audit, flutter-l10n-harmonize, flutter-l10n-extract, flutter-l10n-translate, flutter-l10n-verify, flutter-l10n-status, update-docs
+**Agents:** doc-keeper, flutter-builder, flutter-l10n-agent, stitch-ui-ux-designer, ui-ux-developer
+**Rules:** error-handling, flutter-build-rules, flutter-l10n-rules, no-auto-testing, project-docs, skill-selection, stitch-design-workflow
+**Skills:** flutter-build, flutter-l10n (pipeline), flutter-l10n-audit, flutter-l10n-harmonize, flutter-l10n-extract, flutter-l10n-translate, flutter-l10n-verify, flutter-l10n-status, update-docs
 
 ## Adding New Items
 
