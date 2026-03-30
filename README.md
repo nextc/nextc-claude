@@ -1,16 +1,39 @@
-# dotclaude
+# nextc-claude
 
-Dotfiles-style git repo for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) custom configuration. Clone and run `setup.sh` to symlink everything into `~/.claude/`.
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin — custom agents, rules, and workflow skills for full-lifecycle development pipelines.
 
 ## Setup
 
+### Option A: Plugin Install (Recommended)
+
 ```bash
-git clone <repo-url> ~/code/lastair/dotclaude
-cd ~/code/lastair/dotclaude
+claude install-skillpack github:nextc/nextc-claude
+```
+
+Skills are namespaced when installed as a plugin: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
+
+**Rules:** The plugin installs skills and agents automatically. Rules may not be loaded by the plugin system. If rules (error-handling, project-docs, etc.) are not active after install, install them manually:
+
+```bash
+git clone <repo-url> ~/code/nextc/nextc-claude
+cd ~/code/nextc/nextc-claude
+
+# Symlink only the rules directory
+mkdir -p ~/.claude/rules
+ln -s "$(pwd)/rules/custom" ~/.claude/rules/custom
+```
+
+You can verify rules are loaded by checking if Claude follows the error-handling rule (debug logging in every catch block) or the no-auto-testing rule (no tests unless explicitly asked).
+
+### Option B: Full Symlink Install
+
+```bash
+git clone <repo-url> ~/code/nextc/nextc-claude
+cd ~/code/nextc/nextc-claude
 ./setup.sh
 ```
 
-The script is idempotent — safe to re-run after adding new skills or pulling updates.
+Installs everything (agents, rules, skills) via symlinks. The script is idempotent — safe to re-run after adding new skills or pulling updates. Skills are unprefixed: `/feature-dev`, `/clarify`, etc.
 
 ### Required Dependencies
 
@@ -23,11 +46,12 @@ Some custom agents depend on third-party skill packs. Install these before using
 ## Structure
 
 ```
-agents/custom/      → ~/.claude/agents/custom/      (directory symlink)
-rules/custom/       → ~/.claude/rules/custom/        (directory symlink)
-skills/<skill>/     → ~/.claude/skills/<skill>/       (per-skill symlinks)
-spec/               — Pipeline specs and design docs  (not symlinked)
-setup.sh            — Creates all symlinks (idempotent)
+.claude-plugin/     — Plugin manifest (plugin.json)
+agents/custom/      — Agent definitions (13 agents)
+rules/custom/       — Rule definitions (8 rules)
+skills/             — Skill definitions (15 skills)
+spec/               — Pipeline specs and design docs
+setup.sh            — Legacy symlink installer
 ```
 
 ## What's Included
@@ -63,20 +87,67 @@ setup.sh            — Creates all symlinks (idempotent)
 | `stitch-design-workflow` | Design | Gated design workflow with Stitch MCP |
 | `aso-pipeline-rules` | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
 
-### Skills
+### Skills (15)
 
-| Skill | Domain | Command | Purpose |
-|-------|--------|---------|---------|
-| `flutter-build` | Flutter | `/flutter-build` | Build APK/IPA, log, and commit version bump |
-| `flutter-l10n` | Flutter | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
-| `flutter-l10n-audit` | Flutter | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
-| `flutter-l10n-harmonize` | Flutter | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
-| `flutter-l10n-extract` | Flutter | `/flutter-l10n-extract` | Extract strings into ARB locale files |
-| `flutter-l10n-translate` | Flutter | `/flutter-l10n-translate` | Translate ARB keys via OpenAI (incremental) |
-| `flutter-l10n-verify` | Flutter | `/flutter-l10n-verify` | Post-translation quality gate |
-| `flutter-l10n-status` | Flutter | `/flutter-l10n-status` | Translation coverage dashboard per locale |
-| `update-docs` | Docs | `/update-docs` | Spawns doc-keeper to sync project docs |
-| `aso-pipeline` | ASO | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
+**Workflow** — composable development pipelines:
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| `clarify` | `/clarify` | Socratic interview: vague idea → clear spec with ambiguity scoring |
+| `bug-fix` | `/bug-fix` | Evidence-driven bug pipeline: hypothesize → investigate → fix → review → cleanup → docs |
+| `cleanup` | `/cleanup` | AI slop cleaner: deletion-first, pass-by-pass code cleanup |
+| `feature-dev` | `/feature-dev` | Full feature pipeline: clarify → plan → design → implement → review → cleanup → docs |
+| `team-feature-dev` | `/team-feature-dev` | Team-orchestrated feature dev: Product Director spawns parallel specialist workers |
+
+**Flutter:**
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| `flutter-build` | `/flutter-build` | Build APK/IPA, log, and commit version bump |
+| `flutter-l10n` | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
+| `flutter-l10n-audit` | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
+| `flutter-l10n-harmonize` | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
+| `flutter-l10n-extract` | `/flutter-l10n-extract` | Extract strings into ARB locale files |
+| `flutter-l10n-translate` | `/flutter-l10n-translate` | Translate ARB keys via OpenAI (incremental) |
+| `flutter-l10n-verify` | `/flutter-l10n-verify` | Post-translation quality gate |
+| `flutter-l10n-status` | `/flutter-l10n-status` | Translation coverage dashboard per locale |
+
+**Docs & ASO:**
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| `update-docs` | `/update-docs` | Spawns doc-keeper to sync project docs |
+| `aso-pipeline` | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
+
+### Workflow Skills
+
+The 5 workflow skills compose into each other — each can be used standalone or as part of a larger pipeline:
+
+```
+/clarify ──→ /feature-dev ──→ /cleanup
+                  ↓
+          /team-feature-dev (parallel variant with Claude Code team orchestration)
+
+/bug-fix ──→ /cleanup (if 3+ files changed)
+```
+
+**When to use which:**
+
+| Situation | Skill |
+|-----------|-------|
+| Vague idea, need to think it through | `/clarify` |
+| Build a feature (small-medium, 1-5 files) | `/feature-dev` |
+| Build a feature (large, parallelizable, 5+ files) | `/team-feature-dev` |
+| Investigate and fix a bug | `/bug-fix` |
+| Clean up messy/bloated code after a session | `/cleanup` |
+
+**How they chain:**
+- `/feature-dev` auto-invokes `/clarify` if the request is too vague (Gate 0)
+- `/feature-dev` auto-invokes `/cleanup` after implementation (Phase 7)
+- `/feature-dev` auto-invokes `/flutter-l10n-extract` for Flutter UI features (Phase 4)
+- `/team-feature-dev` follows the same pipeline but spawns parallel specialist workers via `TeamCreate`
+- `/bug-fix` invokes `/cleanup` if the fix touched 3+ files (Phase 7)
+- All workflow skills spawn `doc-keeper` at the end to update project documentation
 
 ### ASO Pipeline
 
@@ -108,6 +179,7 @@ Skills must be direct children of `skills/` — Claude Code does not discover ne
 
 | Marketplace | Repo |
 |-------------|------|
+| nextc-claude | [nextc/nextc-claude](https://github.com/nextc/nextc-claude) |
 | claude-plugins-official | [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official) |
 | everything-claude-code | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
 | pm-skills | [phuryn/pm-skills](https://github.com/phuryn/pm-skills) |

@@ -1,8 +1,18 @@
 > **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes project-docs, git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Re-check rules before completing each response.
 
-# dotclaude
+# nextc-claude
 
-Dotfiles-style repo for Claude Code custom agents, rules, and skills. Symlinked into `~/.claude/` via `setup.sh` and loaded into every project.
+Claude Code plugin — custom agents, rules, and workflow skills. Installable as a plugin or via symlinks.
+
+```bash
+# Plugin install (recommended)
+claude install-skillpack github:nextc/nextc-claude
+
+# Or symlink install (legacy)
+./setup.sh
+```
+
+When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
 
 ## Golden Rule
 
@@ -11,18 +21,20 @@ Dotfiles-style repo for Claude Code custom agents, rules, and skills. Symlinked 
 ## Structure
 
 ```
-agents/custom/      → ~/.claude/agents/custom/      (directory symlink)
-rules/custom/       → ~/.claude/rules/custom/        (directory symlink)
-skills/<skill>/     → ~/.claude/skills/<skill>/       (per-skill symlinks)
-spec/               — Pipeline specs and design docs  (not symlinked)
-setup.sh            — Creates all symlinks (idempotent)
+.claude-plugin/     — Plugin manifest (plugin.json)
+agents/custom/      — Agent definitions (13 agents)
+rules/custom/       — Rule definitions (8 rules)
+skills/             — Skill definitions (15 skills)
+spec/               — Pipeline specs and design docs
+setup.sh            — Legacy symlink installer (still works)
 ```
 
 ## Key Commands
 
 | Command | Purpose |
 |---------|---------|
-| `./setup.sh` | Symlink everything into `~/.claude/` |
+| `claude install-skillpack github:nextc/nextc-claude` | Install as plugin |
+| `./setup.sh` | Symlink install (legacy) |
 | `git diff` | Review changes before committing |
 | `flutter gen-l10n` | Regenerate l10n after ARB changes (in target projects) |
 
@@ -71,20 +83,45 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 | stitch-design-workflow | Design | Stitch design phases: theme, validation, core screens, design.md |
 | aso-pipeline-rules | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
 
-### Skills
+### Skills (15)
 
-| Skill | Domain | Invocable | Purpose |
-|-------|--------|-----------|---------|
-| flutter-build | Flutter | `/flutter-build` | Build APK/IPA, log, and commit version bump |
-| flutter-l10n | Flutter | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
-| flutter-l10n-audit | Flutter | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
-| flutter-l10n-harmonize | Flutter | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
-| flutter-l10n-extract | Flutter | `/flutter-l10n-extract` | Extract strings into ARB locale files |
-| flutter-l10n-translate | Flutter | `/flutter-l10n-translate` | Translate untranslated ARB keys via OpenAI |
-| flutter-l10n-verify | Flutter | `/flutter-l10n-verify` | Post-translation verification |
-| flutter-l10n-status | Flutter | `/flutter-l10n-status` | Translation coverage dashboard |
-| update-docs | Docs | `/update-docs` | Sync project documentation with codebase state |
-| aso-pipeline | ASO | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
+**Workflow** — composable development pipelines (new skills chain into each other):
+
+| Skill | Invocable | Purpose |
+|-------|-----------|---------|
+| clarify | `/clarify` | Socratic interview: vague idea → clear spec with ambiguity scoring |
+| bug-fix | `/bug-fix` | Evidence-driven bug pipeline: hypothesize → investigate → fix → review → cleanup → docs |
+| cleanup | `/cleanup` | AI slop cleaner: deletion-first, pass-by-pass code cleanup |
+| feature-dev | `/feature-dev` | Full feature pipeline: clarify → plan → design → implement → review → cleanup → docs |
+| team-feature-dev | `/team-feature-dev` | Team-orchestrated feature dev: Product Director spawns parallel specialist workers |
+
+```
+/clarify ──→ /feature-dev ──→ /cleanup
+                  ↓
+          /team-feature-dev (parallel variant)
+
+/bug-fix ──→ /cleanup (if 3+ files changed)
+```
+
+**Flutter:**
+
+| Skill | Invocable | Purpose |
+|-------|-----------|---------|
+| flutter-build | `/flutter-build` | Build APK/IPA, log, and commit version bump |
+| flutter-l10n | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
+| flutter-l10n-audit | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
+| flutter-l10n-harmonize | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
+| flutter-l10n-extract | `/flutter-l10n-extract` | Extract strings into ARB locale files |
+| flutter-l10n-translate | `/flutter-l10n-translate` | Translate untranslated ARB keys via OpenAI |
+| flutter-l10n-verify | `/flutter-l10n-verify` | Post-translation verification |
+| flutter-l10n-status | `/flutter-l10n-status` | Translation coverage dashboard |
+
+**Docs & ASO:**
+
+| Skill | Invocable | Purpose |
+|-------|-----------|---------|
+| update-docs | `/update-docs` | Sync project documentation with codebase state |
+| aso-pipeline | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
 
 ## Adding New Items
 
@@ -101,4 +138,4 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 - **Composable** — skills can be invoked independently or as part of pipelines
 - **Idempotent** — `setup.sh` and all skills are safe to re-run
 
-See [README.md](README.md) for setup instructions and marketplace plugin list.
+See [README.md](README.md) for full setup instructions, marketplace dependencies, and plugin list.

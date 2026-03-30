@@ -1,0 +1,33 @@
+{
+  "name": "nextc-claude",
+  "version": "1.0.0",
+  "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
+  "author": {
+    "name": "nextc"
+  },
+  "homepage": "https://github.com/nextc/nextc-claude",
+  "repository": "https://github.com/nextc/nextc-claude",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "agents",
+    "rules",
+    "skills",
+    "flutter",
+    "aso",
+    "design",
+    "localization"
+  ],
+  "agents": "agents/custom/",
+  "rules": [
+    "rules/custom/error-handling.md",
+    "rules/custom/flutter-build-rules.md",
+    "rules/custom/flutter-l10n-rules.md",
+    "rules/custom/no-auto-testing.md",
+    "rules/custom/project-docs.md",
+    "rules/custom/skill-selection.md",
+    "rules/custom/stitch-design-workflow.md",
+    "rules/custom/aso-pipeline-rules.md"
+  ],
+  "skills": "skills/"
+}

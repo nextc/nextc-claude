@@ -3,3 +3,6 @@
 
 # Claude Code project state
 .claude/
+
+# Reference/vendor OSS code
+reference-oss/
