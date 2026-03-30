@@ -8,7 +8,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 
-src="$REPO_DIR/rules/nextc-claude"
+src="$REPO_DIR/nextc-claude/rules/nextc-claude"
 dest="$CLAUDE_DIR/rules/nextc-claude"
 
 if [ -L "$dest" ]; then
