@@ -17,5 +17,37 @@
     "aso",
     "design",
     "localization"
+  ],
+  "agents": [
+    "./agents/custom/stitch-ui-ux-designer.md",
+    "./agents/custom/doc-keeper.md",
+    "./agents/custom/ui-ux-developer.md",
+    "./agents/custom/flutter-l10n-agent.md",
+    "./agents/custom/flutter-builder.md",
+    "./agents/custom/aso-director.md",
+    "./agents/custom/aso-competitive.md",
+    "./agents/custom/aso-keyword-research.md",
+    "./agents/custom/aso-metadata.md",
+    "./agents/custom/aso-creative.md",
+    "./agents/custom/aso-localization.md",
+    "./agents/custom/aso-ratings-reviews.md",
+    "./agents/custom/aso-tracking.md"
+  ],
+  "skills": [
+    "./skills/update-docs/",
+    "./skills/flutter-l10n-status/",
+    "./skills/flutter-l10n-extract/",
+    "./skills/flutter-l10n/",
+    "./skills/flutter-l10n-harmonize/",
+    "./skills/flutter-l10n-audit/",
+    "./skills/flutter-l10n-verify/",
+    "./skills/flutter-l10n-translate/",
+    "./skills/flutter-build/",
+    "./skills/aso-pipeline/",
+    "./skills/clarify/",
+    "./skills/cleanup/",
+    "./skills/feature-dev/",
+    "./skills/team-feature-dev/",
+    "./skills/bug-fix/"
   ]
 }
