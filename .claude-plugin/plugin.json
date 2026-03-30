@@ -17,37 +17,5 @@
     "aso",
     "design",
     "localization"
-  ],
-  "agents": [
-    "./agents/nextc-claude/stitch-ui-ux-designer.md",
-    "./agents/nextc-claude/doc-keeper.md",
-    "./agents/nextc-claude/ui-ux-developer.md",
-    "./agents/nextc-claude/flutter-l10n-agent.md",
-    "./agents/nextc-claude/flutter-builder.md",
-    "./agents/nextc-claude/aso-director.md",
-    "./agents/nextc-claude/aso-competitive.md",
-    "./agents/nextc-claude/aso-keyword-research.md",
-    "./agents/nextc-claude/aso-metadata.md",
-    "./agents/nextc-claude/aso-creative.md",
-    "./agents/nextc-claude/aso-localization.md",
-    "./agents/nextc-claude/aso-ratings-reviews.md",
-    "./agents/nextc-claude/aso-tracking.md"
-  ],
-  "skills": [
-    "./skills/update-docs/",
-    "./skills/flutter-l10n-status/",
-    "./skills/flutter-l10n-extract/",
-    "./skills/flutter-l10n/",
-    "./skills/flutter-l10n-harmonize/",
-    "./skills/flutter-l10n-audit/",
-    "./skills/flutter-l10n-verify/",
-    "./skills/flutter-l10n-translate/",
-    "./skills/flutter-build/",
-    "./skills/aso-pipeline/",
-    "./skills/clarify/",
-    "./skills/cleanup/",
-    "./skills/feature-dev/",
-    "./skills/team-feature-dev/",
-    "./skills/bug-fix/"
   ]
 }
