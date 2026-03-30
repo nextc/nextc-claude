@@ -1,9 +1,12 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "nextc-claude",
-  "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
   "owner": {
     "name": "nextc"
+  },
+  "metadata": {
+    "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
+    "version": "1.0.0",
+    "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
     {
@@ -15,26 +18,8 @@
         "name": "nextc"
       },
       "homepage": "https://github.com/nextc/nextc-claude",
-      "repository": "https://github.com/nextc/nextc-claude",
       "license": "MIT",
-      "keywords": [
-        "workflow",
-        "agents",
-        "rules",
-        "skills",
-        "flutter",
-        "aso",
-        "design",
-        "localization"
-      ],
       "category": "workflow",
-      "tags": [
-        "flutter",
-        "aso",
-        "workflow",
-        "agents",
-        "skills"
-      ],
       "strict": false
     }
   ]
