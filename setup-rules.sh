@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# dotclaude setup — symlinks rules into ~/.claude/rules/nextc-claude/
+# nextc-claude setup — symlinks rules into ~/.claude/rules/nextc-claude/
 # Agents and skills are installed via marketplace (claude install-skillpack).
 # Rules have no plugin support, so they still require this symlink.
 
