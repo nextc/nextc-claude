@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "nextc-claude",
+  "version": "1.0.0",
+  "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
+  "owner": {
+    "name": "nextc"
+  },
+  "plugins": [
+    {
+      "name": "nextc-claude",
+      "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
+      "source": "./"
+    }
+  ]
+}
