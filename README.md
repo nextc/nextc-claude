@@ -12,28 +12,25 @@ claude install-skillpack github:nextc/nextc-claude
 
 Skills are namespaced when installed as a plugin: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
 
-**Rules:** The plugin installs skills and agents automatically. Rules may not be loaded by the plugin system. If rules (error-handling, project-docs, etc.) are not active after install, install them manually:
+**Rules:** The plugin installs skills and agents automatically, but rules are not covered by the plugin system. After plugin install, symlink rules separately:
 
 ```bash
 git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude
-
-# Symlink only the rules directory
-mkdir -p ~/.claude/rules
-ln -s "$(pwd)/rules/custom" ~/.claude/rules/custom
+./setup-rules.sh
 ```
 
 You can verify rules are loaded by checking if Claude follows the error-handling rule (debug logging in every catch block) or the no-auto-testing rule (no tests unless explicitly asked).
 
-### Option B: Full Symlink Install
+### Option B: Rules-Only Symlink
 
 ```bash
 git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude
-./setup.sh
+./setup-rules.sh
 ```
 
-Installs everything (agents, rules, skills) via symlinks. The script is idempotent — safe to re-run after adding new skills or pulling updates. Skills are unprefixed: `/feature-dev`, `/clarify`, etc.
+Symlinks `rules/custom/` into `~/.claude/rules/custom/`. Safe to re-run. Use this alongside Option A — the plugin handles agents and skills, this handles rules.
 
 ### Required Dependencies
 
@@ -51,7 +48,7 @@ agents/custom/      — Agent definitions (13 agents)
 rules/custom/       — Rule definitions (8 rules)
 skills/             — Skill definitions (15 skills)
 spec/               — Pipeline specs and design docs
-setup.sh            — Legacy symlink installer
+setup-rules.sh      — Symlinks rules/custom into ~/.claude/rules/custom
 ```
 
 ## What's Included
@@ -167,9 +164,9 @@ Each specialist agent invokes installed ASO skills first, then supplements with 
 
 | Type | How |
 |------|-----|
-| Skill | Create `skills/<name>/SKILL.md` with frontmatter, run `./setup.sh` |
+| Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
 | Rule | Add `rules/custom/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/custom/<name>.md` — symlink picks up automatically |
+| Agent | Add `agents/custom/<name>.md`, add to `plugin.json` |
 
 Skills must be direct children of `skills/` — Claude Code does not discover nested subdirectories.
 

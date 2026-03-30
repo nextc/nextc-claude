@@ -8,8 +8,8 @@ Claude Code plugin — custom agents, rules, and workflow skills. Installable as
 # Plugin install (recommended)
 claude install-skillpack github:nextc/nextc-claude
 
-# Or symlink install (legacy)
-./setup.sh
+# Symlink rules (not installed by marketplace)
+./setup-rules.sh
 ```
 
 When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
@@ -26,15 +26,15 @@ agents/custom/      — Agent definitions (13 agents)
 rules/custom/       — Rule definitions (8 rules)
 skills/             — Skill definitions (15 skills)
 spec/               — Pipeline specs and design docs
-setup.sh            — Legacy symlink installer (still works)
+setup-rules.sh      — Symlinks rules/custom into ~/.claude/rules/custom
 ```
 
 ## Key Commands
 
 | Command | Purpose |
 |---------|---------|
-| `claude install-skillpack github:nextc/nextc-claude` | Install as plugin |
-| `./setup.sh` | Symlink install (legacy) |
+| `claude install-skillpack github:nextc/nextc-claude` | Install agents + skills via plugin |
+| `./setup-rules.sh` | Symlink rules (not covered by plugin) |
 | `git diff` | Review changes before committing |
 | `flutter gen-l10n` | Regenerate l10n after ARB changes (in target projects) |
 
@@ -127,15 +127,15 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 
 | Type | How |
 |------|-----|
-| Skill | Create `skills/<name>/SKILL.md` with frontmatter, run `./setup.sh` |
+| Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
 | Rule | Add `rules/custom/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/custom/<name>.md` — symlink picks up automatically |
+| Agent | Add `agents/custom/<name>.md`, add to `plugin.json` |
 
 ## Design Principles
 
 - **Project-agnostic** — no hardcoded project paths or domain terms
 - **Activation by context** — skills/rules declare when they apply
 - **Composable** — skills can be invoked independently or as part of pipelines
-- **Idempotent** — `setup.sh` and all skills are safe to re-run
+- **Idempotent** — `setup-rules.sh` and all skills are safe to re-run
 
 See [README.md](README.md) for full setup instructions, marketplace dependencies, and plugin list.
