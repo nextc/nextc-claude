@@ -21,14 +21,12 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 ## Structure
 
 ```
-.claude-plugin/                    — Marketplace manifest (marketplace.json only)
-nextc-claude/                      — Plugin subdirectory (namespaced in CLI autocomplete)
-  .claude-plugin/plugin.json       — Plugin manifest
-  commands/                        — User-invocable slash commands (15 commands)
-  skills/                          — Skill definitions (15 skills)
-  agents/nextc-claude/             — Agent definitions (13 agents)
-  rules/nextc-claude/              — Rule definitions (8 rules)
-setup-rules.sh                     — Symlinks rules into ~/.claude/rules/nextc-claude
+.claude-plugin/     — Plugin manifest (plugin.json)
+agents/nextc-claude/      — Agent definitions (13 agents)
+rules/nextc-claude/ — Rule definitions (8 rules)
+skills/             — Skill definitions (15 skills)
+spec/               — Pipeline specs and design docs
+setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 
 ## Key Commands
@@ -129,10 +127,9 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 
 | Type | How |
 |------|-----|
-| Skill | Create `nextc-claude/skills/<name>/SKILL.md` with frontmatter |
-| Command | Create `nextc-claude/commands/<name>.md` for CLI autocomplete |
-| Rule | Add `nextc-claude/rules/nextc-claude/<name>.md` — symlink picks up automatically |
-| Agent | Add `nextc-claude/agents/nextc-claude/<name>.md` |
+| Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
+| Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
+| Agent | Add `agents/nextc-claude/<name>.md`, add to `plugin.json` |
 
 ## Design Principles
 
