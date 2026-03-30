@@ -17,17 +17,5 @@
     "aso",
     "design",
     "localization"
-  ],
-  "agents": "agents/custom/",
-  "rules": [
-    "rules/custom/error-handling.md",
-    "rules/custom/flutter-build-rules.md",
-    "rules/custom/flutter-l10n-rules.md",
-    "rules/custom/no-auto-testing.md",
-    "rules/custom/project-docs.md",
-    "rules/custom/skill-selection.md",
-    "rules/custom/stitch-design-workflow.md",
-    "rules/custom/aso-pipeline-rules.md"
-  ],
-  "skills": "skills/"
+  ]
 }
