@@ -27,7 +27,7 @@ across locales or cross-referencing with the codebase.
 
 ### Step 1: Load Context
 
-1. Read `~/.claude/rules/custom/flutter-l10n-rules.md` for text principles
+1. Read `~/.claude/rules/nextc-claude/flutter-l10n-rules.md` for text principles
 2. Read `docs/glossary.md` for term classifications (`[keep]`, `[translate]`, `[technical]`)
 3. Read `lib/l10n/app_en.arb` as the English source of truth
 4. List all locale ARB files under `lib/l10n/`

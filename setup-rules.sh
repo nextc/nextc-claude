@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# dotclaude setup — symlinks rules into ~/.claude/rules/custom/
+# dotclaude setup — symlinks rules into ~/.claude/rules/nextc-claude/
 # Agents and skills are installed via marketplace (claude install-skillpack).
 # Rules have no plugin support, so they still require this symlink.
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 
-src="$REPO_DIR/rules/custom"
-dest="$CLAUDE_DIR/rules/custom"
+src="$REPO_DIR/rules/nextc-claude"
+dest="$CLAUDE_DIR/rules/nextc-claude"
 
 if [ -L "$dest" ]; then
   echo "✓ $dest is already a symlink → $(readlink "$dest")"

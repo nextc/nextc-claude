@@ -54,7 +54,7 @@ Build the prompt by combining:
 2. The mode instruction:
    - Bootstrap: "Bootstrap the full docs structure by reading the codebase. Create CLAUDE.md, docs/proposal.md, docs/design.md, docs/tasks.md, and docs/spec/ files as needed."
    - Update: "Update existing docs to reflect the changes shown above. Only modify files that are affected by the changes."
-3. End with: "Follow the structure and content guidelines in ~/.claude/rules/custom/project-docs.md."
+3. End with: "Follow the structure and content guidelines in ~/.claude/rules/nextc-claude/project-docs.md."
 
 ## Step 4: Report
 
@@ -62,4 +62,4 @@ Tell the user the doc-keeper is running in the background. Mention which files a
 
 ## Fallback
 
-If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from `~/.claude/rules/custom/project-docs.md`.
+If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from `~/.claude/rules/nextc-claude/project-docs.md`.

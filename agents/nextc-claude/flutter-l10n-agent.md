@@ -25,7 +25,7 @@ Before any operation:
 1. Read `CLAUDE.md` for project context (tech stack, structure)
 2. Read `docs/glossary.md` for no-translate terms
 3. Read `docs/tone.md` or `docs/design.md` for product voice/tone
-4. Read `~/.claude/rules/custom/flutter-l10n-rules.md` for text principles
+4. Read `~/.claude/rules/nextc-claude/flutter-l10n-rules.md` for text principles
 5. Read `l10n.yaml` for current locale configuration
 6. Scan `lib/l10n/` for existing ARB files
 

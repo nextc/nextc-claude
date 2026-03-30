@@ -30,7 +30,7 @@ cd ~/code/nextc/nextc-claude
 ./setup-rules.sh
 ```
 
-Symlinks `rules/custom/` into `~/.claude/rules/custom/`. Safe to re-run. Use this alongside Option A — the plugin handles agents and skills, this handles rules.
+Symlinks `rules/nextc-claude/` into `~/.claude/rules/nextc-claude/`. Safe to re-run. Use this alongside Option A — the plugin handles agents and skills, this handles rules.
 
 ### Required Dependencies
 
@@ -44,11 +44,11 @@ Some custom agents depend on third-party skill packs. Install these before using
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/custom/      — Agent definitions (13 agents)
-rules/custom/       — Rule definitions (8 rules)
+agents/nextc-claude/      — Agent definitions (13 agents)
+rules/nextc-claude/       — Rule definitions (8 rules)
 skills/             — Skill definitions (15 skills)
 spec/               — Pipeline specs and design docs
-setup-rules.sh      — Symlinks rules/custom into ~/.claude/rules/custom
+setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 
 ## What's Included
@@ -165,8 +165,8 @@ Each specialist agent invokes installed ASO skills first, then supplements with 
 | Type | How |
 |------|-----|
 | Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
-| Rule | Add `rules/custom/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/custom/<name>.md`, add to `plugin.json` |
+| Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
+| Agent | Add `agents/nextc-claude/<name>.md`, add to `plugin.json` |
 
 Skills must be direct children of `skills/` — Claude Code does not discover nested subdirectories.
 

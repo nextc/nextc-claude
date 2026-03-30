@@ -26,7 +26,7 @@ looks *across* all strings to find redundancy, inconsistency, and pattern drift.
 
 ### Step 1: Load Context
 
-1. Read `~/.claude/rules/custom/flutter-l10n-rules.md` for text principles
+1. Read `~/.claude/rules/nextc-claude/flutter-l10n-rules.md` for text principles
 2. Read `docs/glossary.md` for canonical terms and no-translate list
 3. Read `docs/tone.md` or `docs/design.md` for product voice/tone
 4. Read `lib/l10n/app_en.arb` if it exists (to know what's already extracted)
