@@ -174,16 +174,21 @@ Skills must be direct children of `skills/` — Claude Code does not discover ne
 
 ### Marketplaces
 
-| Marketplace | Repo |
-|-------------|------|
-| nextc-claude | [nextc/nextc-claude](https://github.com/nextc/nextc-claude) |
-| claude-plugins-official | [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official) |
-| everything-claude-code | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
-| pm-skills | [phuryn/pm-skills](https://github.com/phuryn/pm-skills) |
-| marketingskills | [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) |
-| aso-skills | [Eronred/aso-skills](https://github.com/Eronred/aso-skills) |
+| Marketplace | Install | Description |
+|-------------|---------|-------------|
+| nextc-claude | `claude plugin marketplace add nextc/nextc-claude` | Workflow pipelines, Flutter build/l10n, design with Stitch, ASO pipeline |
+| claude-plugins-official | `claude plugin marketplace add anthropics/claude-plugins-official` | Anthropic's official directory — 100+ plugins for dev tools, MCP servers, and integrations |
+| everything-claude-code | `claude plugin marketplace add affaan-m/everything-claude-code` | Battle-tested agents, skills, hooks, and rules from an Anthropic hackathon winner |
+| pm-skills | `claude plugin marketplace add phuryn/pm-skills` | 65 PM skills across 8 plugins — discovery, strategy, execution, GTM, analytics |
+| marketingskills | `claude plugin marketplace add coreyhaines31/marketingskills` | 33 marketing skills — CRO, copywriting, SEO, paid ads, cold email, pricing |
+| claude-code-workflows | `claude plugin marketplace add wshobson/claude-code-workflows` | 72 plugins, 112 agents, 146 skills — debugging, TDD, refactoring, deployment |
+| ui-ux-pro-max-skill | `claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` | UI/UX design intelligence — 67 styles, 161 palettes, 57 font pairings, 15 stacks |
+| claude-mem | `claude plugin marketplace add thedotmack/claude-mem` | Persistent cross-session memory — context preservation across conversations |
+| aso-skills | `claude plugin marketplace add Eronred/aso-skills` | 27 ASO skills — keywords, competitors, metadata, ratings, analytics (required by ASO pipeline) |
 
-### Plugins
+### Recommended Plugins
+
+Plugins currently installed and enabled:
 
 | Plugin | Marketplace | Description |
 |--------|-------------|-------------|
@@ -203,4 +208,6 @@ Skills must be direct children of `skills/` — Claude Code does not discover ne
 | pm-product-discovery | pm-skills | Interview scripts, feature prioritization, OSTs |
 | pm-product-strategy | pm-skills | Pricing, SWOT, Lean Canvas, business models |
 | marketing-skills | marketingskills | SEO, ads, CRO, email, content strategy |
+| ui-ux-pro-max | ui-ux-pro-max-skill | UI/UX design intelligence for web and mobile |
+| claude-mem | claude-mem | Persistent memory across Claude Code sessions |
 | aso-skills | aso-skills | 27 ASO skills: keywords, competitors, metadata, ratings, analytics |
