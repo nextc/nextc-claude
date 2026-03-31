@@ -214,15 +214,15 @@ TaskUpdate(taskId="5", owner="worker-2")
 
 Spawn all teammates **in parallel**. Each teammate gets a worker preamble + their assigned tasks.
 
-**Worker type selection:**
+**Worker type selection (see `model-selection` rule):**
 
-| Task Type | Agent Type | Model |
-|-----------|-----------|-------|
-| Data model, repository, provider, service, logic | general-purpose | sonnet |
-| Complex state management, multi-file coordination | general-purpose | opus |
-| UI screen implementation | ui-ux-developer (custom) | opus |
-| Simple rename, import fix, config change | general-purpose | haiku |
-| L10n string extraction | general-purpose | sonnet |
+| Task Type | Agent Type | Model | Rationale |
+|-----------|-----------|-------|-----------|
+| Data model, repository, provider, service, logic | general-purpose | sonnet | Standard implementation |
+| Complex state management, multi-file coordination | general-purpose | opus | Deep reasoning, multi-file trade-offs |
+| UI screen implementation | ui-ux-developer (custom) | sonnet | Implementation from design.md specs |
+| Simple rename, import fix, config change | general-purpose | haiku | Minimal reasoning, scripted steps |
+| L10n string extraction | general-purpose | haiku | Mechanical text processing |
 
 **Worker preamble** (included in every teammate's prompt):
 
@@ -452,20 +452,20 @@ Present the final summary to the user:
 
 ## Composability
 
-| Phase | Tool / Skill / Agent | Purpose |
-|-------|---------------------|---------|
-| Gate 0 | `/clarify` skill | Vague request → clear spec |
-| Phase 1 | Existing `docs/spec/` | Skip planning if spec exists |
-| Phase 2a | `everything-claude-code:planner` | Create implementation plan |
-| Phase 2b | `everything-claude-code:architect` | Adversarial architecture review |
-| Phase 3 | `stitch-ui-ux-designer` agent | Core screen design (UI features) |
-| Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | Native team orchestration |
-| Phase 4 | `ui-ux-developer` agent (as teammate) | UI screen implementation |
-| Phase 5 | Fix loop via `TaskCreate` + workers | Verification failures |
-| Phase 6 | `everything-claude-code:code-reviewer` | Cross-worker code review |
-| Phase 6 | `everything-claude-code:security-reviewer` | Security review (when needed) |
-| Phase 7 | `/cleanup` skill | Post-implementation slop cleaning |
-| Phase 8 | `TeamDelete` + `doc-keeper` agent | Clean shutdown + documentation |
+| Phase | Tool / Skill / Agent | Model | Purpose |
+|-------|---------------------|-------|---------|
+| Gate 0 | `/clarify` skill | — | Vague request → clear spec |
+| Phase 1 | Existing `docs/spec/` | — | Skip planning if spec exists |
+| Phase 2a | `everything-claude-code:planner` | sonnet | Create implementation plan |
+| Phase 2b | `everything-claude-code:architect` | opus | Adversarial architecture review |
+| Phase 3 | `stitch-ui-ux-designer` agent | opus | Core screen design (UI features) |
+| Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | — | Native team orchestration |
+| Phase 4 | `ui-ux-developer` agent (as teammate) | sonnet | UI screen implementation |
+| Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |
+| Phase 6 | `everything-claude-code:code-reviewer` | sonnet | Cross-worker code review |
+| Phase 6 | `everything-claude-code:security-reviewer` | sonnet | Security review (when needed) |
+| Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
+| Phase 8 | `TeamDelete` + `doc-keeper` agent | haiku | Clean shutdown + documentation |
 
 ## When to Use /team-feature-dev vs /feature-dev
 

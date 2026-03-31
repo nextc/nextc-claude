@@ -37,7 +37,7 @@ in AI-assisted development.
 
 1. Parse the user's idea from `{{ARGUMENTS}}`
 2. Detect **brownfield vs greenfield**:
-   - Spawn an `Explore` agent (haiku): check if cwd has existing source code, package files, or git history relevant to the idea
+   - Spawn an `Explore` agent (model: haiku): check if cwd has existing source code, package files, or git history relevant to the idea
    - If source files exist AND the idea references modifying/extending something: **brownfield**
    - Otherwise: **greenfield**
 3. For brownfield: use the Explore agent results as `codebase_context` — relevant files, patterns, tech stack

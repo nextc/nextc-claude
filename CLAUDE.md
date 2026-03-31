@@ -24,7 +24,7 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 .claude-plugin/     — Plugin manifest (plugin.json)
 agents/nextc-claude/      — Agent definitions (13 agents)
 commands/           — Slash command stubs for CLI autocomplete (15 commands)
-rules/nextc-claude/ — Rule definitions (8 rules)
+rules/nextc-claude/ — Rule definitions (9 rules)
 skills/             — Skill definitions (15 skills)
 setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
@@ -74,6 +74,7 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 
 | Rule | Domain | Purpose |
 |------|--------|---------|
+| **model-selection** | **All** | **Model tier assignments: opus (complex reasoning), sonnet (standard work), haiku (chores)** |
 | error-handling | All | Debug logging + user-friendly error messages in every catch block |
 | flutter-build-rules | Flutter | Build log format, artifact naming, version bumps, git tags |
 | flutter-l10n-rules | Flutter | Localization text principles, ICU format, glossary protection |

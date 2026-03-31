@@ -1,7 +1,7 @@
 ---
 name: doc-keeper
 description: Lightweight agent that updates project docs after code changes. Reads git diff and conversation context to maintain docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md, docs/product-guide.md, docs/changelog.md, docs/glossary.md, docs/api.md, and docs/qc/.
-model: sonnet
+model: haiku
 tools:
   - Read
   - Write

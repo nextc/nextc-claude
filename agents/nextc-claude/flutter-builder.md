@@ -5,7 +5,7 @@ description: >
   Flutter build agent that builds APK/IPA, updates buildlog, and commits
   version bumps. Handles platform selection, build mode, version/build number
   increments, artifact renaming, and post-build documentation.
-model: sonnet
+model: haiku
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 ---
 

@@ -44,7 +44,7 @@ consolidate duplicates, flatten needless abstractions — one pass at a time.
 
 1. **Determine scope** from `{{ARGUMENTS}}`:
    - If specific files/paths given → scope to those files only
-   - If feature area named → find related files via Explore agent
+   - If feature area named → find related files via Explore agent (model: haiku)
    - If no scope given → scope to files changed in current git session (`git diff --name-only HEAD~10`)
    - NEVER silently expand scope beyond what was requested
 

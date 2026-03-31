@@ -66,7 +66,7 @@ not a full Socratic interview. Ask 1-3 focused questions, then proceed.
    - What was expected
    - When/where it happens (specific screen, action, conditions)
    - What changed recently (if known)
-3. **Gather codebase context** — spawn an Explore agent (haiku) to:
+3. **Gather codebase context** — spawn an Explore agent (model: haiku) to:
    - Find files related to the reported area
    - Check recent git history (`git log --oneline -20` on relevant paths)
    - Identify the tech stack and patterns in the affected area
@@ -94,7 +94,7 @@ For each hypothesis, state:
 
 ## Phase 3: Investigate (Parallel)
 
-Spawn **3 Explore agents in parallel** (one per hypothesis lane). Each agent:
+Spawn **3 Explore agents in parallel** (model: haiku, one per hypothesis lane). Each agent:
 
 1. **Owns exactly one hypothesis**
 2. **Gathers evidence FOR** the hypothesis — code paths, logs, data, config, git blame
@@ -369,12 +369,13 @@ Explicitly down-rank hypotheses that depend on tier 5-6 evidence when stronger c
 
 ## Composability
 
-| Phase | Skill / Agent | When |
-|-------|--------------|------|
-| Phase 3 | Explore agents (parallel) | Always — one per hypothesis lane |
-| Phase 6 | `everything-claude-code:code-reviewer` | Always |
-| Phase 6 | `everything-claude-code:security-reviewer` | Auth/payments/user data |
-| Phase 7 | `/cleanup` skill | Fix touched 3+ files |
-| Phase 8 | `doc-keeper` agent | Always (background) |
+| Phase | Skill / Agent | Model | When |
+|-------|--------------|-------|------|
+| Phase 1 | Explore agent | haiku | Gather codebase context |
+| Phase 3 | Explore agents (parallel) | haiku | One per hypothesis lane — evidence gathering |
+| Phase 6 | `everything-claude-code:code-reviewer` | sonnet | Always |
+| Phase 6 | `everything-claude-code:security-reviewer` | sonnet | Auth/payments/user data |
+| Phase 7 | `/cleanup` skill | — | Fix touched 3+ files |
+| Phase 8 | `doc-keeper` agent | haiku | Always (background) |
 
 Task: {{ARGUMENTS}}

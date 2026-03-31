@@ -255,7 +255,7 @@ For each step in the plan:
 3. If analyzer fails → fix before proceeding
 4. Move to next step
 
-Delegate complex sub-tasks to agents at appropriate tiers:
+Delegate sub-tasks to agents at appropriate model tiers (see `model-selection` rule):
 - Simple changes (add import, rename, small edit): do directly or use haiku agent
 - Standard implementation (new file, new method, provider logic): do directly or use sonnet agent
 - Complex logic (state management, data flow, multi-file coordination): use opus agent
@@ -283,13 +283,16 @@ Follow this order:
 When the plan has independent steps, fire them simultaneously:
 
 ```
-# Good: independent steps in parallel
+# Good: independent steps in parallel with correct model tiers
 Agent 1 (sonnet): "Create the GuildInvite model and repository"
 Agent 2 (sonnet): "Create the guild_invite_provider with state management"
-Agent 3 (haiku):  "Add the new route to router.dart"
+Agent 3 (haiku):  "Add the new route to router.dart"  # simple config change
 
 # Bad: sequential when unnecessary
 Step 1 → wait → Step 2 → wait → Step 3
+
+# Bad: opus for simple tasks
+Agent 1 (opus): "Add an import to router.dart"  # haiku is sufficient
 ```
 
 ### Progress Tracking
@@ -440,19 +443,19 @@ Spawn **doc-keeper** agent in the background to update:
 
 This skill composes other skills and agents. Here's what it invokes:
 
-| Phase | Skill / Agent | When |
-|-------|--------------|------|
-| Gate 0 | `/clarify` skill | Request too vague |
-| Phase 1 | Existing `docs/spec/` | Spec exists from prior `/clarify` — skip Phase 2a |
-| Phase 2a | `everything-claude-code:planner` agent | No existing spec |
-| Phase 2b | `everything-claude-code:architect` agent | Always |
-| Phase 3 | `stitch-ui-ux-designer` agent | UI feature, core screen needed |
-| Phase 4 | `ui-ux-developer` agent | UI feature, screen implementation |
-| Phase 4 | `/flutter-l10n-extract` skill | Flutter UI feature, l10n enabled |
-| Phase 6 | `everything-claude-code:code-reviewer` agent | Always |
-| Phase 6 | `everything-claude-code:security-reviewer` agent | Auth/payments/user data |
-| Phase 7 | `/cleanup` skill | Always (re-verify after) |
-| Phase 8 | `doc-keeper` agent | Always (background) |
+| Phase | Skill / Agent | Model | When |
+|-------|--------------|-------|------|
+| Gate 0 | `/clarify` skill | — | Request too vague |
+| Phase 1 | Existing `docs/spec/` | — | Spec exists from prior `/clarify` — skip Phase 2a |
+| Phase 2a | `everything-claude-code:planner` agent | sonnet | No existing spec |
+| Phase 2b | `everything-claude-code:architect` agent | opus | Always |
+| Phase 3 | `stitch-ui-ux-designer` agent | opus | UI feature, core screen needed |
+| Phase 4 | `ui-ux-developer` agent | sonnet | UI feature, screen implementation |
+| Phase 4 | `/flutter-l10n-extract` skill | — | Flutter UI feature, l10n enabled |
+| Phase 6 | `everything-claude-code:code-reviewer` agent | sonnet | Always |
+| Phase 6 | `everything-claude-code:security-reviewer` agent | sonnet | Auth/payments/user data |
+| Phase 7 | `/cleanup` skill | — | Always (re-verify after) |
+| Phase 8 | `doc-keeper` agent | haiku | Always (background) |
 
 ## Quick Mode
 
