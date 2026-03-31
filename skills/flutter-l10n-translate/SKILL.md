@@ -40,13 +40,39 @@ If it exists, verify it's up to date with the current spec.
 The script MUST:
 
 1. **Read `app_en.arb`** as the source of truth for all keys and English values
-2. **Read `docs/glossary.md`** to build term lists by tier:
+2. **Read product context (MANDATORY)** — the script MUST build a product context
+   block by scanning for ALL available product documentation. Read each file that
+   exists and extract relevant context for translators:
+   - **`docs/proposal.md`** — product vision, problem statement, target users.
+     Extract: app name, one-line description, core value proposition, target audience.
+   - **`docs/product-guide.md`** — end-user documentation describing features and
+     flows in plain language. Extract: feature descriptions, user-facing terminology,
+     how the app is described to users.
+   - **`docs/design.md`** — theme name, mood, visual identity, tone descriptors.
+     Extract: theme name, mood line, any tone/voice guidance, UI vocabulary.
+   - **`docs/glossary.md`** — domain terms with definitions and tier tags.
+     Extract: term definitions for translator context (e.g., what is a "Star"?
+     what is "The Constellation"?). Also used for glossary tiers below.
+   - **`docs/tone.md`** (optional) — dedicated tone/voice guide if it exists.
+   - **`docs/spec/*.md`** — feature specifications. Scan for any that contain
+     user-facing terminology, screen names, or domain concepts that translators
+     need to understand. Do not include implementation details.
+   - **`CLAUDE.md`** (fallback) — if the above docs are sparse or missing, read
+     the project overview section for basic product context.
+   The script should glob for `docs/**/*.md` and read any product-relevant files
+   it finds, not just a hardcoded list. New docs added to the project should
+   automatically contribute context without requiring script changes.
+   The product context block is injected into every translation prompt so the AI
+   understands WHAT the app is, WHO it's for, and WHAT tone to use. Without this
+   context, translations will be generic and miss domain-specific nuance.
+   **If zero product context files are found, STOP and warn the user** — do not
+   proceed with translations that lack product context.
+3. **Read `docs/glossary.md`** to build term lists by tier:
    - `[keep]` terms → pass as "DO NOT translate" list
    - `[translate]` terms → pass as "MUST translate natively" list with hints
    - `[technical]` terms → excluded (never in user-facing text)
    - Terms without a tier tag → default to `[translate]`
-3. **Read `scripts/l10n_term_map.json`** for per-locale canonical native equivalents of `[translate]` terms. Inject the target locale's terms into the prompt so the AI uses the exact word agreed upon (e.g., French "project" = "projet"). If a new `[translate]` term has empty locale entries, the script should still instruct the AI to translate it natively — the AI's choice becomes the new canonical entry (update the term map after the run).
-4. **Read `docs/tone.md` or `docs/design.md`** for product voice/tone context
+4. **Read `scripts/l10n_term_map.json`** for per-locale canonical native equivalents of `[translate]` terms. Inject the target locale's terms into the prompt so the AI uses the exact word agreed upon (e.g., French "project" = "projet"). If a new `[translate]` term has empty locale entries, the script should still instruct the AI to translate it natively — the AI's choice becomes the new canonical entry (update the term map after the run).
 5. **Read each target `app_<locale>.arb`** to find untranslated keys:
    - Keys where `@key` metadata has `"x-translated": false`
    - Keys present in `app_en.arb` but missing entirely from the target file
@@ -99,8 +125,11 @@ Each agent translates its assigned locale:
 You are a professional mobile app localizer. You translate UI strings from
 English to {target_language_name}.
 
-PRODUCT CONTEXT:
-{content_from_tone_md_or_design_md}
+PRODUCT CONTEXT (from docs/proposal.md, docs/design.md, docs/glossary.md):
+{product_context_block}
+
+This context tells you what the app is, who uses it, and what tone to match.
+Use it to make translations feel native to the product — not generic.
 
 CRITICAL RULES:
 1. Match the product's tone: {tone_description}
@@ -239,10 +268,12 @@ Incremental: only processes keys marked x-translated:false or missing.
 # - resolve_api_key(cli_key) -> str  (CLI arg → env var → .env file)
 # - load_arb(path) -> dict
 # - save_arb(path, data) -> None  (preserves key ordering)
+# - load_product_context() -> str  (reads proposal.md, design.md, glossary.md,
+#     tone.md, CLAUDE.md — builds a combined product context block for prompts.
+#     MUST return non-empty string or raise error.)
 # - load_glossary(path) -> list[str]
-# - load_tone(path) -> str
 # - find_untranslated_keys(en_arb, locale_arb) -> dict
-# - translate_batch(keys, target_locale, glossary, tone, model) -> dict
+# - translate_batch(keys, target_locale, glossary, product_context, model) -> dict
 # - mark_translated(locale_arb, keys) -> dict
 # - clone_en_to_locale(en_arb, locale_code) -> dict
 # - main() with argparse CLI
@@ -272,7 +303,14 @@ and its source (e.g., "Using API key from .env file").
 - Missing `OPENAI_API_KEY` (not in CLI args, env, or .env) → clear error message with instructions
 - Missing `app_en.arb` → error: "Source locale file not found"
 - Missing `docs/glossary.md` → warning, proceed without glossary protection
-- Missing `docs/tone.md` AND `docs/design.md` → warning, use generic tone
+- **Missing ALL product context files** (`docs/proposal.md`, `docs/design.md`,
+  `docs/glossary.md`, `docs/tone.md`, AND `CLAUDE.md`) → **ERROR: refuse to
+  translate.** Print: "No product context found. Translations require at least one
+  of: docs/proposal.md, docs/design.md, docs/glossary.md, docs/tone.md, or
+  CLAUDE.md. Without product context, translations will be generic and miss
+  domain-specific tone and vocabulary."
+- Missing some but not all product context files → warning listing which are missing,
+  proceed with what's available
 - API rate limit → exponential backoff retry
 - Invalid JSON response from ChatGPT → retry with explicit JSON instruction
 - Placeholder corruption in translation → validate before writing, reject and retry
