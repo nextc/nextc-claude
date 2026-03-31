@@ -23,9 +23,9 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
 agents/nextc-claude/      — Agent definitions (13 agents)
+commands/           — Slash command stubs for CLI autocomplete (15 commands)
 rules/nextc-claude/ — Rule definitions (8 rules)
 skills/             — Skill definitions (15 skills)
-spec/               — Pipeline specs and design docs
 setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 

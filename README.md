@@ -45,10 +45,10 @@ Some custom agents depend on third-party skill packs. Install these before using
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
 agents/nextc-claude/      — Agent definitions (13 agents)
+commands/                 — Slash command stubs for CLI autocomplete (15 commands)
 rules/nextc-claude/       — Rule definitions (8 rules)
-skills/             — Skill definitions (15 skills)
-spec/               — Pipeline specs and design docs
-setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
+skills/                   — Skill definitions (15 skills)
+setup-rules.sh            — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 
 ## What's Included
