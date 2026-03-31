@@ -236,6 +236,7 @@ Incremental: only processes keys marked x-translated:false or missing.
 """
 
 # Key functions:
+# - resolve_api_key(cli_key) -> str  (CLI arg → env var → .env file)
 # - load_arb(path) -> dict
 # - save_arb(path, data) -> None  (preserves key ordering)
 # - load_glossary(path) -> list[str]
@@ -247,9 +248,28 @@ Incremental: only processes keys marked x-translated:false or missing.
 # - main() with argparse CLI
 ```
 
+### API Key Resolution
+
+The script resolves the OpenAI API key in this order:
+
+1. `--api-key` CLI argument (highest priority)
+2. `OPENAI_API_KEY` environment variable
+3. `.env` file in the project root (read manually, no `python-dotenv` dependency)
+
+For `.env` fallback: the script reads the `.env` file line by line, looks for
+`OPENAI_API_KEY=sk-...`, strips quotes and whitespace, and uses it. This avoids
+requiring `python-dotenv` as a dependency. Example `.env` line:
+
+```
+OPENAI_API_KEY=sk-proj-abc123...
+```
+
+The script MUST NOT log or print the API key value — only confirm that a key was found
+and its source (e.g., "Using API key from .env file").
+
 ### Error Handling
 
-- Missing `OPENAI_API_KEY` → clear error message with instructions
+- Missing `OPENAI_API_KEY` (not in CLI args, env, or .env) → clear error message with instructions
 - Missing `app_en.arb` → error: "Source locale file not found"
 - Missing `docs/glossary.md` → warning, proceed without glossary protection
 - Missing `docs/tone.md` AND `docs/design.md` → warning, use generic tone
