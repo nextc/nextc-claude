@@ -21,7 +21,7 @@ Ask: **"How much reasoning does this task require?"**
 
 ## Agent Model Assignments
 
-### Agents (defined in agents/nextc-claude/)
+### Agents (defined in agents/)
 
 | Agent | Model | Rationale |
 |-------|-------|-----------|

@@ -44,7 +44,7 @@ Some custom agents depend on third-party skill packs. Install these before using
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/nextc-claude/      — Agent definitions (13 agents)
+agents/                   — Agent definitions (13 agents)
 commands/                 — Slash command stubs for CLI autocomplete (15 commands)
 rules/nextc-claude/       — Rule definitions (8 rules)
 skills/                   — Skill definitions (15 skills)
@@ -166,7 +166,7 @@ Each specialist agent invokes installed ASO skills first, then supplements with 
 |------|-----|
 | Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
 | Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/nextc-claude/<name>.md`, add to `plugin.json` |
+| Agent | Add `agents/<name>.md`, add to `plugin.json` |
 
 Skills must be direct children of `skills/` — Claude Code does not discover nested subdirectories.
 

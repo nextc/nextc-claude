@@ -22,7 +22,7 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/nextc-claude/      — Agent definitions (13 agents)
+agents/             — Agent definitions (13 agents)
 commands/           — Slash command stubs for CLI autocomplete (15 commands)
 rules/nextc-claude/ — Rule definitions (9 rules)
 skills/             — Skill definitions (15 skills)
@@ -130,7 +130,7 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 |------|-----|
 | Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
 | Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/nextc-claude/<name>.md`, add to `plugin.json` |
+| Agent | Add `agents/<name>.md`, add to `plugin.json` |
 
 ## Design Principles
 
