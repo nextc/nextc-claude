@@ -6,6 +6,7 @@ description: >
   Uses parallel agents to scan feature directories concurrently for speed.
   Use when: user says "flutter-l10n audit", "audit text", "check strings",
   "find hardcoded strings", or as part of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 

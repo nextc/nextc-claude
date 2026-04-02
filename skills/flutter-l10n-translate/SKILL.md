@@ -7,6 +7,7 @@ description: >
   only translates keys marked x-translated:false or missing from target locale.
   Use when: user says "flutter-l10n translate", "translate locales",
   "run translation", or as part of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

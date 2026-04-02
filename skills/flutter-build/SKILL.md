@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-28
 name: flutter-build
 description: >
   Build Flutter APK/IPA, update build log, and commit version bump.

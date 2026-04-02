@@ -5,6 +5,7 @@ description: >
   and reports translated vs untranslated keys per locale. Use when: user says
   "flutter-l10n status", "translation status", "locale coverage", or as part
   of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Glob, Bash, Grep
 ---
 

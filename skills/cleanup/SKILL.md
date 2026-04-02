@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-31
 name: cleanup
 description: >
   AI slop cleaner — bounded, regression-safe code cleanup with deletion-first workflow.

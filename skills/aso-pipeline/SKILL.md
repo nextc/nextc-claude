@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-pipeline
 description: >
   ASO agentic pipeline orchestrator. Scaffolds project structure, spawns

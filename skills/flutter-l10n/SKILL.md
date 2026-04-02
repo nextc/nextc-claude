@@ -6,6 +6,7 @@ description: >
   user review before proceeding. Supports incremental updates.
   Use when: user says "flutter-l10n", "localize", "l10n", "run l10n pipeline",
   "localize my app", or wants the full localization workflow.
+user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

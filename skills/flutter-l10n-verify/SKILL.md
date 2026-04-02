@@ -6,6 +6,7 @@ description: >
   dialog-trigger alignment, tutorial-UI drift, and dead keys. Runs after translate
   and before status in the l10n pipeline. Use when: user says "flutter-l10n verify",
   "verify translations", "check translations", or as part of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

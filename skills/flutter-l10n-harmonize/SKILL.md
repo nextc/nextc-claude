@@ -7,6 +7,7 @@ description: >
   (which checks individual strings) by checking relationships between strings.
   Use when: user says "flutter-l10n harmonize", "harmonize text", "check consistency",
   "deduplicate strings", or as part of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

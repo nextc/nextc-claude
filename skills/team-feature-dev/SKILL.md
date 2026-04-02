@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-31
 name: team-feature-dev
 description: >
   Team-orchestrated feature development. You act as Product Director, spawning

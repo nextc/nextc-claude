@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-31
 name: bug-fix
 description: >
   Evidence-driven bug investigation and fix pipeline with full lifecycle.

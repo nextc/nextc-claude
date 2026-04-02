@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-31
 name: feature-dev
 description: >
   Full feature development pipeline — from idea to committed code.

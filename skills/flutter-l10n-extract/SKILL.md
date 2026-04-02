@@ -6,6 +6,7 @@ description: >
   and translation status per key. Incremental — only adds new/changed keys.
   Use when: user says "flutter-l10n extract", "extract strings", "update arb",
   or as part of the full /flutter-l10n pipeline.
+user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

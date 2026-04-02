@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: clarify
 description: >
   Socratic requirements gathering with mathematical ambiguity scoring.
