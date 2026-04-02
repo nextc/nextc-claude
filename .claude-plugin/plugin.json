@@ -1,6 +1,6 @@
 {
   "name": "nextc-claude",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
   "author": {
     "name": "nextc"
@@ -17,5 +17,7 @@
     "aso",
     "design",
     "localization"
-  ]
+  ],
+  "skills": ["./skills/"],
+  "commands": ["./commands/"]
 }
