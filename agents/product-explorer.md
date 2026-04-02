@@ -262,6 +262,7 @@ If the user already named the product in Phase 1, skip naming and confirm:
 "You mentioned '[name]' earlier — keeping that. Want to explore alternatives?"
 Still offer tagline generation even if the name is pre-decided.
 
+
 Spawn agent with Opus model for creative synthesis:
 - Skill: `product-vision` + `value-proposition` (pm-product-strategy)
 - Writes: `docs/explore/vision-and-value-prop.md`
