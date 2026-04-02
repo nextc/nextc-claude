@@ -19,5 +19,4 @@
     "localization"
   ],
   "skills": ["./skills/"],
-  "commands": ["./commands/"]
 }
