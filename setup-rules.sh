@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # nextc-claude setup — symlinks rules into ~/.claude/rules/nextc-claude/
-# Agents and skills are installed via marketplace (claude install-skillpack).
+# Agents and skills are installed via marketplace (/plugin marketplace add + /plugin install).
 # Rules have no plugin support, so they still require this symlink.
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -26,5 +26,6 @@ else
 fi
 
 echo ""
-echo "Done! Rules symlinked. For agents and skills, run:"
-echo "  claude install-skillpack github:nextc/nextc-claude"
+echo "Done! Rules symlinked. For agents and skills, run in Claude Code:"
+echo "  /plugin marketplace add nextc/nextc-claude"
+echo "  /plugin install nextc-claude@nextc-claude"

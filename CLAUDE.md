@@ -4,9 +4,10 @@
 
 Claude Code plugin — custom agents, rules, and workflow skills. Installable as a plugin or via symlinks.
 
-```bash
-# Plugin install (recommended)
-claude install-skillpack github:nextc/nextc-claude
+```
+# Add marketplace + install plugin (recommended)
+/plugin marketplace add nextc/nextc-claude
+/plugin install nextc-claude@nextc-claude
 
 # Symlink rules (not installed by marketplace)
 ./setup-rules.sh
@@ -33,7 +34,7 @@ setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-c
 
 | Command | Purpose |
 |---------|---------|
-| `claude install-skillpack github:nextc/nextc-claude` | Install agents + skills via plugin |
+| `/plugin install nextc-claude@nextc-claude` | Install agents + skills via plugin |
 | `./setup-rules.sh` | Symlink rules (not covered by plugin) |
 | `git diff` | Review changes before committing |
 | `flutter gen-l10n` | Regenerate l10n after ARB changes (in target projects) |
@@ -46,7 +47,7 @@ Required third-party skill packs installed separately:
 |------------|------|-------------|
 | **aso-skills** | [Eronred/aso-skills](https://github.com/Eronred/aso-skills) | ASO Pipeline — provides 27 ASO skills (keyword-research, competitor-analysis, metadata-optimization, etc.) |
 
-Install with: `claude install-skillpack github:Eronred/aso-skills`
+Install with: `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills`
 
 The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these skills. Without them, the pipeline cannot run.
 

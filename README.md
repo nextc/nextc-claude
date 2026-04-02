@@ -6,8 +6,12 @@
 
 ### Option A: Plugin Install (Recommended)
 
-```bash
-claude install-skillpack github:nextc/nextc-claude
+```
+# 1. Add the marketplace
+/plugin marketplace add nextc/nextc-claude
+
+# 2. Install the plugin
+/plugin install nextc-claude@nextc-claude
 ```
 
 Skills are namespaced when installed as a plugin: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
@@ -38,7 +42,7 @@ Some custom agents depend on third-party skill packs. Install these before using
 
 | Dependency | Install Command | Required By |
 |------------|----------------|-------------|
-| [aso-skills](https://github.com/Eronred/aso-skills) | `claude install-skillpack github:Eronred/aso-skills` | ASO Pipeline (27 skills: keyword-research, competitor-analysis, metadata-optimization, etc.) |
+| [aso-skills](https://github.com/Eronred/aso-skills) | `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills` | ASO Pipeline (27 skills: keyword-research, competitor-analysis, metadata-optimization, etc.) |
 
 ## Structure
 
@@ -174,40 +178,71 @@ Skills must be direct children of `skills/` — Claude Code does not discover ne
 
 ### Marketplaces
 
+**Software Development**
+
 | Marketplace | Install | Description |
 |-------------|---------|-------------|
-| nextc-claude | `claude plugin marketplace add nextc/nextc-claude` | Workflow pipelines, Flutter build/l10n, design with Stitch, ASO pipeline |
-| claude-plugins-official | `claude plugin marketplace add anthropics/claude-plugins-official` | Anthropic's official directory — 100+ plugins for dev tools, MCP servers, and integrations |
-| everything-claude-code | `claude plugin marketplace add affaan-m/everything-claude-code` | Battle-tested agents, skills, hooks, and rules from an Anthropic hackathon winner |
-| pm-skills | `claude plugin marketplace add phuryn/pm-skills` | 65 PM skills across 8 plugins — discovery, strategy, execution, GTM, analytics |
-| marketingskills | `claude plugin marketplace add coreyhaines31/marketingskills` | 33 marketing skills — CRO, copywriting, SEO, paid ads, cold email, pricing |
-| claude-code-workflows | `claude plugin marketplace add wshobson/claude-code-workflows` | 72 plugins, 112 agents, 146 skills — debugging, TDD, refactoring, deployment |
-| ui-ux-pro-max-skill | `claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` | UI/UX design intelligence — 67 styles, 161 palettes, 57 font pairings, 15 stacks |
-| claude-mem | `claude plugin marketplace add thedotmack/claude-mem` | Persistent cross-session memory — context preservation across conversations |
-| aso-skills | `claude plugin marketplace add Eronred/aso-skills` | 27 ASO skills — keywords, competitors, metadata, ratings, analytics (required by ASO pipeline) |
+| claude-plugins-official | `/plugin marketplace add anthropics/claude-plugins-official` | Anthropic's official directory — 100+ plugins for dev tools, MCP servers, and integrations |
+| everything-claude-code | `/plugin marketplace add affaan-m/everything-claude-code` | Battle-tested agents, skills, hooks, and rules from an Anthropic hackathon winner |
+| claude-code-workflows | `/plugin marketplace add wshobson/claude-code-workflows` | 72 plugins, 112 agents, 146 skills — debugging, TDD, refactoring, deployment |
+| nextc-claude | `/plugin marketplace add nextc/nextc-claude` | Workflow pipelines, Flutter build/l10n, design with Stitch, ASO pipeline |
+| claude-mem | `/plugin marketplace add thedotmack/claude-mem` | Persistent cross-session memory — context preservation across conversations |
+
+**Design**
+
+| Marketplace | Install | Description |
+|-------------|---------|-------------|
+| ui-ux-pro-max-skill | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` | UI/UX design intelligence — 67 styles, 161 palettes, 57 font pairings, 15 stacks |
+
+**Product Management**
+
+| Marketplace | Install | Description |
+|-------------|---------|-------------|
+| pm-skills | `/plugin marketplace add phuryn/pm-skills` | 65 PM skills across 8 plugins — discovery, strategy, execution, GTM, analytics |
+
+**Marketing & Growth**
+
+| Marketplace | Install | Description |
+|-------------|---------|-------------|
+| marketingskills | `/plugin marketplace add coreyhaines31/marketingskills` | 33 marketing skills — CRO, copywriting, SEO, paid ads, cold email, pricing |
+| aso-skills | `/plugin marketplace add Eronred/aso-skills` | 27 ASO skills — keywords, competitors, metadata, ratings, analytics (required by ASO pipeline) |
 
 ### Recommended Plugins
 
 Plugins currently installed and enabled:
 
+**Software Development**
+
 | Plugin | Marketplace | Description |
 |--------|-------------|-------------|
-| skill-creator | claude-plugins-official | Create and iteratively improve skills with evals |
-| frontend-design | claude-plugins-official | Frontend design workflows with Stitch |
-| ralph-loop | claude-plugins-official | Iterative AI agent loops for continuous development |
-| security-guidance | claude-plugins-official | Security warnings for command injection, XSS, and unsafe patterns |
-| feature-dev | claude-plugins-official | Structured 7-phase feature development workflow |
-| claude-md-management | claude-plugins-official | Audit, improve, and maintain CLAUDE.md files |
 | everything-claude-code | everything-claude-code | Comprehensive skills, agents, and rules collection |
+| skill-creator | claude-plugins-official | Create and iteratively improve skills with evals |
+| ralph-loop | claude-plugins-official | Iterative AI agent loops for continuous development |
+| claude-mem | claude-mem | Persistent memory across Claude Code sessions |
+
+**Design**
+
+| Plugin | Marketplace | Description |
+|--------|-------------|-------------|
+| ui-ux-pro-max | ui-ux-pro-max-skill | UI/UX design intelligence for web and mobile |
+
+**Product Management**
+
+| Plugin | Marketplace | Description |
+|--------|-------------|-------------|
 | pm-toolkit | pm-skills | PRDs, NDAs, privacy policies, resume review |
-| pm-data-analytics | pm-skills | Cohort analysis, A/B tests, SQL queries |
 | pm-execution | pm-skills | User stories, sprint planning, OKRs, release notes |
-| pm-go-to-market | pm-skills | GTM strategy, battlecards, growth loops |
-| pm-market-research | pm-skills | Competitor analysis, personas, sentiment analysis |
-| pm-marketing-growth | pm-skills | North Star metrics, positioning, product naming |
 | pm-product-discovery | pm-skills | Interview scripts, feature prioritization, OSTs |
 | pm-product-strategy | pm-skills | Pricing, SWOT, Lean Canvas, business models |
+| pm-market-research | pm-skills | Competitor analysis, personas, sentiment analysis |
+| pm-data-analytics | pm-skills | Cohort analysis, A/B tests, SQL queries |
+
+**Marketing & Growth**
+
+| Plugin | Marketplace | Description |
+|--------|-------------|-------------|
+| pm-go-to-market | pm-skills | GTM strategy, battlecards, growth loops |
+| pm-marketing-growth | pm-skills | North Star metrics, positioning, product naming |
 | marketing-skills | marketingskills | SEO, ads, CRO, email, content strategy |
-| ui-ux-pro-max | ui-ux-pro-max-skill | UI/UX design intelligence for web and mobile |
-| claude-mem | claude-mem | Persistent memory across Claude Code sessions |
+| claude-seo | claude-seo-marketplace | Technical SEO, content audits, schema markup, local SEO |
 | aso-skills | aso-skills | 27 ASO skills: keywords, competitors, metadata, ratings, analytics |
