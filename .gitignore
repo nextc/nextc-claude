@@ -6,3 +6,6 @@
 
 # Reference/vendor OSS code
 reference-oss/
+
+# Internal specs (not shipped with plugin)
+specs/
