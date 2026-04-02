@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
@@ -13,7 +13,7 @@
       "name": "nextc-claude",
       "source": "./",
       "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": {
         "name": "nextc"
       },
