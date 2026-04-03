@@ -29,7 +29,7 @@ nextc-workflow/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
-nextc-aso/                        — ASO pipeline (1 skill, 8 agents)
+nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
 rules/nextc-claude/               — Shared rules (8 rules, symlinked)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
@@ -93,9 +93,16 @@ Agents: `flutter-builder` (haiku), `flutter-l10n-agent` (sonnet)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| aso-pipeline | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
+| aso-pipeline | `/aso-pipeline` | Full ASO optimization pipeline (8 phases + collision) |
+| | `/aso-pipeline score` | Instant 0-100 ASO scorecard (~5K tokens) |
+| | `/aso-pipeline express` | Quick keywords + metadata (80/20 path) |
+| | `/aso-pipeline audit` | Quick ASO health check |
+| | `/aso-pipeline diff` | What changed since last run |
+| | `/aso-pipeline build` | Scaffold ASO project + app brief |
+| | `/aso-pipeline status` | Show pipeline progress |
+| | `/aso-pipeline [phase]` | Run a single phase |
 
-Agents: `aso-director`, `aso-competitive`, `aso-keyword-research`, `aso-metadata`, `aso-creative`, `aso-localization`, `aso-ratings-reviews`, `aso-tracking` (all sonnet)
+Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet)
 
 ## Pipeline
 
@@ -108,6 +115,8 @@ Agents: `aso-director`, `aso-competitive`, `aso-keyword-research`, `aso-metadata
           /team-feature-dev (parallel variant)
 
 /bug-fix ──→ /cleanup (if 3+ files changed)
+
+/product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
 ## Rules (8)
