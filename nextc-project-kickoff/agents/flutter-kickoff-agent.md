@@ -155,6 +155,34 @@ Agent(
 )
 ```
 
+### Quality Gate: Verify architecture.md
+
+After doc-seeder returns, read `docs/architecture.md` and verify it contains ALL
+required sections. This is the most important file in the project — if it's weak,
+every `/feature-dev` call inherits that weakness.
+
+**Required sections checklist:**
+- [ ] Folder Structure
+- [ ] Error Handling (sealed hierarchy + guard + global boundary + UI display)
+- [ ] Entity Models (with serialization rules)
+- [ ] Repository Pattern (interface + impl + PaginatedResponse)
+- [ ] Dependency Injection (specific to the chosen state management)
+- [ ] Routing (specific to the chosen router)
+- [ ] Theme (Material 3 + accessibility)
+- [ ] Logging (AppLogger + debug guards)
+- [ ] Secure Storage
+- [ ] Analytics (abstract + noop + observer)
+- [ ] App Configuration (env-specific)
+- [ ] Screen State Pattern (loading/error/empty/success)
+- [ ] Build & Release
+
+**If any section is missing or too vague:** Read that section from this agent's
+instructions and append it to `architecture.md` yourself. Do not re-spawn the
+doc-seeder — just fix the gap inline.
+
+**Verify `docs/tasks.md`** has Phase 1 infrastructure tasks AND the verification
+checklist at the end.
+
 Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 
 ### Default/Auto Mode: Present Summary & Stop

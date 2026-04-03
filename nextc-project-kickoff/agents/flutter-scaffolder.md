@@ -107,6 +107,9 @@ build/debug-info/
 
 ## Step 5: VS Code config
 
+**Note:** Steps 5-8 write minimal IDE/build config files — not application code.
+These are stable across Flutter versions and don't need architecture.md prescriptions.
+
 Write `.vscode/launch.json`:
 ```json
 {

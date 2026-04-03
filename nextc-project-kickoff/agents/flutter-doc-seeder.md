@@ -141,15 +141,48 @@ Create `lib/core/errors/app_exception.dart` with a sealed class:
 - `ValidationException` — invalid input
 - `UnexpectedException` — catch-all
 
+Example shape:
+```dart
+sealed class AppException implements Exception {
+  const AppException(this.message, [this.cause]);
+  final String message;  // user-friendly, safe for UI
+  final Object? cause;   // original error, debug only
+}
+class NetworkException extends AppException {
+  const NetworkException([String message = 'Unable to connect. Please check your internet.', Object? cause])
+      : super(message, cause);
+}
+// ... same pattern for Auth, Storage, Validation, Unexpected
+```
+
 ### Error Handler
 
-Create `lib/core/errors/error_handler.dart` with a static `guard<T>()` method that:
-- Wraps async operations in try/catch
-- Catches backend-specific exceptions ([backend]-specific types)
-- Maps them to `AppException` subtypes with user-friendly messages
-- Preserves the original exception in `cause` for debug logging
-- Logs every error via `AppLogger` before rethrowing
-- Never forwards raw backend error messages to the UI
+Create `lib/core/errors/error_handler.dart` with a static `guard<T>()` method:
+
+```dart
+abstract final class ErrorHandler {
+  static Future<T> guard<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on AppException {
+      rethrow;
+    } on [BackendSpecificAuthException] catch (e, st) {
+      AppLogger.e('[ErrorHandler] Auth error', error: e, stackTrace: st);
+      throw AuthException('Authentication failed.', e);  // preserve cause
+    }
+    // ... catch backend-specific exceptions, map to AppException subtypes
+    // Generic catch-all at the bottom for unexpected errors
+  }
+}
+```
+
+Rules:
+- Catches backend-specific exceptions (Supabase/Firebase/etc types)
+- Maps to `AppException` subtypes with **generic** user-friendly messages
+- **Always** preserves original exception in `cause` parameter
+- **Always** logs via `AppLogger` before rethrowing
+- **Never** forwards raw backend `e.message` to the UI
+- Do NOT import `dart:io` (breaks Flutter web) — use generic catch-all for network errors
 
 ### Global Error Boundary
 
@@ -158,12 +191,32 @@ Create `lib/core/errors/error_handler.dart` with a static `guard<T>()` method th
 - `PlatformDispatcher.instance.onError` for platform errors
 - TODO comment for crash reporting integration (Sentry/Crashlytics)
 
+Example shape:
+```dart
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (details) {
+      AppLogger.e('[FlutterError]', error: details.exception, stackTrace: details.stack);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      AppLogger.e('[PlatformError]', error: error, stackTrace: stack);
+      return true;
+    };
+    // Backend initialization here
+    runApp(const App());
+  }, (error, stack) {
+    AppLogger.e('[UncaughtError]', error: error, stackTrace: stack);
+  });
+}
+```
+
 ### UI Error Display
 
 Create a reusable error widget that:
-- Shows `AppException.message` for known errors
-- Shows "Something went wrong. Please try again." for unknown errors
-- Has an optional retry callback
+- Checks `error is AppException` → show `error.message`
+- Otherwise → show "Something went wrong. Please try again."
+- Has an optional `onRetry` callback (only show retry button when provided)
 - Never displays stack traces, class names, or raw error text
 
 ## Entity Models
@@ -179,10 +232,42 @@ Every entity model in `lib/shared/models/` must have:
 - `==` and `hashCode` based on `id` (entity identity semantics)
 - `toString` override
 
+Example shape:
+```dart
+@immutable
+class Room {
+  const Room({required this.id, required this.name, this.description});
+  final String id;
+  final String name;
+  final String? description;
+
+  factory Room.fromJson(Map<String, dynamic> json) => Room(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    description: json['description'] as String?,
+  );
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'description': description};
+  Room copyWith({String? id, String? name, String? description}) => Room(
+    id: id ?? this.id, name: name ?? this.name, description: description ?? this.description,
+  );
+  @override bool operator ==(Object other) => identical(this, other) || other is Room && other.id == id;
+  @override int get hashCode => id.hashCode;
+}
+```
+
 ### With Freezed (if selected)
 
 Use `@freezed` annotation with `part` directives for `.freezed.dart` and `.g.dart`.
 Let Freezed generate `fromJson`, `toJson`, `copyWith`, `==`, `hashCode`.
+
+Example shape:
+```dart
+@freezed
+class Room with _$Room {
+  const factory Room({required String id, required String name, String? description}) = _Room;
+  factory Room.fromJson(Map<String, dynamic> json) => _$RoomFromJson(json);
+}
+```
 
 ## Repository Pattern
 
@@ -205,17 +290,40 @@ The `items` list must be unmodifiable.
 Concrete repository in `data/` wraps the data source ([backend] client).
 All methods use `ErrorHandler.guard()` to translate backend errors.
 
+Example shape:
+```dart
+class RoomRepositoryImpl implements RoomRepository {
+  RoomRepositoryImpl(this._client);
+  final [BackendClient] _client;
+
+  @override
+  Future<PaginatedResponse<Room>> findAll({String? cursor, int limit = 20}) =>
+      ErrorHandler.guard(() async {
+        final response = await _client.from('rooms').select().limit(limit);
+        return PaginatedResponse(items: response.map(Room.fromJson).toList(), hasMore: response.length == limit);
+      });
+  // ... same guard() pattern for findById, create, update, delete
+}
+```
+
 ## Dependency Injection
 
 [RIVERPOD]: Use `@riverpod` annotation for all providers. Each repository and service
 gets its own provider in `lib/core/providers/`. Never instantiate repositories directly.
 
+Example:
+```dart
+@riverpod
+RoomRepository roomRepository(Ref ref) => RoomRepositoryImpl(ref.watch(backendClientProvider));
+```
+
 [PROVIDER]: Wrap `MaterialApp` in `MultiProvider`. Each feature's state is a
-`ChangeNotifier` registered via `ChangeNotifierProvider`.
+`ChangeNotifier` registered via `ChangeNotifierProvider`. Repositories are injected
+into ChangeNotifiers via constructor.
 
 [BLOC]: Wrap `MaterialApp` in `MultiBlocProvider`. Each feature has a Cubit or Bloc
 registered at the appropriate scope. Use `context.read<T>()` for events,
-`context.watch<T>()` for state.
+`context.watch<T>()` for state. Repositories are injected into Cubits/Blocs via constructor.
 
 ## Routing
 
@@ -332,6 +440,23 @@ Copy the original proposal.md into the project as a snapshot.
 
 [For each mvp_feature, ordered by priority:]
 - [ ] **[Feature name]** — [description] `[priority]`
+
+## Infrastructure Verification
+
+After completing Phase 1 tasks, verify before moving to Phase 2:
+
+- [ ] `flutter analyze` passes with zero issues
+- [ ] `flutter run` launches without crashes
+- [ ] Error boundary works: throw an exception in a widget → app shows error widget, not red screen
+- [ ] ErrorHandler.guard() works: throw in a repository method → catches and maps to AppException
+- [ ] DI works: can access repositories from any screen via [state_management]
+- [ ] Routing works: can navigate between home and at least one feature screen
+- [ ] Logging works: `AppLogger.d('test')` appears in debug console, not in release
+- [ ] Secure storage works: can write and read a test value
+- [ ] Theme works: light/dark mode switches correctly
+
+If any check fails, fix before proceeding. This infrastructure is the foundation
+for every feature — getting it wrong here costs 10x to fix later.
 
 ## Known Bugs
 
