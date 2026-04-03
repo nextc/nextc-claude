@@ -1,11 +1,12 @@
 ---
 name: flutter-kickoff
 description: >
-  Proposal-to-project pipeline — reads docs/proposal.md and scaffolds a production-grade
-  Flutter project with real product context. Supports --auto, --full, --minimal modes.
+  Scaffold a production-grade Flutter project from docs/proposal.md. Use when starting a new
+  Flutter app, kickoff a project, or going from proposal to code. Seeds entity models,
+  repositories, docs, and theme from proposal context.
 user-invocable: true
 argument-hint: [--auto/--full/--minimal/--proposal path/--resume]
-allowed-tools: Agent, AskUserQuestion, Read, Write, Edit, Glob, Grep, Bash
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
 # /flutter-kickoff

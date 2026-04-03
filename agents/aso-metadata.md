@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-metadata
 description: >
   ASO metadata optimization specialist. Crafts optimized metadata for every

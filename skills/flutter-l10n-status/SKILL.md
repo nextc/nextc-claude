@@ -1,12 +1,11 @@
 ---
 name: flutter-l10n-status
 description: >
-  Show translation coverage dashboard for all supported locales. Reads ARB files
-  and reports translated vs untranslated keys per locale. Use when: user says
-  "flutter-l10n status", "translation status", "locale coverage", or as part
-  of the full /flutter-l10n pipeline.
+  Translation coverage dashboard for Flutter ARB files. Use when checking translation
+  progress, locale coverage, or which keys still need translation. Reports per-locale
+  percentages.
 user-invocable: true
-allowed-tools: Read, Glob, Bash, Grep
+allowed-tools: Read Glob Bash Grep
 ---
 
 # Flutter L10n Status — Coverage Dashboard

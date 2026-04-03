@@ -1,14 +1,11 @@
 ---
 name: flutter-l10n-harmonize
 description: >
-  Cross-string consistency analysis for Flutter localization. Finds redundancy,
-  inconsistency, and pattern drift across all user-facing strings. Deduplicates
-  identical strings and flags shared key candidates. Complements the audit skill
-  (which checks individual strings) by checking relationships between strings.
-  Use when: user says "flutter-l10n harmonize", "harmonize text", "check consistency",
-  "deduplicate strings", or as part of the full /flutter-l10n pipeline.
+  Cross-string consistency analysis for Flutter localization. Use when checking for
+  redundant or inconsistent text, deduplicating strings, or ensuring uniform tone and
+  terminology across the app.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read Write Edit Bash Grep Glob
 ---
 
 # Flutter L10n Harmonize — Cross-String Consistency Pass

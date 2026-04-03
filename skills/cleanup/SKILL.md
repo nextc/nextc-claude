@@ -1,12 +1,11 @@
 ---
 name: cleanup
 description: >
-  AI slop cleaner — bounded, regression-safe code cleanup with deletion-first workflow.
-  Use when the user says "cleanup", "clean this up", "deslop", "too much bloat",
-  "simplify this", "remove the cruft", or after a long coding session that left
-  dead code, duplicate helpers, over-abstraction, or unnecessary wrappers.
+  Bounded, regression-safe code cleanup with deletion-first workflow. Use after a coding
+  session that left dead code, duplicates, over-abstraction, or bloat. Also use when the
+  user says "clean up", "simplify", or "remove cruft".
 user-invocable: true
-allowed-tools: Agent, Read, Glob, Grep, Bash, Edit, Write
+allowed-tools: Agent Read Glob Grep Bash Edit Write
 ---
 
 # /cleanup

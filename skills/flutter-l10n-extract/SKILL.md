@@ -1,13 +1,11 @@
 ---
 name: flutter-l10n-extract
 description: >
-  Extract user-facing strings from Flutter code into ARB locale files. Replaces
-  hardcoded strings with AppLocalizations references. Tracks source locations
-  and translation status per key. Incremental — only adds new/changed keys.
-  Use when: user says "flutter-l10n extract", "extract strings", "update arb",
-  or as part of the full /flutter-l10n pipeline.
+  Extract user-facing strings from Flutter code into ARB locale files. Use when moving
+  hardcoded strings to AppLocalizations, updating ARB files, or as part of the l10n pipeline.
+  Incremental — only new/changed keys.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read Write Edit Bash Grep Glob
 ---
 
 # Flutter L10n Extract — String Collector

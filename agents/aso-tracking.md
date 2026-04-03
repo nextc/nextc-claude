@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-tracking
 description: >
   ASO tracking and measurement specialist. Defines the complete measurement

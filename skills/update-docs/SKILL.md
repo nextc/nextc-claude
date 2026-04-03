@@ -1,11 +1,9 @@
 ---
 name: update-docs
 description: >
-  Sync project documentation (CLAUDE.md, docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md)
-  with current codebase state by spawning the doc-keeper agent. Use this skill whenever the user says
-  "update docs", "sync docs", "docs are stale", "refresh documentation", "update CLAUDE.md",
-  "update tasks", or any variation of wanting project documentation to reflect recent code changes.
-  Also use after completing features, fixing bugs, or making architectural changes.
+  Sync project docs with current codebase state. Use after completing features, fixing
+  bugs, or making changes that affect documentation. Updates CLAUDE.md, tasks.md, specs,
+  design.md, changelog, and glossary.
 user-invocable: true
 allowed-tools:
   - Bash

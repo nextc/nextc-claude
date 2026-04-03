@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-keyword-research
 description: >
   ASO keyword research specialist. Builds a comprehensive, scored keyword

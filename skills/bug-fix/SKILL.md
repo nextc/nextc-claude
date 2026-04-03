@@ -1,12 +1,11 @@
 ---
 name: bug-fix
 description: >
-  Evidence-driven bug investigation and fix pipeline with full lifecycle.
-  Use when the user reports a bug, says "this is broken", "not working",
-  "investigate why", "debug this", "trace this issue", "figure out why",
-  or when the root cause is ambiguous and jumping to a fix would be premature.
+  Evidence-driven bug investigation and fix pipeline. Use when something is broken, not
+  working, or the root cause is ambiguous. Hypothesizes, investigates with parallel agents,
+  fixes, reviews, and updates docs.
 user-invocable: true
-allowed-tools: Agent, AskUserQuestion, Read, Glob, Grep, Bash, Edit, Write, Skill
+allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill
 ---
 
 # /bug-fix

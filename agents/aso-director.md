@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-director
 description: >
   ASO pipeline orchestrator that manages pipeline state, routes tasks to

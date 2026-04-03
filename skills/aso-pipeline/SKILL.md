@@ -1,14 +1,11 @@
 ---
 name: aso-pipeline
 description: >
-  ASO agentic pipeline orchestrator. Scaffolds project structure, spawns
-  specialist agents, and manages the full ASO optimization workflow.
-  Use when the user says "aso pipeline", "build the pipeline", "run the
-  pipeline", "aso status", "aso audit", "run competitive analysis",
-  "run keyword research", or any variation of wanting to run ASO pipeline
-  operations.
+  App Store Optimization pipeline. Spawns specialist agents for keyword research, metadata,
+  creatives, localization, and tracking. Use when optimizing an app listing, running ASO
+  audits, or managing the full ASO workflow.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent
+allowed-tools: Read Write Edit Bash Glob Grep Agent
 ---
 
 # /aso-pipeline

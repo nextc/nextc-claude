@@ -1,13 +1,11 @@
 ---
 name: team-feature-dev
 description: >
-  Team-orchestrated feature development. You act as Product Director, spawning
-  and coordinating a team of specialist agents via Claude Code's native team tools.
-  Use when the user says "team build", "team feature", "team-feature-dev",
-  or wants parallel multi-agent feature development with coordination.
-  For solo (non-team) feature work, use /feature-dev instead.
+  Team-orchestrated feature development with parallel specialist agents. Use when building
+  a feature that benefits from multiple agents working concurrently. You act as Product
+  Director coordinating the team.
 user-invocable: true
-allowed-tools: Agent, AskUserQuestion, Read, Glob, Grep, Bash, Edit, Write, Skill, TeamCreate, TeamDelete, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
+allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill TeamCreate TeamDelete SendMessage TaskCreate TaskUpdate TaskList TaskGet
 ---
 
 # /team-feature-dev

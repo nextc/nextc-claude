@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-localization
 description: >
   ASO localization specialist. Adapts all ASO assets for each target locale,

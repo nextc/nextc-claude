@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-competitive
 description: >
   ASO competitive analysis specialist. Maps the competitive landscape,

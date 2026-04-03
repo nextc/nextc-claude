@@ -1,14 +1,11 @@
 ---
 name: flutter-l10n-translate
 description: >
-  Generate and run a Python script that translates untranslated ARB keys via
-  ChatGPT API. Uses parallel agents to translate multiple locales concurrently.
-  Supports single locale, all locales, dry-run, and force modes. Incremental —
-  only translates keys marked x-translated:false or missing from target locale.
-  Use when: user says "flutter-l10n translate", "translate locales",
-  "run translation", or as part of the full /flutter-l10n pipeline.
+  Translate untranslated ARB keys via ChatGPT API with parallel agents. Use when adding
+  translations for new locales, translating new strings, or running translations as part
+  of the l10n pipeline. Incremental.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read Write Edit Bash Grep Glob
 ---
 
 # Flutter L10n Translate — ChatGPT Translation Runner

@@ -1,13 +1,11 @@
 ---
 name: flutter-l10n
 description: >
-  Run the full Flutter localization pipeline: audit → harmonize → extract →
-  translate → verify → status. Each step with approval gates pauses for
-  user review before proceeding. Supports incremental updates.
-  Use when: user says "flutter-l10n", "localize", "l10n", "run l10n pipeline",
-  "localize my app", or wants the full localization workflow.
+  Full Flutter localization pipeline: audit, harmonize, extract, translate, verify, status.
+  Use when localizing a Flutter app, adding translations, or running the l10n workflow.
+  Each step pauses for user review.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read Write Edit Bash Grep Glob
 ---
 
 # Flutter L10n — Full Pipeline

@@ -1,13 +1,11 @@
 ---
 name: flutter-l10n-audit
 description: >
-  Scan Flutter codebase for hardcoded user-facing strings, audit them against
-  text principles (tone, consistency, glossary, ICU format), and propose rewrites.
-  Uses parallel agents to scan feature directories concurrently for speed.
-  Use when: user says "flutter-l10n audit", "audit text", "check strings",
-  "find hardcoded strings", or as part of the full /flutter-l10n pipeline.
+  Scan Flutter code for hardcoded user-facing strings and audit against text principles.
+  Use when checking for untranslated strings, auditing text quality, or as the first step
+  of the l10n pipeline.
 user-invocable: true
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit
+allowed-tools: Read Grep Glob Bash Write Edit
 ---
 
 # Flutter L10n Audit — Text Auditor

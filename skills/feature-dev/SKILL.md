@@ -1,13 +1,11 @@
 ---
 name: feature-dev
 description: >
-  Full feature development pipeline — from idea to committed code.
-  Auto-detects if the feature touches UI (design → implement) or is backend-only
-  (data/logic). Orchestrates clarify → plan → consensus → implement → review → cleanup → docs.
-  Use when the user says "build a feature", "add", "implement", "create",
-  "I want", "new feature", "feature-dev", or describes a feature to build.
+  Full feature pipeline — idea to committed code. Use when building a new feature, adding
+  functionality, or implementing from specs. Auto-detects UI vs backend. Orchestrates plan,
+  implement, review, cleanup, docs.
 user-invocable: true
-allowed-tools: Agent, AskUserQuestion, Read, Glob, Grep, Bash, Edit, Write, Skill
+allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill
 ---
 
 # /feature-dev

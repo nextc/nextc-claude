@@ -1,12 +1,12 @@
 ---
 name: product-explore
 description: >
-  Product exploration — raw idea to validated proposal. Use when the user says "explore
-  this idea", "validate my idea", "is this worth building", "should I build", "I have
-  an idea", or describes a product concept. Supports --fast, --update, --branch.
+  Product exploration — raw idea to validated proposal with market research, competitor
+  analysis, and collision insights. Use when exploring an idea, validating a concept, or
+  deciding whether to build. Supports --fast, --update, --branch.
 user-invocable: true
 argument-hint: [idea or --fast/--update/--branch/--deep-dive/--export]
-allowed-tools: Agent, AskUserQuestion, Read, Write, Edit, Glob, Grep, Bash, Skill
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
 ---
 
 # /product-explore

@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-ratings-reviews
 description: >
   ASO ratings and reviews strategy specialist. Designs the complete ratings

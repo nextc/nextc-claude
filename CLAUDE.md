@@ -23,10 +23,9 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/             — Agent definitions (13 agents)
-commands/           — Slash command stubs for CLI autocomplete (15 commands)
+agents/             — Agent definitions (15 agents)
 rules/nextc-claude/ — Rule definitions (9 rules)
-skills/             — Skill definitions (15 skills)
+skills/             — Skill definitions (17 skills)
 setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 
@@ -58,6 +57,8 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 | Agent | Domain | Purpose |
 |-------|--------|---------|
 | doc-keeper | Docs | Updates project docs after code changes |
+| product-explorer | Product | Runs adaptive pipeline from raw idea to validated proposal |
+| flutter-kickoff-agent | Flutter | Scaffolds production-grade Flutter project from proposal |
 | flutter-builder | Flutter | Builds APK/IPA, updates buildlog, commits version bumps |
 | flutter-l10n-agent | Flutter | Executes l10n pipeline steps (audit, harmonize, extract, translate) |
 | stitch-ui-ux-designer | Design | Designs core screens with Stitch MCP, documents design systems |
@@ -85,19 +86,24 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 | stitch-design-workflow | Design | Stitch design phases: theme, validation, core screens, design.md |
 | aso-pipeline-rules | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
 
-### Skills (15)
+### Skills (17)
 
 **Workflow** — composable development pipelines (new skills chain into each other):
 
 | Skill | Invocable | Purpose |
 |-------|-----------|---------|
 | clarify | `/clarify` | Socratic interview: vague idea → clear spec with ambiguity scoring |
+| product-explore | `/product-explore` | Raw idea → validated proposal with --fast, --update, --branch, --deep-dive, --export modes |
+| flutter-kickoff | `/flutter-kickoff` | Proposal → production-grade Flutter project with --auto, --full, --minimal modes |
 | bug-fix | `/bug-fix` | Evidence-driven bug pipeline: hypothesize → investigate → fix → review → cleanup → docs |
 | cleanup | `/cleanup` | AI slop cleaner: deletion-first, pass-by-pass code cleanup |
 | feature-dev | `/feature-dev` | Full feature pipeline: clarify → plan → design → implement → review → cleanup → docs |
 | team-feature-dev | `/team-feature-dev` | Team-orchestrated feature dev: Product Director spawns parallel specialist workers |
 
 ```
+/product-explore ──→ /flutter-kickoff ──→ /feature-dev ──→ /cleanup
+     (proposal)         (project)          (features)
+
 /clarify ──→ /feature-dev ──→ /cleanup
                   ↓
           /team-feature-dev (parallel variant)

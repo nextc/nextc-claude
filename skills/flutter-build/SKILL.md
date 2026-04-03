@@ -1,12 +1,11 @@
 ---
 name: flutter-build
 description: >
-  Build Flutter APK/IPA, update build log, and commit version bump.
-  Use when the user says "build", "flutter build", "make a build",
-  "build APK", "build IPA", "release build", "build for Android",
-  "build for iOS", or any variation of wanting to build the Flutter app.
+  Build Flutter APK/IPA, update build log, and commit version bump. Use when the user wants
+  to build the app, make a release, or create a build for testing. Handles platform selection,
+  build mode, and artifact renaming.
 user-invocable: true
-allowed-tools: Bash, Read, Glob, Agent
+allowed-tools: Bash Read Glob Agent
 ---
 
 # /flutter-build

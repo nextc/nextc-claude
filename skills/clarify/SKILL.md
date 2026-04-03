@@ -1,12 +1,11 @@
 ---
 name: clarify
 description: >
-  Socratic requirements gathering with mathematical ambiguity scoring.
-  Use when the user has a vague idea, says "I'm not sure exactly what I want",
-  "help me think through this", "interview me", "clarify this", "don't assume",
-  or when a task is too vague to implement directly.
+  Socratic requirements gathering with ambiguity scoring. Use when the user has a vague
+  idea, wants help thinking through requirements, or when a task is too unclear to implement
+  directly. Interviews the user to produce a clear spec.
 user-invocable: true
-allowed-tools: Agent, AskUserQuestion, Read, Glob, Grep, Write
+allowed-tools: Agent AskUserQuestion Read Glob Grep Write
 ---
 
 # /clarify

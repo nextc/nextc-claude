@@ -1,13 +1,11 @@
 ---
 name: flutter-l10n-verify
 description: >
-  Post-translation verification for Flutter ARB locale files. Checks cross-locale
-  consistency, untranslated domain terms, code-switching, action-feedback verb echo,
-  dialog-trigger alignment, tutorial-UI drift, and dead keys. Runs after translate
-  and before status in the l10n pipeline. Use when: user says "flutter-l10n verify",
-  "verify translations", "check translations", or as part of the full /flutter-l10n pipeline.
+  Post-translation verification for Flutter ARB files. Use after translating to catch
+  cross-locale inconsistencies, untranslated domain terms, code-switching, mismatched
+  verbs, and dead keys.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read Write Edit Bash Grep Glob
 ---
 
 # Flutter L10n Verify — Post-Translation Quality Gate

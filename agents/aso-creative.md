@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-30
 name: aso-creative
 description: >
   ASO creative strategy specialist. Defines screenshot sequences, icon

@@ -1,5 +1,4 @@
 ---
-updated: 2026-03-28
 name: flutter-builder
 description: >
   Flutter build agent that builds APK/IPA, updates buildlog, and commits
