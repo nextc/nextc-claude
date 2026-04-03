@@ -4,23 +4,40 @@
     "name": "nextc"
   },
   "metadata": {
-    "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
-    "version": "1.0.2",
+    "description": "Workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization for Claude Code.",
+    "version": "2.0.0",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
     {
-      "name": "nextc-claude",
-      "source": "./",
-      "description": "Project-agnostic Claude Code configuration: workflow pipelines (feature-dev, bug-fix, cleanup, clarify), Flutter build/l10n, design system with Stitch, ASO pipeline, and development rules.",
-      "version": "1.0.2",
-      "author": {
-        "name": "nextc"
-      },
-      "homepage": "https://github.com/nextc/nextc-claude",
-      "license": "MIT",
-      "category": "workflow",
-      "strict": false
+      "name": "nextc-workflow",
+      "source": "./nextc-workflow",
+      "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs.",
+      "category": "workflow"
+    },
+    {
+      "name": "nextc-product",
+      "source": "./nextc-product",
+      "description": "Product exploration — raw idea to validated proposal with market research and collision insights.",
+      "category": "product"
+    },
+    {
+      "name": "nextc-project-kickoff",
+      "source": "./nextc-project-kickoff",
+      "description": "Project scaffolding from proposal — production-grade Flutter project with entity models, repos, and docs.",
+      "category": "project-setup"
+    },
+    {
+      "name": "nextc-flutter",
+      "source": "./nextc-flutter",
+      "description": "Flutter build and localization — APK/IPA builds and full l10n pipeline.",
+      "category": "flutter"
+    },
+    {
+      "name": "nextc-aso",
+      "source": "./nextc-aso",
+      "description": "App Store Optimization pipeline — multi-agent system for keywords, metadata, creatives, and tracking.",
+      "category": "aso"
     }
   ]
 }

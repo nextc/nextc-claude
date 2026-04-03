@@ -122,7 +122,7 @@ After preflight passes, spawn the product-explorer agent with mode and context:
 
 ```
 Agent(
-  subagent_type: "nextc-claude:product-explorer",
+  subagent_type: "nextc-product:product-explorer",
   model: "sonnet",
   prompt: """
   Mode: [deep/fast/update/branch/deep-dive/export]

@@ -167,7 +167,7 @@ After preflight passes, spawn the flutter-kickoff-agent with mode and context:
 
 ```
 Agent(
-  subagent_type: "nextc-claude:flutter-kickoff-agent",
+  subagent_type: "nextc-project-kickoff:flutter-kickoff-agent",
   model: "sonnet",
   prompt: """
   Mode: [default/auto/full/auto-full/minimal/resume]

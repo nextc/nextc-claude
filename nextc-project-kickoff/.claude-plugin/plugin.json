@@ -1,0 +1,10 @@
+{
+  "name": "nextc-project-kickoff",
+  "version": "1.0.0",
+  "description": "Project scaffolding from proposal — production-grade Flutter project with entity models, repository interfaces, error hierarchy, and seeded docs.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["kickoff", "scaffold", "flutter", "project-setup", "proposal"]
+}

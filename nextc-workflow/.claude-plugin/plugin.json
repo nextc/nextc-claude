@@ -1,0 +1,10 @@
+{
+  "name": "nextc-workflow",
+  "version": "1.0.0",
+  "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs. Composable skills that chain into each other.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["workflow", "feature-dev", "bug-fix", "cleanup", "agents"]
+}

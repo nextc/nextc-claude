@@ -1,0 +1,10 @@
+{
+  "name": "nextc-flutter",
+  "version": "1.0.0",
+  "description": "Flutter build and localization — APK/IPA builds with logging, and a full l10n pipeline (audit, harmonize, extract, translate, verify).",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["flutter", "build", "localization", "l10n", "arb", "translation"]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "nextc-product",
+  "version": "1.0.0",
+  "description": "Product exploration — raw idea to validated proposal with market research, competitor analysis, and collision insights.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["product", "exploration", "proposal", "validation", "market-research"]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "nextc-aso",
+  "version": "1.0.0",
+  "description": "App Store Optimization pipeline — multi-agent system for competitive analysis, keywords, metadata, creatives, localization, and tracking.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["aso", "app-store", "optimization", "keywords", "metadata"]
+}

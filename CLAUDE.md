@@ -2,18 +2,20 @@
 
 # nextc-claude
 
-Claude Code plugin — custom agents, rules, and workflow skills. Installable as a plugin or via symlinks.
+Claude Code marketplace — 5 plugins with custom agents, rules, and workflow skills.
 
 ```
-# Add marketplace + install plugin (recommended)
+# Add marketplace + install plugins
 /plugin marketplace add nextc/nextc-claude
-/plugin install nextc-claude@nextc-claude
+/plugin install nextc-workflow@nextc-claude
+/plugin install nextc-product@nextc-claude
+/plugin install nextc-project-kickoff@nextc-claude
+/plugin install nextc-flutter@nextc-claude
+/plugin install nextc-aso@nextc-claude
 
 # Symlink rules (not installed by marketplace)
 ./setup-rules.sh
 ```
-
-When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, `/nextc-claude:clarify`, etc.
 
 ## Golden Rule
 
@@ -22,80 +24,80 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 ## Structure
 
 ```
-.claude-plugin/     — Plugin manifest (plugin.json)
-agents/             — Agent definitions (14 agents)
-rules/nextc-claude/ — Rule definitions (8 rules)
-skills/             — Skill definitions (17 skills)
-setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
+.claude-plugin/marketplace.json   — Marketplace manifest (5 plugins)
+nextc-workflow/                   — Development workflows (6 skills, 2 agents)
+nextc-product/                    — Product exploration (1 skill, 1 agent)
+nextc-project-kickoff/            — Project scaffolding (1 skill, 1 agent)
+nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
+nextc-aso/                        — ASO pipeline (1 skill, 8 agents)
+rules/nextc-claude/               — Shared rules (8 rules, symlinked)
+setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
-
-## Key Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/plugin install nextc-claude@nextc-claude` | Install agents + skills via plugin |
-| `./setup-rules.sh` | Symlink rules (not covered by plugin) |
-| `git diff` | Review changes before committing |
-| `flutter gen-l10n` | Regenerate l10n after ARB changes (in target projects) |
 
 ## Dependencies
 
 | Dependency | Required By | Agents/Skills Used |
 |------------|-------------|-------------------|
-| **everything-claude-code** | `/feature-dev`, `/team-feature-dev`, `/bug-fix` | planner, architect, code-reviewer, security-reviewer |
-| **pm-skills** (6 sub-plugins) | `/product-explore` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
-| **marketingskills** | `/product-explore` | customer-research |
-| **aso-skills** | `/aso-pipeline` | 27 ASO skills (keyword-research, competitor-analysis, metadata-optimization, etc.) |
+| **everything-claude-code** | `nextc-workflow` | planner, architect, code-reviewer, security-reviewer |
+| **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
+| **marketingskills** | `nextc-product` | customer-research |
+| **aso-skills** | `nextc-aso` | 27 ASO skills |
 
-See [README.md Dependencies](README.md#dependencies) for install commands.
+## Plugins
 
-## Current Inventory
+### nextc-workflow
 
-### Agents
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| clarify | `/clarify` | Socratic interview: vague idea to clear spec |
+| feature-dev | `/feature-dev` | Full feature pipeline: plan, implement, review, cleanup, docs |
+| team-feature-dev | `/team-feature-dev` | Team-orchestrated parallel feature dev |
+| bug-fix | `/bug-fix` | Evidence-driven bug investigation and fix |
+| cleanup | `/cleanup` | Deletion-first code cleanup |
+| update-docs | `/update-docs` | Sync docs with codebase state |
 
-| Agent | Domain | Purpose |
-|-------|--------|---------|
-| doc-keeper | Docs | Updates project docs after code changes |
-| product-explorer | Product | Runs adaptive pipeline from raw idea to validated proposal |
-| flutter-kickoff-agent | Flutter | Scaffolds production-grade Flutter project from proposal |
-| flutter-builder | Flutter | Builds APK/IPA, updates buildlog, commits version bumps |
-| flutter-l10n-agent | Flutter | Executes l10n pipeline steps (audit, harmonize, extract, translate) |
-| ui-ux-developer | Design | Implements UI from design assets and design.md specs |
-| aso-director | ASO | Pipeline orchestrator — manages state, spawns specialists, validates quality gates |
-| aso-competitive | ASO | Competitive analysis — competitor matrix, gap analysis, review mining |
-| aso-keyword-research | ASO | Keyword research — discovery, scoring, clustering, seasonal tagging |
-| aso-metadata | ASO | Metadata optimization — titles, subtitles, descriptions, keyword fields |
-| aso-creative | ASO | Creative strategy — screenshots, icon, video storyboard, event cards |
-| aso-localization | ASO | Localization — per-locale keyword generation, metadata transcreation |
-| aso-ratings-reviews | ASO | Ratings & reviews — prompt strategy, response templates, reputation playbook |
-| aso-tracking | ASO | Tracking & measurement — KPIs, dashboards, A/B testing, feedback loops |
+Agents: `doc-keeper` (haiku), `ui-ux-developer` (sonnet)
 
-### Rules
+### nextc-product
 
-| Rule | Domain | Purpose |
-|------|--------|---------|
-| **model-selection** | **All** | **Model tier assignments: opus (complex reasoning), sonnet (standard work), haiku (chores)** |
-| error-handling | All | Debug logging + user-friendly error messages in every catch block |
-| flutter-build-rules | Flutter | Build log format, artifact naming, version bumps, git tags |
-| flutter-l10n-rules | Flutter | Localization text principles, ICU format, glossary protection |
-| no-auto-testing | All | Do not write or run tests unless explicitly asked |
-| project-docs | All | Maintain docs/ folder as single source of truth for product state |
-| skill-selection | All | Evaluate available skills on every prompt, invoke matching ones |
-| aso-pipeline-rules | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| product-explore | `/product-explore` | Raw idea to validated proposal |
 
-### Skills (17)
+Agent: `product-explorer` (sonnet)
 
-**Workflow** — composable development pipelines (new skills chain into each other):
+### nextc-project-kickoff
 
-| Skill | Invocable | Purpose |
-|-------|-----------|---------|
-| clarify | `/clarify` | Socratic interview: vague idea → clear spec with ambiguity scoring |
-| product-explore | `/product-explore` | Raw idea → validated proposal with --fast, --update, --branch, --deep-dive, --export modes |
-| flutter-kickoff | `/flutter-kickoff` | Proposal → production-grade Flutter project with --auto, --full, --minimal modes |
-| bug-fix | `/bug-fix` | Evidence-driven bug pipeline: hypothesize → investigate → fix → review → cleanup → docs |
-| cleanup | `/cleanup` | AI slop cleaner: deletion-first, pass-by-pass code cleanup |
-| feature-dev | `/feature-dev` | Full feature pipeline: clarify → plan → design → implement → review → cleanup → docs |
-| team-feature-dev | `/team-feature-dev` | Team-orchestrated feature dev: Product Director spawns parallel specialist workers |
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| flutter-kickoff | `/flutter-kickoff` | Proposal to production-grade Flutter project |
+
+Agent: `flutter-kickoff-agent` (sonnet)
+
+### nextc-flutter
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| flutter-build | `/flutter-build` | Build APK/IPA, log, commit version bump |
+| flutter-l10n | `/flutter-l10n` | Full l10n pipeline |
+| flutter-l10n-audit | `/flutter-l10n-audit` | Scan for hardcoded strings |
+| flutter-l10n-harmonize | `/flutter-l10n-harmonize` | Cross-string consistency |
+| flutter-l10n-extract | `/flutter-l10n-extract` | Extract to ARB files |
+| flutter-l10n-translate | `/flutter-l10n-translate` | Translate via OpenAI |
+| flutter-l10n-verify | `/flutter-l10n-verify` | Post-translation verification |
+| flutter-l10n-status | `/flutter-l10n-status` | Coverage dashboard |
+
+Agents: `flutter-builder` (haiku), `flutter-l10n-agent` (sonnet)
+
+### nextc-aso
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| aso-pipeline | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
+
+Agents: `aso-director`, `aso-competitive`, `aso-keyword-research`, `aso-metadata`, `aso-creative`, `aso-localization`, `aso-ratings-reviews`, `aso-tracking` (all sonnet)
+
+## Pipeline
 
 ```
 /product-explore ──→ /flutter-kickoff ──→ /feature-dev ──→ /cleanup
@@ -108,39 +110,17 @@ See [README.md Dependencies](README.md#dependencies) for install commands.
 /bug-fix ──→ /cleanup (if 3+ files changed)
 ```
 
-**Flutter:**
+## Rules (8)
 
-| Skill | Invocable | Purpose |
-|-------|-----------|---------|
-| flutter-build | `/flutter-build` | Build APK/IPA, log, and commit version bump |
-| flutter-l10n | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
-| flutter-l10n-audit | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
-| flutter-l10n-harmonize | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
-| flutter-l10n-extract | `/flutter-l10n-extract` | Extract strings into ARB locale files |
-| flutter-l10n-translate | `/flutter-l10n-translate` | Translate untranslated ARB keys via OpenAI |
-| flutter-l10n-verify | `/flutter-l10n-verify` | Post-translation verification |
-| flutter-l10n-status | `/flutter-l10n-status` | Translation coverage dashboard |
-
-**Docs & ASO:**
-
-| Skill | Invocable | Purpose |
-|-------|-----------|---------|
-| update-docs | `/update-docs` | Sync project documentation with codebase state |
-| aso-pipeline | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
-
-## Adding New Items
-
-| Type | How |
-|------|-----|
-| Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
-| Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/<name>.md`, add to `plugin.json` |
+**All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
+**Flutter:** flutter-build-rules, flutter-l10n-rules
+**ASO:** aso-pipeline-rules
 
 ## Design Principles
 
 - **Project-agnostic** — no hardcoded project paths or domain terms
-- **Activation by context** — skills/rules declare when they apply
-- **Composable** — skills can be invoked independently or as part of pipelines
+- **Composable** — skills chain into each other or run standalone
+- **Modular** — install only the plugins you need
 - **Idempotent** — `setup-rules.sh` and all skills are safe to re-run
 
-See [README.md](README.md) for full setup instructions, marketplace dependencies, and plugin list.
+See [README.md](README.md) for full setup instructions and dependency install commands.
