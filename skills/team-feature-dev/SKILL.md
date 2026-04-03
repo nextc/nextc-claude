@@ -174,7 +174,7 @@ Ask:
 
 ## Phase 3: Design (UI Features Only)
 
-Same as `/feature-dev` — check design.md, route through Stitch if needed.
+Same as `/feature-dev` — check design.md and design assets in the project folder.
 This phase runs BEFORE the team is created (design decisions inform task details).
 
 ## Phase 4: Create Team & Execute
@@ -455,7 +455,7 @@ Present the final summary to the user:
 | Phase 1 | Existing `docs/spec/` | — | Skip planning if spec exists |
 | Phase 2a | `everything-claude-code:planner` | sonnet | Create implementation plan |
 | Phase 2b | `everything-claude-code:architect` | opus | Adversarial architecture review |
-| Phase 3 | `stitch-ui-ux-designer` agent | opus | Core screen design (UI features) |
+| Phase 3 | User provides design assets | — | Core screen design (UI features) |
 | Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | — | Native team orchestration |
 | Phase 4 | `ui-ux-developer` agent (as teammate) | sonnet | UI screen implementation |
 | Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |

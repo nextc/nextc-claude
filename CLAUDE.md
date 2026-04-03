@@ -23,8 +23,8 @@ When installed as a plugin, skills are namespaced: `/nextc-claude:feature-dev`, 
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/             — Agent definitions (15 agents)
-rules/nextc-claude/ — Rule definitions (9 rules)
+agents/             — Agent definitions (14 agents)
+rules/nextc-claude/ — Rule definitions (8 rules)
 skills/             — Skill definitions (17 skills)
 setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
@@ -61,8 +61,7 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 | flutter-kickoff-agent | Flutter | Scaffolds production-grade Flutter project from proposal |
 | flutter-builder | Flutter | Builds APK/IPA, updates buildlog, commits version bumps |
 | flutter-l10n-agent | Flutter | Executes l10n pipeline steps (audit, harmonize, extract, translate) |
-| stitch-ui-ux-designer | Design | Designs core screens with Stitch MCP, documents design systems |
-| ui-ux-developer | Design | Implements UI from Stitch designs and design.md specs |
+| ui-ux-developer | Design | Implements UI from design assets and design.md specs |
 | aso-director | ASO | Pipeline orchestrator — manages state, spawns specialists, validates quality gates |
 | aso-competitive | ASO | Competitive analysis — competitor matrix, gap analysis, review mining |
 | aso-keyword-research | ASO | Keyword research — discovery, scoring, clustering, seasonal tagging |
@@ -83,7 +82,6 @@ The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these s
 | no-auto-testing | All | Do not write or run tests unless explicitly asked |
 | project-docs | All | Maintain docs/ folder as single source of truth for product state |
 | skill-selection | All | Evaluate available skills on every prompt, invoke matching ones |
-| stitch-design-workflow | Design | Stitch design phases: theme, validation, core screens, design.md |
 | aso-pipeline-rules | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
 
 ### Skills (17)

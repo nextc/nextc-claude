@@ -28,8 +28,7 @@ Ask: **"How much reasoning does this task require?"**
 | `doc-keeper` | haiku | Scripted doc updates, follows templates |
 | `flutter-builder` | haiku | Scripted build steps, command execution |
 | `flutter-l10n-agent` | sonnet | Nuanced l10n work, ICU syntax, cross-locale judgment |
-| `stitch-ui-ux-designer` | opus | Creative design decisions, visual identity |
-| `ui-ux-developer` | sonnet | Implementation from specs, follows design.md |
+| `ui-ux-developer` | sonnet | Implementation from design assets + design.md |
 | `aso-director` | sonnet | Pipeline orchestration, quality gate validation |
 | `aso-*` (all specialists) | sonnet | Analysis and content generation |
 

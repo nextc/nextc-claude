@@ -207,20 +207,20 @@ For UI-touching features, check what design artifacts exist:
 - The new screen is **non-core** (design system already proven)
 - Document the new screen in `design.md` screen inventory as non-core
 - The ui-ux-developer agent will implement creatively within the design system
-- Skip Stitch — non-core screens don't need Stitch prototypes
+- Non-core screens don't need dedicated design assets
 
 ### Path C: design.md Exists + Core Screen Needed
 - Rare — only for features that fundamentally change the product's visual identity
-- Spawn `stitch-ui-ux-designer` agent to design the core screen in Stitch
-- Update `design.md` with the new core screen
+- Ask the user to provide design assets (from Stitch, Figma, or any design tool)
+- Update `design.md` with the new core screen specs
 - Then proceed to implementation
 
 ### Path D: No design.md
 - This is the first UI feature — design system doesn't exist yet
 - Ask the user:
-  1. **Design first (Recommended)** — "Let me set up the visual identity with Stitch before coding"
+  1. **Design first (Recommended)** — "Provide design assets or a design direction so I can create design.md"
   2. **Code first, design later** — "Just implement with sensible defaults, I'll polish later"
-- If design first: spawn `stitch-ui-ux-designer` for theme + 3 validation screens + design.md
+- If design first: ask user for design assets or description, create design.md from them
 - If code first: proceed with framework defaults, note in plan that design pass is needed later
 
 ## Phase 4: Implement
@@ -385,7 +385,7 @@ Spawn **doc-keeper** agent in the background to update:
 ┌─────────────────▼──┐       │
 │ Phase 3: Design    │       │
 │   Check design.md  │       │
-│   Stitch if needed │       │
+│   + design assets  │       │
 └─────────────────┬──┘       │
                   │           │
               ┌───▼───────────▼───┐
@@ -446,7 +446,7 @@ This skill composes other skills and agents. Here's what it invokes:
 | Phase 1 | Existing `docs/spec/` | — | Spec exists from prior `/clarify` — skip Phase 2a |
 | Phase 2a | `everything-claude-code:planner` agent | sonnet | No existing spec |
 | Phase 2b | `everything-claude-code:architect` agent | opus | Always |
-| Phase 3 | `stitch-ui-ux-designer` agent | opus | UI feature, core screen needed |
+| Phase 3 | User provides design assets | — | UI feature, core screen needed |
 | Phase 4 | `ui-ux-developer` agent | sonnet | UI feature, screen implementation |
 | Phase 4 | `/flutter-l10n-extract` skill | — | Flutter UI feature, l10n enabled |
 | Phase 6 | `everything-claude-code:code-reviewer` agent | sonnet | Always |

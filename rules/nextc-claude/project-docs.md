@@ -58,7 +58,7 @@ docs/
 - Visual identity: colors (hex), typography (families, weights, scale), spacing, radii
 - Component library: buttons, cards, inputs, nav, lists, badges, modals, states
 - Screen inventory with core/non-core labels
-- Stitch project references if applicable
+- Design asset references (images from Stitch, Figma, or other tools in project folder)
 - Update frequency: when design decisions change
 
 ### `docs/tasks.md`

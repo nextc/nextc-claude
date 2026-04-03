@@ -154,7 +154,7 @@ For local storage: Isar and Drift primary, Hive as legacy option only.
 
 **Round 3: Extras** (only if applicable)
 - L10n (if multi_market): "Scaffold l10n with [languages]?"
-- Design assets: "Got design files (Stitch exports, mockups) or a direction
+- Design assets: "Got design files (mockups, screen exports) or a direction
   ('dark, minimal, like Notion')? Otherwise placeholder design.md."
 
 #### After decisions (both modes)
@@ -395,7 +395,7 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3, 4]`.
 ## Also
 
 - Copy `.env.example` to `.env` and fill in backend keys
-- Design screens on Stitch web → download → update design.md
+- Create designs (Stitch, Figma, etc.) → add to project folder → update design.md
 - `/flutter-l10n` for translations
 - `/flutter-kickoff --full` to add routes, l10n, design integration later
 ```
