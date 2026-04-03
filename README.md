@@ -48,11 +48,10 @@ Some custom agents depend on third-party skill packs. Install these before using
 
 ```
 .claude-plugin/     — Plugin manifest (plugin.json)
-agents/                   — Agent definitions (13 agents)
-commands/                 — Slash command stubs for CLI autocomplete (15 commands)
-rules/nextc-claude/       — Rule definitions (8 rules)
-skills/                   — Skill definitions (15 skills)
-setup-rules.sh            — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
+agents/             — Agent definitions (14 agents)
+rules/nextc-claude/ — Rule definitions (8 rules)
+skills/             — Skill definitions (17 skills)
+setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-claude
 ```
 
 ## What's Included
@@ -61,11 +60,12 @@ setup-rules.sh            — Symlinks rules/nextc-claude into ~/.claude/rules/n
 
 | Agent | Domain | Purpose |
 |-------|--------|---------|
-| `doc-keeper` | Docs | Background agent that syncs project docs after code changes |
+| `product-explorer` | Product | Runs adaptive pipeline from raw idea to validated proposal |
+| `flutter-kickoff-agent` | Flutter | Scaffolds production-grade Flutter project from proposal |
 | `flutter-builder` | Flutter | Builds APK/IPA, updates buildlog, commits version bumps |
 | `flutter-l10n-agent` | Flutter | Executes l10n pipeline steps when spawned by skills |
-| `stitch-ui-ux-designer` | Design | Designs core screens in Stitch MCP, documents design systems |
-| `ui-ux-developer` | Design | Implements UI from Stitch designs + design.md |
+| `ui-ux-developer` | Design | Implements UI from design assets + design.md with strict fidelity |
+| `doc-keeper` | Docs | Background agent that syncs project docs after code changes |
 | `aso-director` | ASO | Pipeline orchestrator — spawns specialists, validates quality gates |
 | `aso-competitive` | ASO | Competitive analysis — competitor matrix, gap analysis, review mining |
 | `aso-keyword-research` | ASO | Keyword discovery, scoring, clustering, seasonal tagging |
@@ -79,33 +79,46 @@ setup-rules.sh            — Symlinks rules/nextc-claude into ~/.claude/rules/n
 
 | Rule | Domain | Purpose |
 |------|--------|---------|
+| `model-selection` | All | Model tier assignments: opus (complex reasoning), sonnet (standard), haiku (chores) |
 | `error-handling` | All | Mandatory debug logging and user-friendly error messages |
-| `flutter-build-rules` | Flutter | Build log format, artifact naming, version bumps, git tags |
-| `flutter-l10n-rules` | Flutter | Text principles for localization (tone, glossary, ICU) |
 | `no-auto-testing` | All | Suppresses automatic test generation/execution |
 | `project-docs` | All | Enforces `docs/` folder as single source of truth |
 | `skill-selection` | All | Auto-evaluate and invoke relevant skills per prompt |
-| `stitch-design-workflow` | Design | Gated design workflow with Stitch MCP |
+| `flutter-build-rules` | Flutter | Build log format, artifact naming, version bumps, git tags |
+| `flutter-l10n-rules` | Flutter | Text principles for localization (tone, glossary, ICU) |
 | `aso-pipeline-rules` | ASO | Skills-first, dual-model tokens, quality gates, handoff format |
 
-### Skills (15)
+### Skills (17)
 
-**Workflow** — composable development pipelines:
+**Product & Workflow** — composable pipelines from idea to production:
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| `clarify` | `/clarify` | Socratic interview: vague idea → clear spec with ambiguity scoring |
-| `bug-fix` | `/bug-fix` | Evidence-driven bug pipeline: hypothesize → investigate → fix → review → cleanup → docs |
-| `cleanup` | `/cleanup` | AI slop cleaner: deletion-first, pass-by-pass code cleanup |
-| `feature-dev` | `/feature-dev` | Full feature pipeline: clarify → plan → design → implement → review → cleanup → docs |
-| `team-feature-dev` | `/team-feature-dev` | Team-orchestrated feature dev: Product Director spawns parallel specialist workers |
+| `product-explore` | `/product-explore` | Raw idea to validated proposal with market research, competitor analysis, collision insights |
+| `flutter-kickoff` | `/flutter-kickoff` | Proposal to production-grade Flutter project with entity models, repos, docs |
+| `clarify` | `/clarify` | Socratic interview: vague idea to clear spec with ambiguity scoring |
+| `feature-dev` | `/feature-dev` | Full feature pipeline: plan, implement, review, cleanup, docs |
+| `team-feature-dev` | `/team-feature-dev` | Team-orchestrated feature dev with parallel specialist agents |
+| `bug-fix` | `/bug-fix` | Evidence-driven bug pipeline: hypothesize, investigate, fix, review |
+| `cleanup` | `/cleanup` | AI slop cleaner: deletion-first, regression-safe code cleanup |
+
+```
+/product-explore ──→ /flutter-kickoff ──→ /feature-dev ──→ /cleanup
+     (proposal)         (project)          (features)
+
+/clarify ──→ /feature-dev ──→ /cleanup
+                  ↓
+          /team-feature-dev (parallel variant)
+
+/bug-fix ──→ /cleanup (if 3+ files changed)
+```
 
 **Flutter:**
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | `flutter-build` | `/flutter-build` | Build APK/IPA, log, and commit version bump |
-| `flutter-l10n` | `/flutter-l10n` | Full l10n pipeline: audit → harmonize → extract → translate → verify |
+| `flutter-l10n` | `/flutter-l10n` | Full l10n pipeline: audit, harmonize, extract, translate, verify |
 | `flutter-l10n-audit` | `/flutter-l10n-audit` | Scan for hardcoded user-facing strings |
 | `flutter-l10n-harmonize` | `/flutter-l10n-harmonize` | Cross-string consistency analysis |
 | `flutter-l10n-extract` | `/flutter-l10n-extract` | Extract strings into ARB locale files |
@@ -120,22 +133,34 @@ setup-rules.sh            — Symlinks rules/nextc-claude into ~/.claude/rules/n
 | `update-docs` | `/update-docs` | Spawns doc-keeper to sync project docs |
 | `aso-pipeline` | `/aso-pipeline` | ASO pipeline: build, run, audit, status |
 
+### Product-to-Code Pipeline
+
+The full pipeline takes you from raw idea to running Flutter app:
+
+| Step | Skill | Input | Output |
+|------|-------|-------|--------|
+| 1. Explore | `/product-explore` | Raw idea | `docs/proposal.md` with market research, competitors, MVP features |
+| 2. Kickoff | `/flutter-kickoff` | `docs/proposal.md` | Production-grade Flutter project with entity models, repos, docs |
+| 3. Build | `/feature-dev` | Feature request | Implemented, reviewed, documented feature |
+| 4. Localize | `/flutter-l10n` | Implemented app | Multi-locale translations |
+| 5. Ship | `/flutter-build` | Ready app | APK/IPA with build log |
+
+`/flutter-kickoff` supports multiple modes:
+- `--auto` — zero questions, all decisions from proposal (~5 min)
+- Default — 3 quick decision rounds (~10 min)
+- `--full` — adds l10n, design analysis, routes, git (~17 min)
+- `--minimal` — bare project + deps only (~3 min)
+
 ### Workflow Skills
 
-The 5 workflow skills compose into each other — each can be used standalone or as part of a larger pipeline:
-
-```
-/clarify ──→ /feature-dev ──→ /cleanup
-                  ↓
-          /team-feature-dev (parallel variant with Claude Code team orchestration)
-
-/bug-fix ──→ /cleanup (if 3+ files changed)
-```
+The workflow skills compose into each other — each can be used standalone or as part of a larger pipeline:
 
 **When to use which:**
 
 | Situation | Skill |
 |-----------|-------|
+| Have a raw idea, need to validate it | `/product-explore` |
+| Have a proposal, need a Flutter project | `/flutter-kickoff` |
 | Vague idea, need to think it through | `/clarify` |
 | Build a feature (small-medium, 1-5 files) | `/feature-dev` |
 | Build a feature (large, parallelizable, 5+ files) | `/team-feature-dev` |
@@ -143,6 +168,8 @@ The 5 workflow skills compose into each other — each can be used standalone or
 | Clean up messy/bloated code after a session | `/cleanup` |
 
 **How they chain:**
+- `/product-explore` produces `docs/proposal.md` that `/flutter-kickoff` reads
+- `/flutter-kickoff` produces a scaffolded project with spec stubs that `/feature-dev` reads
 - `/feature-dev` auto-invokes `/clarify` if the request is too vague (Gate 0)
 - `/feature-dev` auto-invokes `/cleanup` after implementation (Phase 7)
 - `/feature-dev` auto-invokes `/flutter-l10n-extract` for Flutter UI features (Phase 4)
@@ -150,9 +177,21 @@ The 5 workflow skills compose into each other — each can be used standalone or
 - `/bug-fix` invokes `/cleanup` if the fix touched 3+ files (Phase 7)
 - All workflow skills spawn `doc-keeper` at the end to update project documentation
 
+### Design Workflow
+
+The `ui-ux-developer` agent enforces strict design compliance without requiring any specific design tool:
+
+1. Create your designs externally (Stitch, Figma, Sketch, or any tool)
+2. Export design assets (PNG, JPG, PDF) into your project folder
+3. Document the design system in `docs/design.md`
+4. The agent reads design assets + design.md and implements with pixel-perfect fidelity
+
+**Core screens** (with design assets): strict mode — layout, spacing, hierarchy must match exactly.
+**Non-core screens** (no design assets): creative mode — follows design.md patterns, reuses components.
+
 ### ASO Pipeline
 
-The ASO pipeline is a **Director → Specialist** multi-agent system for App Store Optimization. It requires the [aso-skills](https://github.com/Eronred/aso-skills) dependency (see setup above).
+The ASO pipeline is a **Director to Specialist** multi-agent system for App Store Optimization. It requires the [aso-skills](https://github.com/Eronred/aso-skills) dependency (see setup above).
 
 **How it works:**
 1. `/aso-pipeline build` — scaffolds project structure, configs, and Python scripts
@@ -160,17 +199,17 @@ The ASO pipeline is a **Director → Specialist** multi-agent system for App Sto
 3. `/aso-pipeline audit` — runs a 10-factor ASO health audit
 4. `/aso-pipeline status` — shows pipeline progress
 
-**Pipeline flow:** Competitive → Keywords → Metadata → Creative → Localization → Tracking (with Ratings & Reviews running in parallel after Competitive).
+**Pipeline flow:** Competitive, Keywords, Metadata, Creative, Localization, Tracking (with Ratings & Reviews running in parallel after Competitive).
 
-Each specialist agent invokes installed ASO skills first, then supplements with OpenAI research. Research-heavy tasks route to OpenAI to conserve Claude tokens. See `spec/agentic-aso-pipeline/CLAUDE.md` for the full spec.
+Each specialist agent invokes installed ASO skills first, then supplements with OpenAI research. Research-heavy tasks route to OpenAI to conserve Claude tokens.
 
 ## Adding New Items
 
 | Type | How |
 |------|-----|
-| Skill | Create `skills/<name>/SKILL.md` with frontmatter, add to `plugin.json` |
+| Skill | Create `skills/<name>/SKILL.md` with frontmatter |
 | Rule | Add `rules/nextc-claude/<name>.md` — symlink picks up automatically |
-| Agent | Add `agents/<name>.md`, add to `plugin.json` |
+| Agent | Add `agents/<name>.md` |
 
 Skills must be direct children of `skills/` — Claude Code does not discover nested subdirectories.
 
@@ -185,7 +224,7 @@ Skills must be direct children of `skills/` — Claude Code does not discover ne
 | claude-plugins-official | `/plugin marketplace add anthropics/claude-plugins-official` | Anthropic's official directory — 100+ plugins for dev tools, MCP servers, and integrations |
 | everything-claude-code | `/plugin marketplace add affaan-m/everything-claude-code` | Battle-tested agents, skills, hooks, and rules from an Anthropic hackathon winner |
 | claude-code-workflows | `/plugin marketplace add wshobson/claude-code-workflows` | 72 plugins, 112 agents, 146 skills — debugging, TDD, refactoring, deployment |
-| nextc-claude | `/plugin marketplace add nextc/nextc-claude` | Workflow pipelines, Flutter build/l10n, design with Stitch, ASO pipeline |
+| nextc-claude | `/plugin marketplace add nextc/nextc-claude` | Workflow pipelines, Flutter build/l10n, design enforcement, ASO pipeline |
 | claude-mem | `/plugin marketplace add thedotmack/claude-mem` | Persistent cross-session memory — context preservation across conversations |
 
 **Design**
