@@ -118,7 +118,13 @@ If code-gen deps: `dart run build_runner build --delete-conflicting-outputs`
 ### Step 2e: App polish configs
 
 Read and process `flutter_launcher_icons.yaml.tmpl` and `flutter_native_splash.yaml.tmpl`.
-Write to project root. Create `assets/icon/` directory.
+Write to project root. Create `assets/icon/` directory with a placeholder `app_icon.png`.
+
+**Generate a minimal placeholder icon** — a 1024x1024 solid-color PNG using the primary
+color. Use ImageMagick if available (`convert -size 1024x1024 xc:#6750A4 assets/icon/app_icon.png`),
+otherwise create a minimal valid PNG via Dart or note that the user must add an icon before
+running `flutter pub run flutter_launcher_icons`. The icon config is ready but won't work
+without an actual image file.
 
 ## Phase 3: Structure & Initial Files
 

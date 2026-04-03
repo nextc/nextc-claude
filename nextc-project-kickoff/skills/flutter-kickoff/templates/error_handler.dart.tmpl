@@ -12,6 +12,14 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 ///
 /// Call this in repository implementations to translate technical errors
 /// into user-friendly errors before they reach the UI.
+///
+/// Usage:
+/// ```dart
+/// Future<List<Room>> getRooms() => ErrorHandler.guard(() async {
+///   final response = await client.from('rooms').select();
+///   return response.map(Room.fromJson).toList();
+/// });
+/// ```
 abstract final class ErrorHandler {
   /// Wraps [action] in a try/catch that maps raw exceptions to [AppException].
   static Future<T> guard<T>(Future<T> Function() action) async {
@@ -22,34 +30,47 @@ abstract final class ErrorHandler {
 {{#SUPABASE}}
     } on supabase.AuthException catch (e, st) {
       AppLogger.e('[ErrorHandler] Auth error', error: e, stackTrace: st);
-      throw const AuthException();
+      throw AuthException(
+        'Authentication failed. Please sign in again.',
+        e,
+      );
     } on supabase.PostgrestException catch (e, st) {
       AppLogger.e('[ErrorHandler] Database error', error: e, stackTrace: st);
-      throw const StorageException();
+      throw StorageException(
+        'Could not complete the request. Please try again.',
+        e,
+      );
 {{/SUPABASE}}
 {{#FIREBASE}}
     } on fb_auth.FirebaseAuthException catch (e, st) {
       AppLogger.e('[ErrorHandler] Firebase Auth error', error: e, stackTrace: st);
-      throw const AuthException();
+      throw AuthException(
+        'Authentication failed. Please sign in again.',
+        e,
+      );
     } on FirebaseException catch (e, st) {
       AppLogger.e('[ErrorHandler] Firebase error', error: e, stackTrace: st);
-      throw const StorageException();
+      throw StorageException(
+        'Could not complete the request. Please try again.',
+        e,
+      );
 {{/FIREBASE}}
     } on FormatException catch (e, st) {
       AppLogger.e('[ErrorHandler] Validation error', error: e, stackTrace: st);
-      throw const ValidationException();
+      throw ValidationException(
+        'The information provided is not valid.',
+        e,
+      );
     } catch (e, st) {
-      // Catches SocketException, HttpException, and any other unexpected errors.
-      // SocketException requires dart:io which is unavailable on web — catching
-      // broadly here keeps the template web-compatible.
-      final isNetwork = e.runtimeType.toString().contains('SocketException') ||
-          e.runtimeType.toString().contains('HttpException');
-      if (isNetwork) {
-        AppLogger.e('[ErrorHandler] Network error', error: e, stackTrace: st);
-        throw const NetworkException();
-      }
+      // Generic catch-all. On mobile, SocketException/HttpException land here.
+      // On web, platform-specific network errors land here too.
+      // All are mapped to user-friendly messages — the original error is
+      // preserved in [cause] for debug logging.
       AppLogger.e('[ErrorHandler] Unexpected error', error: e, stackTrace: st);
-      throw const UnexpectedException();
+      throw UnexpectedException(
+        'Something went wrong. Please try again.',
+        e,
+      );
     }
   }
 }

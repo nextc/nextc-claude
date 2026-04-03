@@ -1,16 +1,19 @@
 .PHONY: run build-aab build-apk build-ios gen watch clean analyze{{#L10N}} l10n{{/L10N}}
 
 run:  ## Run the app in debug mode
-	flutter run
+	flutter run --dart-define-from-file=.env
 
 build-aab:  ## Build Android App Bundle (required for Play Store)
-	flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info
+	flutter build appbundle --release --dart-define-from-file=.env \
+		--obfuscate --split-debug-info=build/debug-info
 
-build-apk:  ## Build APK (for local testing only)
-	flutter build apk --release
+build-apk:  ## Build APK (for local testing)
+	flutter build apk --release --dart-define-from-file=.env \
+		--obfuscate --split-debug-info=build/debug-info
 
 build-ios:  ## Build iOS IPA
-	flutter build ipa --release --obfuscate --split-debug-info=build/debug-info
+	flutter build ipa --release --dart-define-from-file=.env \
+		--obfuscate --split-debug-info=build/debug-info
 
 {{#CODE_GEN}}
 gen:  ## Run code generation

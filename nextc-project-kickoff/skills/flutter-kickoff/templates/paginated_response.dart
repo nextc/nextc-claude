@@ -1,18 +1,21 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 /// Generic pagination model for repository methods.
 ///
 /// Used by all repository `findAll` methods to support cursor-based pagination.
+/// The [items] list is unmodifiable — callers cannot accidentally mutate it.
 @immutable
 class PaginatedResponse<T> {
-  const PaginatedResponse({
-    required this.items,
+  PaginatedResponse({
+    required List<T> items,
     required this.hasMore,
     this.cursor,
     this.totalCount,
-  });
+  }) : items = UnmodifiableListView(items);
 
-  /// The items in this page.
+  /// The items in this page. Unmodifiable.
   final List<T> items;
 
   /// Whether more items are available after this page.
