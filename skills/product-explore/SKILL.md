@@ -34,51 +34,56 @@ Parse `$ARGUMENTS` to determine mode:
 
 ## Phase 0: Preflight Check
 
-Before spawning the agent, validate all dependencies. Run ALL checks before reporting.
+Before spawning the agent, validate ALL dependencies. Run ALL checks before reporting —
+never fail one-at-a-time.
 
 ### Required Plugins
 
-Check that these skills are accessible:
-
-**nextc-claude (bundled):**
-- `clarify`
+Check that these plugin directories exist in the cache:
 
 **pm-skills (6 sub-plugins):**
-- pm-market-research: `user-personas`, `market-sizing`, `competitor-analysis`
-- pm-execution: `job-stories`, `pre-mortem`
-- pm-go-to-market: `beachhead-segment`
-- pm-product-strategy: `product-vision`, `value-proposition`, `lean-canvas`
-- pm-product-discovery: `identify-assumptions-new`, `prioritize-assumptions`, `brainstorm-experiments-new`
-- pm-marketing-growth: `positioning-ideas`
+```
+~/.claude/plugins/cache/pm-skills/
+```
+Provides: `user-personas`, `market-sizing`, `competitor-analysis`, `job-stories`,
+`pre-mortem`, `beachhead-segment`, `product-vision`, `value-proposition`, `lean-canvas`,
+`identify-assumptions-new`, `prioritize-assumptions`, `brainstorm-experiments-new`,
+`positioning-ideas`
 
 **marketingskills:**
-- marketing-skills: `customer-research`
+```
+~/.claude/plugins/cache/marketingskills/
+```
+Provides: `customer-research`
+
+**nextc-claude (bundled):**
+- `clarify` — always available since it's bundled with this plugin
 
 ### How to Check
 
-Check for cached plugin installations:
+```bash
+ls ~/.claude/plugins/cache/pm-skills/ 2>/dev/null
+ls ~/.claude/plugins/cache/marketingskills/ 2>/dev/null
 ```
-~/.claude/plugins/cache/pm-skills/
-~/.claude/plugins/cache/marketingskills/
-```
-
-Or attempt to resolve skill names and check for errors.
 
 ### Optional Checks
 
 - **Exa MCP:** Check if `mcp__plugin_everything-claude-code_exa__web_search_exa` is accessible.
   If absent, warn: market sizing will be skipped, fact-based research will be degraded.
+- **everything-claude-code:** Check `~/.claude/plugins/cache/everything-claude-code/`.
+  Not used by product-explore directly, but the next step (`/flutter-kickoff` or `/feature-dev`)
+  requires it. Warn early.
 
 ### On Failure
 
-Report ALL missing dependencies with exact install commands:
+Report ALL missing items at once with exact install commands:
 
 ```
 Preflight FAILED. Missing dependencies:
 
 PLUGINS:
   - pm-skills — Install:
-    /plugin marketplace add anthropics/pm-skills
+    /plugin marketplace add phuryn/pm-skills
     /plugin install pm-market-research@pm-skills
     /plugin install pm-execution@pm-skills
     /plugin install pm-go-to-market@pm-skills
@@ -86,16 +91,29 @@ PLUGINS:
     /plugin install pm-product-discovery@pm-skills
     /plugin install pm-marketing-growth@pm-skills
 
+  - marketingskills — Install:
+    /plugin marketplace add coreyhaines31/marketingskills
+    /plugin install marketing-skills@marketingskills
+
 OPTIONAL:
+  - everything-claude-code not detected — your next step (/flutter-kickoff or /feature-dev) needs it.
+    /plugin marketplace add affaan-m/everything-claude-code
+    /plugin install everything-claude-code@everything-claude-code
+
   - Exa MCP not detected — market research will be limited.
 
 Install missing dependencies and run /product-explore again.
 ```
 
+STOP here. Do NOT proceed to the agent until all required plugins are installed.
+
 ### On Success
 
 ```
-Preflight passed. [N] skills available. Exa MCP: [available/unavailable].
+Preflight passed.
+  Plugins: pm-skills ✓, marketingskills ✓
+  Optional: everything-claude-code [✓/missing], Exa MCP [available/unavailable]
+  Skills: [N] available
 ```
 
 ## Spawn the Agent

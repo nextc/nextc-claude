@@ -37,9 +37,30 @@ Additional flags (combinable with modes):
 
 ## Phase 0: Preflight Check
 
-Before spawning the agent, validate ALL dependencies. Run all checks before reporting.
+Before spawning the agent, validate ALL dependencies. Run ALL checks before reporting —
+never fail one-at-a-time.
 
-### Required Checks
+### Required Plugins
+
+Check that these plugin agents/skills are accessible. For each, check if the plugin
+cache directory exists:
+
+**everything-claude-code** (primary dependency):
+```
+~/.claude/plugins/cache/everything-claude-code/
+```
+Provides: `planner`, `architect`, `code-reviewer`, `security-reviewer` agents.
+These are not used by kickoff directly, but `/feature-dev` (the next step after kickoff)
+requires them. Warn now so the user doesn't hit a wall after scaffolding.
+
+### How to Check Plugins
+
+Check for cached plugin directories:
+```bash
+ls ~/.claude/plugins/cache/everything-claude-code/ 2>/dev/null
+```
+
+### Required Tools
 
 **1. Flutter SDK:**
 ```bash
@@ -52,6 +73,8 @@ Quick parse of proposal for target platforms, then verify:
 - Android: check for Android SDK via `flutter doctor`
 - iOS: check for Xcode (macOS only)
 - Web: always available
+
+### Required Files
 
 **3. proposal.md exists:**
 
@@ -102,22 +125,34 @@ read `completed_phases` and report which phases are done. If not found, error.
 
 ### On Failure
 
-Report ALL missing items with exact install commands. Never fail one-at-a-time.
+Report ALL missing items at once with exact install commands:
 
 ```
 Preflight FAILED. Missing dependencies:
 
+PLUGINS:
+  - everything-claude-code — Required for /feature-dev (your next step after kickoff).
+    Install:
+      /plugin marketplace add affaan-m/everything-claude-code
+      /plugin install everything-claude-code@everything-claude-code
+
+TOOLS:
   - Flutter SDK not found
     Install: https://docs.flutter.dev/get-started/install
 
   - Android SDK not configured
     Run: flutter doctor --android-licenses
+
+Install missing dependencies and run /flutter-kickoff again.
 ```
+
+STOP here. Do NOT proceed to the agent until all required items are resolved.
 
 ### On Success
 
 ```
 Preflight passed.
+  Plugins: everything-claude-code ✓
   Flutter: 3.x.x (channel stable)
   Platforms: android ✓, ios ✓, web ✓
   Proposal: docs/proposal.md (full)
