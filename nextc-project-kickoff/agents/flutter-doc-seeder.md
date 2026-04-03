@@ -107,6 +107,18 @@ This document defines the architecture for [Product Name]. Every feature built
 via `/feature-dev` MUST follow these patterns. Do not deviate without updating
 this document first.
 
+## Infrastructure Gate (CRITICAL)
+
+The tasks in `tasks.md` Phase 1 build core infrastructure. Phase 2 (entity models
+and repositories) and Phase 3 (MVP features) MUST NOT start until the infrastructure
+verification checklist in `tasks.md` passes. This is a hard gate, not a suggestion.
+
+After completing Phase 1, run every check in the "Infrastructure Verification"
+section of `tasks.md`. If ANY check fails, fix it before proceeding. Do not mark
+Phase 1 as complete until all verification checks pass.
+
+`flutter analyze` must pass AND the app must launch without crashes.
+
 ## Folder Structure
 
 Every feature lives in `lib/features/{feature_name}/` with this structure:
@@ -441,22 +453,30 @@ Copy the original proposal.md into the project as a snapshot.
 [For each mvp_feature, ordered by priority:]
 - [ ] **[Feature name]** — [description] `[priority]`
 
-## Infrastructure Verification
+## GATE: Infrastructure Verification
 
-After completing Phase 1 tasks, verify before moving to Phase 2:
+**This is a hard gate.** Phase 2 and Phase 3 MUST NOT start until every check
+below passes. Run each check, mark pass/fail. If any fails, fix and re-check.
 
-- [ ] `flutter analyze` passes with zero issues
-- [ ] `flutter run` launches without crashes
-- [ ] Error boundary works: throw an exception in a widget → app shows error widget, not red screen
-- [ ] ErrorHandler.guard() works: throw in a repository method → catches and maps to AppException
-- [ ] DI works: can access repositories from any screen via [state_management]
-- [ ] Routing works: can navigate between home and at least one feature screen
-- [ ] Logging works: `AppLogger.d('test')` appears in debug console, not in release
-- [ ] Secure storage works: can write and read a test value
-- [ ] Theme works: light/dark mode switches correctly
+### Automated checks (run these commands)
 
-If any check fails, fix before proceeding. This infrastructure is the foundation
-for every feature — getting it wrong here costs 10x to fix later.
+- [ ] `flutter analyze` — zero errors, zero warnings
+- [ ] `flutter run` — app launches without crashes, home screen renders
+
+### Manual verification (test each in the running app)
+
+- [ ] **Error boundary:** Add a temporary `throw Exception('test')` in a widget build method → app shows the error widget with a friendly message and retry button, NOT the red error screen. Remove the throw after verifying.
+- [ ] **ErrorHandler.guard():** Call a repository method that throws → the error is caught, logged via AppLogger, and mapped to an AppException subtype with a user-friendly message.
+- [ ] **DI:** Access a repository from a screen widget via [state_management] — it resolves without errors.
+- [ ] **Routing:** Navigate from home screen to at least one feature screen and back.
+- [ ] **Logging:** `AppLogger.d('test')` prints to debug console. Build in release mode and verify it does NOT print.
+- [ ] **Secure storage:** Write a test value with `SecureStorageService`, read it back, verify match. Delete after.
+- [ ] **Theme:** Toggle between light and dark mode — colors and typography switch correctly.
+
+### Gate result
+
+All checks pass → update `tasks.md`: mark Phase 1 complete, proceed to Phase 2.
+Any check fails → fix the infrastructure, re-run failed checks. Do NOT proceed.
 
 ## Known Bugs
 
