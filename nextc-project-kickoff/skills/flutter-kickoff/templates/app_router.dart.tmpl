@@ -1,0 +1,45 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+{{#RIVERPOD}}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+{{/RIVERPOD}}
+
+import 'package:{{PACKAGE_NAME}}/core/router/analytics_observer.dart';
+import 'package:{{PACKAGE_NAME}}/features/home/presentation/home_screen.dart';
+
+{{#RIVERPOD}}
+part 'app_router.g.dart';
+
+@riverpod
+GoRouter router(Ref ref) {
+  return GoRouter(
+    initialLocation: '/',
+    observers: [AnalyticsObserver()],
+    routes: [
+      GoRoute(
+        path: '/',
+        name: 'home',
+        builder: (context, state) => const HomeScreen(),
+      ),
+      // TODO: add feature routes from decisions.json
+    ],
+  );
+}
+{{/RIVERPOD}}
+{{^RIVERPOD}}
+abstract final class AppRouter {
+  static final router = GoRouter(
+    initialLocation: '/',
+    observers: [AnalyticsObserver()],
+    routes: [
+      GoRoute(
+        path: '/',
+        name: 'home',
+        builder: (context, state) => const HomeScreen(),
+      ),
+      // TODO: add feature routes from decisions.json
+    ],
+  );
+}
+{{/RIVERPOD}}

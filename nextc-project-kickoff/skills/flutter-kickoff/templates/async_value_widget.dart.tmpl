@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+{{#RIVERPOD}}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+{{/RIVERPOD}}
+
+/// Handles the 4 screen states: loading, error, empty, success.
+{{#RIVERPOD}}
+///
+/// Works with Riverpod's [AsyncValue].
+///
+/// Usage:
+/// ```dart
+/// AsyncValueWidget<List<Item>>(
+///   value: ref.watch(itemsProvider),
+///   data: (items) => ItemList(items: items),
+///   onRetry: () => ref.invalidate(itemsProvider),
+/// )
+/// ```
+class AsyncValueWidget<T> extends StatelessWidget {
+  const AsyncValueWidget({
+    super.key,
+    required this.value,
+    required this.data,
+    this.loading,
+    this.error,
+    this.onRetry,
+  });
+
+  final AsyncValue<T> value;
+  final Widget Function(T) data;
+  final Widget Function()? loading;
+  final Widget Function(Object, StackTrace?)? error;
+
+  /// Called when the user taps "Try Again". Typically invalidates the provider.
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return value.when(
+      data: data,
+      loading: () =>
+          loading?.call() ??
+          const Center(child: CircularProgressIndicator()),
+      error: (e, st) =>
+          error?.call(e, st) ??
+          DefaultErrorWidget(error: e, onRetry: onRetry),
+    );
+  }
+}
+{{/RIVERPOD}}
+{{^RIVERPOD}}
+///
+/// State-agnostic version. Wraps any async result into a loading/error/data pattern.
+///
+/// Usage:
+/// ```dart
+/// AsyncResultWidget<List<Item>>(
+///   isLoading: state.isLoading,
+///   error: state.error,
+///   data: state.items,
+///   builder: (items) => ItemList(items: items),
+///   onRetry: () => controller.refresh(),
+/// )
+/// ```
+class AsyncResultWidget<T> extends StatelessWidget {
+  const AsyncResultWidget({
+    super.key,
+    required this.isLoading,
+    this.error,
+    this.data,
+    required this.builder,
+    this.loading,
+    this.errorBuilder,
+    this.onRetry,
+  });
+
+  final bool isLoading;
+  final Object? error;
+  final T? data;
+  final Widget Function(T) builder;
+  final Widget Function()? loading;
+  final Widget Function(Object, StackTrace?)? errorBuilder;
+
+  /// Called when the user taps "Try Again".
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return loading?.call() ??
+          const Center(child: CircularProgressIndicator());
+    }
+    if (error != null) {
+      return errorBuilder?.call(error!, null) ??
+          DefaultErrorWidget(error: error!, onRetry: onRetry);
+    }
+    if (data != null) {
+      return builder(data as T);
+    }
+    return const SizedBox.shrink();
+  }
+}
+{{/RIVERPOD}}
+
+/// Default error widget with optional retry button.
+class DefaultErrorWidget extends StatelessWidget {
+  const DefaultErrorWidget({
+    super.key,
+    required this.error,
+    this.onRetry,
+  });
+
+  final Object error;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

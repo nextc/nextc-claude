@@ -1,0 +1,28 @@
+import 'package:{{PACKAGE_NAME}}/core/utils/paginated_response.dart';
+
+/// Abstract base for offline-first repositories.
+///
+/// Reads from local storage first, syncs with remote when online.
+/// Concrete implementations handle the specific local + remote data sources.
+abstract class LocalFirstRepository<T> {
+  /// Fetch from local storage first. If empty and online, fetch from remote.
+  Future<PaginatedResponse<T>> findAll({String? cursor, int limit = 20});
+
+  /// Fetch a single item by ID from local storage.
+  Future<T?> findById(String id);
+
+  /// Create locally and queue for remote sync.
+  Future<T> create(T entity);
+
+  /// Update locally and queue for remote sync.
+  Future<T> update(T entity);
+
+  /// Delete locally and queue for remote sync.
+  Future<void> delete(String id);
+
+  /// Sync pending local changes with remote.
+  Future<void> sync();
+
+  /// Whether there are pending changes to sync.
+  Future<bool> get hasPendingChanges;
+}

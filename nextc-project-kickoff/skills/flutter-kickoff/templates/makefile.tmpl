@@ -1,0 +1,32 @@
+.PHONY: run build-aab build-apk build-ios gen watch clean analyze{{#L10N}} l10n{{/L10N}}
+
+run:  ## Run the app in debug mode
+	flutter run
+
+build-aab:  ## Build Android App Bundle (required for Play Store)
+	flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info
+
+build-apk:  ## Build APK (for local testing only)
+	flutter build apk --release
+
+build-ios:  ## Build iOS IPA
+	flutter build ipa --release --obfuscate --split-debug-info=build/debug-info
+
+{{#CODE_GEN}}
+gen:  ## Run code generation
+	dart run build_runner build --delete-conflicting-outputs
+
+watch:  ## Watch mode for code generation
+	dart run build_runner watch --delete-conflicting-outputs
+
+{{/CODE_GEN}}
+clean:  ## Clean build artifacts and re-fetch deps
+	flutter clean && flutter pub get
+
+analyze:  ## Run static analysis
+	flutter analyze
+{{#L10N}}
+
+l10n:  ## Regenerate localizations
+	flutter gen-l10n
+{{/L10N}}

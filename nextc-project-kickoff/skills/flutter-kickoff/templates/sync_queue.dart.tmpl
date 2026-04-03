@@ -1,0 +1,65 @@
+import 'package:flutter/foundation.dart';
+
+import 'package:{{PACKAGE_NAME}}/core/utils/app_logger.dart';
+
+/// Persists pending operations for offline-first sync.
+///
+/// When the device is offline, mutations are queued here.
+/// When connectivity resumes, process the queue in order.
+class SyncQueue {
+  final List<SyncOperation> _queue = [];
+
+  /// Add an operation to the queue.
+  void enqueue(SyncOperation operation) => _queue.add(operation);
+
+  /// Process all pending operations. Returns failures.
+  Future<List<SyncOperation>> processAll(
+    Future<void> Function(SyncOperation) executor,
+  ) async {
+    final failures = <SyncOperation>[];
+    final pending = List<SyncOperation>.from(_queue);
+    _queue.clear();
+
+    for (final op in pending) {
+      try {
+        await executor(op);
+      } catch (e, st) {
+        AppLogger.e(
+          '[SyncQueue] Failed to sync ${op.entityType}/${op.entityId}',
+          error: e,
+          stackTrace: st,
+        );
+        failures.add(op);
+      }
+    }
+
+    // Re-queue failures for next attempt.
+    _queue.addAll(failures);
+    return failures;
+  }
+
+  /// Number of pending operations.
+  int get pendingCount => _queue.length;
+
+  /// Whether the queue is empty.
+  bool get isEmpty => _queue.isEmpty;
+}
+
+/// A single sync operation.
+class SyncOperation {
+  const SyncOperation({
+    required this.type,
+    required this.entityType,
+    required this.entityId,
+    required this.payload,
+    required this.createdAt,
+  });
+
+  final SyncOperationType type;
+  final String entityType;
+  final String entityId;
+  final Map<String, dynamic> payload;
+  final DateTime createdAt;
+}
+
+enum SyncOperationType { create, update, delete }

@@ -1,0 +1,21 @@
+targets:
+  $default:
+    builders:
+{{#FREEZED}}
+      freezed:
+        generate_for:
+          include:
+            - lib/**/*.dart
+{{/FREEZED}}
+{{#RIVERPOD}}
+      riverpod_generator:
+        generate_for:
+          include:
+            - lib/**/*.dart
+{{/RIVERPOD}}
+{{#AUTO_ROUTE}}
+      auto_route_generator:
+        generate_for:
+          include:
+            - lib/**/*.dart
+{{/AUTO_ROUTE}}

@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+{{#RIVERPOD}}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+{{/RIVERPOD}}
+{{#L10N}}
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+{{/L10N}}
+
+import 'package:{{PACKAGE_NAME}}/core/theme/app_theme.dart';
+import 'package:{{PACKAGE_NAME}}/core/router/app_router.dart';
+
+{{#RIVERPOD}}
+class App extends ConsumerWidget {
+  const App({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: '{{PRODUCT_NAME}}',
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      routerConfig: router,
+{{#L10N}}
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+{{/L10N}}
+    );
+  }
+}
+{{/RIVERPOD}}
+{{^RIVERPOD}}
+class App extends StatelessWidget {
+  const App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: '{{PRODUCT_NAME}}',
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      routerConfig: AppRouter.router,
+{{#L10N}}
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+{{/L10N}}
+    );
+  }
+}
+{{/RIVERPOD}}

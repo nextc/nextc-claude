@@ -1,0 +1,26 @@
+import 'package:flutter/material.dart';
+
+/// Route observer that tracks screen views for analytics.
+///
+/// Wire a real [AnalyticsService] when ready. Currently logs to debug console.
+class AnalyticsObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _trackScreen(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute != null) _trackScreen(newRoute);
+  }
+
+  void _trackScreen(Route<dynamic> route) {
+    final name = route.settings.name;
+    if (name != null) {
+      // TODO: wire to AnalyticsService.trackScreen(name)
+      debugPrint('[Analytics] Screen: $name');
+    }
+  }
+}

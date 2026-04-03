@@ -1,0 +1,15 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part '{{ENTITY_SNAKE}}.freezed.dart';
+part '{{ENTITY_SNAKE}}.g.dart';
+
+@freezed
+class {{ENTITY_PASCAL}} with _${{ENTITY_PASCAL}} {
+  const factory {{ENTITY_PASCAL}}({
+    required String id,
+{{ENTITY_FIELDS}}
+  }) = _{{ENTITY_PASCAL}};
+
+  factory {{ENTITY_PASCAL}}.fromJson(Map<String, dynamic> json) =>
+      _${{ENTITY_PASCAL}}FromJson(json);
+}

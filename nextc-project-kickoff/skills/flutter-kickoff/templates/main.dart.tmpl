@@ -1,0 +1,70 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+{{#RIVERPOD}}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+{{/RIVERPOD}}
+
+import 'package:{{PACKAGE_NAME}}/app.dart';
+import 'package:{{PACKAGE_NAME}}/core/utils/app_logger.dart';
+{{#SUPABASE}}
+import 'package:supabase_flutter/supabase_flutter.dart';
+{{/SUPABASE}}
+{{#FIREBASE}}
+import 'package:firebase_core/firebase_core.dart';
+{{/FIREBASE}}
+
+void main() {
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      // Global Flutter error handler.
+      FlutterError.onError = (details) {
+        AppLogger.e(
+          '[FlutterError] ${details.exceptionAsString()}',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
+        // TODO: wire crash reporting (Sentry, Crashlytics)
+      };
+
+      // Global platform error handler.
+      PlatformDispatcher.instance.onError = (error, stack) {
+        AppLogger.e('[PlatformError]', error: error, stackTrace: stack);
+        // TODO: wire crash reporting
+        return true;
+      };
+
+{{#SUPABASE}}
+      await Supabase.initialize(
+        url: const String.fromEnvironment('SUPABASE_URL'),
+        anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+      );
+{{/SUPABASE}}
+{{#FIREBASE}}
+      await Firebase.initializeApp();
+{{/FIREBASE}}
+{{#ISAR}}
+      // TODO: initialize Isar database
+      // final dir = await getApplicationDocumentsDirectory();
+      // await Isar.open([...schemas], directory: dir.path);
+{{/ISAR}}
+{{#DRIFT}}
+      // TODO: initialize Drift database
+      // final db = AppDatabase();
+{{/DRIFT}}
+
+{{#RIVERPOD}}
+      runApp(const ProviderScope(child: App()));
+{{/RIVERPOD}}
+{{^RIVERPOD}}
+      runApp(const App());
+{{/RIVERPOD}}
+    },
+    (error, stack) {
+      AppLogger.e('[UncaughtError]', error: error, stackTrace: stack);
+    },
+  );
+}

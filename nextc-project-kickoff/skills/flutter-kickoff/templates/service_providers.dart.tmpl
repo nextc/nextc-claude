@@ -1,0 +1,57 @@
+{{#RIVERPOD}}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
+import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
+import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
+
+part 'service_providers.g.dart';
+
+/// Secure storage for auth tokens and secrets.
+@riverpod
+SecureStorageService secureStorage(Ref ref) => SecureStorageService();
+
+/// Analytics service. Replace [NoopAnalytics] with a real implementation
+/// (Firebase Analytics, Mixpanel, etc.) when ready.
+@riverpod
+AnalyticsService analytics(Ref ref) => NoopAnalytics();
+
+// TODO: add repository providers per entity
+{{/RIVERPOD}}
+{{#PROVIDER}}
+import 'package:flutter/material.dart';
+
+import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
+import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
+import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
+
+/// Service locator for dependency injection.
+///
+/// Register services here. Access via Provider in the widget tree.
+class ServiceProviders {
+  ServiceProviders._();
+
+  static final secureStorage = SecureStorageService();
+  static final AnalyticsService analytics = NoopAnalytics();
+
+  // TODO: add repository instances per entity
+}
+{{/PROVIDER}}
+{{#BLOC}}
+import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
+import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
+import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
+
+/// Service locator for dependency injection.
+///
+/// Register services here. Consider using get_it for larger projects.
+class ServiceProviders {
+  ServiceProviders._();
+
+  static final secureStorage = SecureStorageService();
+  static final AnalyticsService analytics = NoopAnalytics();
+
+  // TODO: add repository instances per entity
+}
+{{/BLOC}}

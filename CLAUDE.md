@@ -27,7 +27,7 @@ Claude Code marketplace — 5 plugins with custom agents, rules, and workflow sk
 .claude-plugin/marketplace.json   — Marketplace manifest (5 plugins)
 nextc-workflow/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
-nextc-project-kickoff/            — Project scaffolding (1 skill, 1 agent)
+nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents, 34 templates)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 8 agents)
 rules/nextc-claude/               — Shared rules (8 rules, symlinked)
@@ -72,7 +72,8 @@ Agents: `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet),
 |-------|---------|---------|
 | flutter-kickoff | `/flutter-kickoff` | Proposal to production-grade Flutter project |
 
-Agent: `flutter-kickoff-agent` (sonnet)
+Agents: `flutter-kickoff-agent` orchestrator (sonnet), `flutter-scaffolder` (sonnet), `flutter-doc-seeder` (haiku)
+Templates: 34 files in `skills/flutter-kickoff/templates/` (Dart code + configs)
 
 ### nextc-flutter
 

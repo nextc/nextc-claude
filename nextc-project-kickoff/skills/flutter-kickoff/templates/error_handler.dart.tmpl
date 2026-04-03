@@ -1,0 +1,66 @@
+import 'dart:io';
+
+import 'package:{{PACKAGE_NAME}}/core/errors/app_exception.dart';
+import 'package:{{PACKAGE_NAME}}/core/utils/app_logger.dart';
+{{#SUPABASE}}
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+{{/SUPABASE}}
+{{#FIREBASE}}
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+{{/FIREBASE}}
+
+/// Maps raw platform/backend exceptions to [AppException] subtypes.
+///
+/// Call this in repository implementations to translate technical errors
+/// into user-friendly errors before they reach the UI.
+abstract final class ErrorHandler {
+  /// Wraps [action] in a try/catch that maps raw exceptions to [AppException].
+  static Future<T> guard<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on AppException {
+      rethrow;
+    } on SocketException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Network error', error: e, stackTrace: st);
+      throw NetworkException(
+        'Unable to connect. Please check your internet.',
+        e,
+      );
+{{#SUPABASE}}
+    } on supabase.AuthException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Auth error', error: e, stackTrace: st);
+      throw AuthException(e.message, e);
+    } on supabase.PostgrestException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Database error', error: e, stackTrace: st);
+      throw StorageException(
+        'Could not complete the request. Please try again.',
+        e,
+      );
+{{/SUPABASE}}
+{{#FIREBASE}}
+    } on fb_auth.FirebaseAuthException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Firebase Auth error', error: e, stackTrace: st);
+      throw AuthException(e.message ?? 'Authentication failed.', e);
+    } on FirebaseException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Firebase error', error: e, stackTrace: st);
+      throw StorageException(
+        'Could not complete the request. Please try again.',
+        e,
+      );
+{{/FIREBASE}}
+    } on FormatException catch (e, st) {
+      AppLogger.e('[ErrorHandler] Validation error', error: e, stackTrace: st);
+      throw ValidationException(
+        'The information provided is not valid.',
+        e,
+      );
+    } catch (e, st) {
+      AppLogger.e('[ErrorHandler] Unexpected error', error: e, stackTrace: st);
+      throw UnexpectedException(
+        'Something went wrong. Please try again.',
+        e,
+      );
+    }
+  }
+}

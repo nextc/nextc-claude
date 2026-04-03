@@ -1,0 +1,43 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
+class {{ENTITY_PASCAL}} {
+  const {{ENTITY_PASCAL}}({
+    required this.id,
+{{ENTITY_CONSTRUCTOR_PARAMS}}
+  });
+
+  final String id;
+{{ENTITY_FIELD_DECLARATIONS}}
+
+  factory {{ENTITY_PASCAL}}.fromJson(Map<String, dynamic> json) =>
+      {{ENTITY_PASCAL}}(
+        id: json['id'] as String,
+{{ENTITY_FROM_JSON_FIELDS}}
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+{{ENTITY_TO_JSON_FIELDS}}
+      };
+
+  {{ENTITY_PASCAL}} copyWith({
+    String? id,
+{{ENTITY_COPY_WITH_PARAMS}}
+  }) =>
+      {{ENTITY_PASCAL}}(
+        id: id ?? this.id,
+{{ENTITY_COPY_WITH_ARGS}}
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is {{ENTITY_PASCAL}} && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() => '{{ENTITY_PASCAL}}(id: $id)';
+}
