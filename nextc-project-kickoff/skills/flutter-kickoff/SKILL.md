@@ -16,9 +16,9 @@ Flutter project seeded with real product context — not generic boilerplate.
 
 **Four components:**
 - This skill: preflight checks, mode detection, spawn orchestrator
-- `flutter-kickoff-agent`: thin orchestrator — decisions, phase sequencing, summary
-- `flutter-scaffolder`: Phase 2+3 specialist — project creation, deps, code from templates
-- `flutter-doc-seeder`: Phase 4 specialist — CLAUDE.md, docs/, README from proposal
+- `flutter-kickoff-agent`: orchestrator — decisions, phase sequencing, summary
+- `flutter-scaffolder`: Phase 2 — `flutter create` + deps + build config (no code generation)
+- `flutter-doc-seeder`: Phase 3 — architectural blueprints + docs seeded from proposal
 
 ## Mode Detection
 
