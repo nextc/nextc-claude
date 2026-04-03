@@ -40,15 +40,14 @@ setup-rules.sh      — Symlinks rules/nextc-claude into ~/.claude/rules/nextc-c
 
 ## Dependencies
 
-Required third-party skill packs installed separately:
+| Dependency | Required By | Agents/Skills Used |
+|------------|-------------|-------------------|
+| **everything-claude-code** | `/feature-dev`, `/team-feature-dev`, `/bug-fix` | planner, architect, code-reviewer, security-reviewer |
+| **pm-skills** (6 sub-plugins) | `/product-explore` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
+| **marketingskills** | `/product-explore` | customer-research |
+| **aso-skills** | `/aso-pipeline` | 27 ASO skills (keyword-research, competitor-analysis, metadata-optimization, etc.) |
 
-| Dependency | Repo | Required By |
-|------------|------|-------------|
-| **aso-skills** | [Eronred/aso-skills](https://github.com/Eronred/aso-skills) | ASO Pipeline — provides 27 ASO skills (keyword-research, competitor-analysis, metadata-optimization, etc.) |
-
-Install with: `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills`
-
-The ASO pipeline agents (`aso-director`, `aso-competitive`, etc.) invoke these skills. Without them, the pipeline cannot run.
+See [README.md Dependencies](README.md#dependencies) for install commands.
 
 ## Current Inventory
 
