@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 {{#BLOC}}
 import 'package:flutter_bloc/flutter_bloc.dart';
 {{/BLOC}}
+{{#PROVIDER}}
+import 'package:provider/provider.dart';
+{{/PROVIDER}}
 {{#L10N}}
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -94,25 +97,30 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: {{PRODUCT_NAME_ESCAPED}},
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+    return MultiProvider(
+      providers: [
+        // TODO: add ChangeNotifierProviders for each feature
+      ],
+      child: MaterialApp.router(
+        title: {{PRODUCT_NAME_ESCAPED}},
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
 {{#GO_ROUTER}}
-      routerConfig: AppRouter.router,
+        routerConfig: AppRouter.router,
 {{/GO_ROUTER}}
 {{#AUTO_ROUTE}}
-      routerConfig: _appRouter.config(),
+        routerConfig: _appRouter.config(),
 {{/AUTO_ROUTE}}
 {{#L10N}}
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
 {{/L10N}}
+      ),
     );
   }
 }

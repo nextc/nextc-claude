@@ -171,7 +171,12 @@ Agent(
 
 On success: read returned file manifest, verify Phase 3 gate passed (`flutter analyze` clean).
 
+**You own all checkpoint writes.** Specialists report status but never write `decisions.json`.
 Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
+
+**If the scaffolder fails:** Check if the project directory exists. If yes, Phase 2
+completed but Phase 3 failed — the `--resume` path can skip `flutter create` and
+retry from Phase 3 only.
 
 **If `--minimal` mode: present summary and stop here.**
 

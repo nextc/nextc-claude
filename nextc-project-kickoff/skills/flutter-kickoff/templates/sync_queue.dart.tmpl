@@ -2,25 +2,28 @@ import 'package:flutter/foundation.dart';
 
 import 'package:{{PACKAGE_NAME}}/core/utils/app_logger.dart';
 
-/// Persists pending operations for offline-first sync.
+/// In-memory queue of pending sync operations for offline-first patterns.
 ///
-/// When the device is offline, mutations are queued here.
-/// When connectivity resumes, process the queue in order.
+/// **Important:** This is an in-memory stub. For production, persist the queue
+/// to local storage (Isar, Drift, or SQLite) so pending mutations survive
+/// app restarts. Implement [loadFromStorage] and [saveToStorage] in a subclass.
+@immutable
 class SyncQueue {
-  final List<SyncOperation> _queue = [];
+  const SyncQueue({this.operations = const []});
 
-  /// Add an operation to the queue.
-  void enqueue(SyncOperation operation) => _queue.add(operation);
+  final List<SyncOperation> operations;
 
-  /// Process all pending operations. Returns failures.
-  Future<List<SyncOperation>> processAll(
+  /// Add an operation to the queue. Returns a new [SyncQueue].
+  SyncQueue enqueue(SyncOperation operation) =>
+      SyncQueue(operations: [...operations, operation]);
+
+  /// Process all pending operations. Returns a new [SyncQueue] with only failures.
+  Future<SyncQueue> processAll(
     Future<void> Function(SyncOperation) executor,
   ) async {
     final failures = <SyncOperation>[];
-    final pending = List<SyncOperation>.from(_queue);
-    _queue.clear();
 
-    for (final op in pending) {
+    for (final op in operations) {
       try {
         await executor(op);
       } catch (e, st) {
@@ -33,19 +36,18 @@ class SyncQueue {
       }
     }
 
-    // Re-queue failures for next attempt.
-    _queue.addAll(failures);
-    return failures;
+    return SyncQueue(operations: failures);
   }
 
   /// Number of pending operations.
-  int get pendingCount => _queue.length;
+  int get pendingCount => operations.length;
 
   /// Whether the queue is empty.
-  bool get isEmpty => _queue.isEmpty;
+  bool get isEmpty => operations.isEmpty;
 }
 
 /// A single sync operation.
+@immutable
 class SyncOperation {
   const SyncOperation({
     required this.type,

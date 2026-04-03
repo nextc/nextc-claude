@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
-import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
 import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
 {{#SUPABASE}}
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -32,7 +31,6 @@ SupabaseClient supabaseClient(Ref ref) => Supabase.instance.client;
 import 'package:flutter/material.dart';
 
 import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
-import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
 import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
 {{#SUPABASE}}
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -55,7 +53,6 @@ class ServiceProviders {
 {{/PROVIDER}}
 {{#BLOC}}
 import 'package:{{PACKAGE_NAME}}/core/analytics/analytics_service.dart';
-import 'package:{{PACKAGE_NAME}}/core/analytics/noop_analytics.dart';
 import 'package:{{PACKAGE_NAME}}/core/services/secure_storage_service.dart';
 {{#SUPABASE}}
 import 'package:supabase_flutter/supabase_flutter.dart';

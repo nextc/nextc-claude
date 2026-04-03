@@ -244,7 +244,9 @@ When processing `home_screen.dart.tmpl`, generate `{{FEATURE_CARDS}}` content:
 ### Step 3f: .gitignore
 
 Append to Flutter's default `.gitignore`:
-- `.env`, `key.properties`, `.flutter-kickoff/`, `build/debug-info/`
+- `.env`, `.env.*`, `key.properties`, `.flutter-kickoff/`, `build/debug-info/`
+- `*.jks`, `*.keystore` (Android signing keys)
+- `google-services.json`, `GoogleService-Info.plist` (Firebase config with API keys)
 - `*.g.dart`, `*.freezed.dart` (if code-gen)
 
 ### Step 3g: Platform config
@@ -274,4 +276,6 @@ Report to orchestrator:
 - Success/failure status
 - List of generated files
 - Any warnings (failed packages, analyze issues)
-- Updated `completed_phases: [0, 1, 2, 3]`
+
+**Do NOT update `decisions.json` yourself.** The orchestrator owns checkpoint writes.
+Just report your status — the orchestrator will update `completed_phases`.

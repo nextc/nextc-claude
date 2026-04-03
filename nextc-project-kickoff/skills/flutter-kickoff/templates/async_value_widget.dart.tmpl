@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 {{/RIVERPOD}}
 
+import 'package:{{PACKAGE_NAME}}/core/errors/app_exception.dart';
+
 /// Handles the 4 screen states: loading, error, empty, success.
 {{#RIVERPOD}}
 ///
@@ -124,7 +126,9 @@ class DefaultErrorWidget extends StatelessWidget {
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 16),
             Text(
-              error.toString(),
+              error is AppException
+                  ? error.message
+                  : 'Something went wrong. Please try again.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),

@@ -28,12 +28,12 @@ state_management:
     - provider
   riverpod:
     deps: [flutter_riverpod, riverpod_annotation]
-    dev_deps: [riverpod_generator, build_runner, custom_lint, riverpod_lint]
+    dev_deps: [riverpod_generator, build_runner, riverpod_lint]
   bloc:
     deps: [flutter_bloc, equatable]
   riverpod_freezed:
     deps: [flutter_riverpod, riverpod_annotation, freezed_annotation, json_annotation]
-    dev_deps: [riverpod_generator, freezed_generator, build_runner, json_serializable, custom_lint, riverpod_lint]
+    dev_deps: [riverpod_generator, freezed_generator, build_runner, json_serializable, riverpod_lint]
 
 # --- Backend ---
 backend:
@@ -41,7 +41,7 @@ backend:
     - supabase_flutter
   firebase:
     - firebase_core
-  isar:
+  isar:  # WARNING: Isar 3.x is unmaintained (archived 2023). Consider Drift instead.
     deps: [isar, isar_flutter_libs]
     dev_deps: [isar_generator, build_runner]
   drift:

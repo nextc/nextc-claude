@@ -14,9 +14,11 @@ allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
 Reads `docs/proposal.md` (from `/product-explore`) and scaffolds a production-grade
 Flutter project seeded with real product context — not generic boilerplate.
 
-**Two components:**
-- This skill: preflight checks, mode detection, spawn agent
-- `flutter-kickoff-agent`: runs the adaptive pipeline
+**Four components:**
+- This skill: preflight checks, mode detection, spawn orchestrator
+- `flutter-kickoff-agent`: thin orchestrator — decisions, phase sequencing, summary
+- `flutter-scaffolder`: Phase 2+3 specialist — project creation, deps, code from templates
+- `flutter-doc-seeder`: Phase 4 specialist — CLAUDE.md, docs/, README from proposal
 
 ## Mode Detection
 

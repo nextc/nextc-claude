@@ -253,4 +253,5 @@ _(builds will be logged here by `/flutter-build`)_
 Report to orchestrator:
 - Success/failure
 - List of files created
-- Updated `completed_phases: [0, 1, 2, 3, 4]` in decisions.json
+
+**Do NOT update `decisions.json` yourself.** The orchestrator owns checkpoint writes.

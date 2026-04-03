@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:{{PACKAGE_NAME}}/core/errors/app_exception.dart';
 import 'package:{{PACKAGE_NAME}}/core/utils/app_logger.dart';
 {{#SUPABASE}}
@@ -21,46 +19,37 @@ abstract final class ErrorHandler {
       return await action();
     } on AppException {
       rethrow;
-    } on SocketException catch (e, st) {
-      AppLogger.e('[ErrorHandler] Network error', error: e, stackTrace: st);
-      throw NetworkException(
-        'Unable to connect. Please check your internet.',
-        e,
-      );
 {{#SUPABASE}}
     } on supabase.AuthException catch (e, st) {
       AppLogger.e('[ErrorHandler] Auth error', error: e, stackTrace: st);
-      throw AuthException(e.message, e);
+      throw const AuthException();
     } on supabase.PostgrestException catch (e, st) {
       AppLogger.e('[ErrorHandler] Database error', error: e, stackTrace: st);
-      throw StorageException(
-        'Could not complete the request. Please try again.',
-        e,
-      );
+      throw const StorageException();
 {{/SUPABASE}}
 {{#FIREBASE}}
     } on fb_auth.FirebaseAuthException catch (e, st) {
       AppLogger.e('[ErrorHandler] Firebase Auth error', error: e, stackTrace: st);
-      throw AuthException(e.message ?? 'Authentication failed.', e);
+      throw const AuthException();
     } on FirebaseException catch (e, st) {
       AppLogger.e('[ErrorHandler] Firebase error', error: e, stackTrace: st);
-      throw StorageException(
-        'Could not complete the request. Please try again.',
-        e,
-      );
+      throw const StorageException();
 {{/FIREBASE}}
     } on FormatException catch (e, st) {
       AppLogger.e('[ErrorHandler] Validation error', error: e, stackTrace: st);
-      throw ValidationException(
-        'The information provided is not valid.',
-        e,
-      );
+      throw const ValidationException();
     } catch (e, st) {
+      // Catches SocketException, HttpException, and any other unexpected errors.
+      // SocketException requires dart:io which is unavailable on web — catching
+      // broadly here keeps the template web-compatible.
+      final isNetwork = e.runtimeType.toString().contains('SocketException') ||
+          e.runtimeType.toString().contains('HttpException');
+      if (isNetwork) {
+        AppLogger.e('[ErrorHandler] Network error', error: e, stackTrace: st);
+        throw const NetworkException();
+      }
       AppLogger.e('[ErrorHandler] Unexpected error', error: e, stackTrace: st);
-      throw UnexpectedException(
-        'Something went wrong. Please try again.',
-        e,
-      );
+      throw const UnexpectedException();
     }
   }
 }

@@ -30,6 +30,9 @@ class {{ENTITY_PASCAL}} {
 {{ENTITY_COPY_WITH_ARGS}}
       );
 
+  /// Entity identity: two instances with the same [id] are considered equal,
+  /// regardless of field values. This is intentional — entities are identified
+  /// by their database ID. Use Freezed if you need value equality.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

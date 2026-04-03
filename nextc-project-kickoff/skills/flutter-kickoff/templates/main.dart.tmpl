@@ -44,7 +44,11 @@ void main() {
       );
 {{/SUPABASE}}
 {{#FIREBASE}}
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        // Run `flutterfire configure` to generate firebase_options.dart,
+        // then uncomment:
+        // options: DefaultFirebaseOptions.currentPlatform,
+      );
 {{/FIREBASE}}
 {{#ISAR}}
       // TODO: initialize Isar database
