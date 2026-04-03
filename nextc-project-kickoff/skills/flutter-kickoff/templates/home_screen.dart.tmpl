@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 {{#RIVERPOD}}
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 {{/RIVERPOD}}
+{{#GO_ROUTER}}
 import 'package:go_router/go_router.dart';
+{{/GO_ROUTER}}
+{{#AUTO_ROUTE}}
+import 'package:auto_route/auto_route.dart';
+import 'package:{{PACKAGE_NAME}}/core/router/app_router.dart';
+{{/AUTO_ROUTE}}
 
-/// Product welcome screen.
+/// Welcome screen for {{PRODUCT_NAME}}.
 ///
 /// Shows the product name, tagline, and navigation cards for each MVP feature.
 /// First `flutter run` shows something that looks like your app, not boilerplate.
+{{#AUTO_ROUTE}}
+@RoutePage()
+{{/AUTO_ROUTE}}
 {{#RIVERPOD}}
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -34,7 +43,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 48),
               // Hero product name.
               Text(
-                '{{PRODUCT_NAME}}',
+                {{PRODUCT_NAME_ESCAPED}},
                 style: theme.textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -42,13 +51,22 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 8),
               // Tagline.
               Text(
-                '{{TAGLINE}}',
+                {{TAGLINE_ESCAPED}},
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 48),
               // Feature navigation cards.
+              //
+              // Example card (scaffolder generates one per MVP feature):
+              // _FeatureCard(
+              //   title: 'Rooms',
+              //   description: 'Create and join collaborative rooms',
+              //   icon: Icons.meeting_room_outlined,
+              //   route: '/rooms',
+              //   isCore: true,
+              // ),
 {{FEATURE_CARDS}}
             ],
           ),
@@ -83,7 +101,12 @@ class _FeatureCard extends StatelessWidget {
           ? theme.colorScheme.primaryContainer
           : theme.colorScheme.surfaceContainerLow,
       child: InkWell(
+{{#GO_ROUTER}}
         onTap: () => context.go(route),
+{{/GO_ROUTER}}
+{{#AUTO_ROUTE}}
+        onTap: () => context.router.pushNamed(route),
+{{/AUTO_ROUTE}}
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(20),

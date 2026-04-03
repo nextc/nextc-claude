@@ -63,6 +63,12 @@ Templates use a simple substitution syntax:
 | `L10N` | `l10n` is `true` |
 | `CODE_GEN` | `use_code_gen` is `true` |
 | `AUTO_ROUTE` | `routing` is `auto_route` |
+| `GO_ROUTER` | `routing` is `go_router` (default) |
+
+**String escaping:** Some placeholders appear inside Dart string literals.
+Use `{{PRODUCT_NAME_ESCAPED}}` and `{{TAGLINE_ESCAPED}}` for these — wrap the
+value in single quotes with internal apostrophes escaped: `'Tom'\''s App'` becomes
+`'Tom\'s App'`. The unescaped `{{PRODUCT_NAME}}` is used only in comments/docs.
 
 **Read templates selectively.** Only read templates needed for the user's decisions.
 Skip `local_first_repository.dart.tmpl` and `sync_queue.dart.tmpl` if `offline_needed`
