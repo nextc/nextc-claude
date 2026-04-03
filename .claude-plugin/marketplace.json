@@ -24,7 +24,7 @@
     {
       "name": "nextc-project-kickoff",
       "source": "./nextc-project-kickoff",
-      "description": "Project scaffolding from proposal — production-grade Flutter project with entity models, repos, and docs.",
+      "description": "Project scaffolding from proposal — clean Flutter project with deps and architectural blueprints for /feature-dev.",
       "category": "project-setup"
     },
     {
