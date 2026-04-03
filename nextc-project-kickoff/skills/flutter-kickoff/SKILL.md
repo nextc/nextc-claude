@@ -1,9 +1,10 @@
 ---
 name: flutter-kickoff
 description: >
-  Scaffold a production-grade Flutter project from docs/proposal.md. Use when starting a new
-  Flutter app, kickoff a project, or going from proposal to code. Seeds entity models,
-  repositories, docs, and theme from proposal context.
+  Scaffold a Flutter project from docs/proposal.md with architectural blueprints. Use when
+  starting a new Flutter app, kickoff a project, or going from proposal to code. Creates a
+  clean Flutter project with deps installed and docs/architecture.md that guides /feature-dev
+  to write production-grade code.
 user-invocable: true
 argument-hint: [--auto/--full/--minimal/--proposal path/--resume]
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
@@ -24,14 +25,14 @@ Flutter project seeded with real product context — not generic boilerplate.
 
 Parse `$ARGUMENTS` to determine mode:
 
-| Argument | Mode | Phases | Tokens | Time |
-|----------|------|--------|--------|------|
-| _(none)_ | Default | 0-4 | ~65K | ~10 min |
-| `--auto` | Autopilot | 0-4 (zero questions) | ~50K | ~6 min |
-| `--full` | Full | 0-9 | ~115K | ~17 min |
-| `--auto --full` | Full autopilot | 0-9 (zero questions) | ~95K | ~14 min |
-| `--minimal` | Minimal | 0-2 | ~30K | ~4 min |
-| `--resume` | Resume | From last checkpoint | Varies | Varies |
+| Argument | Mode | Phases | Description |
+|----------|------|--------|-------------|
+| _(none)_ | Default | 0-3 | Standard kickoff: preflight, decisions, create, docs |
+| `--auto` | Autopilot | 0-3 (zero questions) | All decisions from proposal |
+| `--full` | Full | 0-8 | Default + l10n, design, routes, collision, git |
+| `--auto --full` | Full autopilot | 0-8 (zero questions) | Full with no interaction |
+| `--minimal` | Minimal | 0-2 | Bare project + deps, no docs |
+| `--resume` | Resume | From last checkpoint | Continue from where it stopped |
 
 Additional flags (combinable with modes):
 - `--proposal /path/to/file.md` — use proposal from specified path
@@ -113,7 +114,7 @@ already exist. If it does: offer rename, delete (confirm), or abort.
 
 **6. Git context:**
 
-Check if cwd is inside a git repo. If yes, Phase 9 skips `git init`.
+Check if cwd is inside a git repo. If yes, Phase 8 skips `git init`.
 
 ### Optional Checks
 
