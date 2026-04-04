@@ -1,6 +1,6 @@
 {
   "name": "nextc-project-kickoff",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Project scaffolding from proposal — clean Flutter project with deps and architectural blueprints that guide /feature-dev to write production-grade code.",
   "author": {
     "name": "nextc"
