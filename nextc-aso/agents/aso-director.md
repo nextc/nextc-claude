@@ -244,7 +244,7 @@ For each phase (in order, respecting maturity skip rules):
 6. Update `.pipeline-state.json` with phase status, new signals, and gate result
 7. If collision phase: parse `RERUN_RECOMMENDATIONS` field and store in
    `collision_rerun_recommendations` in state
-6. At checkpoint: display consultant summary
+8. At checkpoint: display consultant summary
    - INFORMATIONAL: show summary, continue
    - DECISIONAL: show summary, wait for approval
 

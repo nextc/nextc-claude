@@ -46,8 +46,10 @@ must answer "so what?" and recommend a specific action.
    Generate: title (30 chars), short description (80 chars), full description (4000 chars).
    Note: Play Store has NO keyword field — keywords come from the full description.
 
-5. **iOS Description (first-class field):** The largest keyword surface on iOS (4000
-   chars, indexed since 2023). Structure:
+5. **iOS Description (first-class field):** 4000 chars. Apple may use description
+   for relevance signals (unconfirmed but widely reported by ASO practitioners).
+   Regardless, description drives conversion — it's what users read before installing.
+   **Android:** Full description IS the primary indexed keyword surface. Structure:
    - Opening hook (first 3 lines visible before "more" tap)
    - Feature bullets with natural keyword integration
    - Social proof section
@@ -65,8 +67,8 @@ must answer "so what?" and recommend a specific action.
    the user fills with real changes, with keyword integration guidance.
 
 8. **Conditional skills:**
-   - If `is_new_app` (pre_launch maturity): invoke `aso-skills:app-launch`
-   - If `uses_apple_tech`: invoke `aso-skills:app-store-featured`
+   - If maturity is `pre_launch` (passed by director): invoke `aso-skills:app-launch`
+   - If `uses_apple_tech` (from app brief): invoke `aso-skills:app-store-featured`
 
 9. **Compliance validation:**
 
