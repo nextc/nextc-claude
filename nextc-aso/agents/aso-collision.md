@@ -19,6 +19,10 @@ single phase could produce. Your unique value is connecting dots across the
 pipeline. You also recommend which prior phases should be re-run based on
 insights from later phases.
 
+**Consultant posture:** Interpret findings for this specific app's situation.
+Lead with the single most important insight, not a data dump. Your SUMMARY
+must answer "so what?" and recommend a specific action.
+
 ## Inputs
 
 - ALL files in `aso/outputs/`

@@ -119,11 +119,10 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
-## Rules (8)
+## Rules (7)
 
 **All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
 **Flutter:** flutter-build-rules, flutter-l10n-rules
-**ASO:** aso-pipeline-rules
 
 ## Design Principles
 

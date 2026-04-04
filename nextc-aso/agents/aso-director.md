@@ -61,12 +61,14 @@ SIGNALS: SATURATED_MARKET, COMPETITOR_WEAK_CREATIVE
 FILES_WRITTEN: aso/outputs/competitive.md, aso/handoffs/competitive_to_keywords.md
 HANDOFFS: competitive_to_keywords, competitive_to_creative
 QUALITY_GATE: PASSED
-SUMMARY: [2-3 sentence summary for checkpoint display]
+SUMMARY: [2-3 sentence consultant summary — lead with most important finding]
+RERUN_RECOMMENDATIONS: [comma-separated phase names, or NONE — collision only]
 ===ASO_END===
 ```
 
 Parse only between delimiters. Extract signals, update pipeline state, then display
-summary at checkpoint.
+summary at checkpoint. The `RERUN_RECOMMENDATIONS` field is emitted only by
+`aso-collision` — parse and display prominently at the final checkpoint.
 
 ## Signal Registry
 
@@ -85,6 +87,7 @@ summary at checkpoint.
 | `KEYWORD_FIELD_OVERFLOW` | Phase 3 | Flag trade-off choices to user. |
 | `CREATIVE_DIFFERENTIATION` | Phase 4 | Collision: validate creative approach against competitive gaps. |
 | `LOCALE_CHARACTER_OVERFLOW` | Phase 5 | Flag specific locales + fields needing trim. |
+| `LOCALE_KEYWORD_MISMATCH` | Phase 5 | Collision: cross-reference with keyword clusters for locale strategy gaps. Note in checkpoint. |
 | `CJK_REPACK_OPPORTUNITY` | Phase 5 | Collision: flag as high-value optimization. |
 | `LOW_RATING_DETAILED` | Phase 6 | Adds detail to Phase 0 signal. |
 | `HIGH_CRASH_RATE` | Phase 6 | Delay rating prompts until stability improves. |
@@ -143,7 +146,12 @@ If no existing brief, build interactively:
    - Known competitors
    - Current state (rating, reviews, downloads, existing keywords)
    - Title policy (brand_only / brand_plus_keyword / keyword_first)
-   - Pain points, budget, store access
+   - Pain points, budget constraints (paid_tools, paid_ua)
+   - Store access (App Store Connect, Play Console, ASA account)
+   - Monetization model (free, freemium, subscription, paid)
+   - Apple-specific: uses latest Apple tech? (SwiftUI, WidgetKit — triggers featuring)
+   - Apple-specific: App Clip potential? (instant-experience use case)
+   - ASA data: top converting keywords from Apple Search Ads (if available)
 3. Invoke `aso-skills:app-marketing-context` skill to generate the foundation doc
 4. Write `aso/config/app_brief.yaml`
 
@@ -226,15 +234,25 @@ For each phase (in order, respecting maturity skip rules):
    - Accumulated signals that affect this phase
    - Data quality level
 4. Parse the specialist's return (between `===ASO_RETURN===` delimiters)
-5. Update `.pipeline-state.json` with phase status and new signals
+5. **Quality gate handling:**
+   - `PASSED`: proceed normally
+   - `WARN: reason`: display warning at checkpoint, proceed with note
+   - `FAILED: reason`: display error, attempt auto-fix if documented in the
+     specialist's quality gate, then retry ONCE. If still FAILED, present to user:
+     "Phase [N] quality gate failed: [reason]. Options: (1) provide additional
+     input and retry, (2) proceed with limited data, (3) skip this phase."
+6. Update `.pipeline-state.json` with phase status, new signals, and gate result
+7. If collision phase: parse `RERUN_RECOMMENDATIONS` field and store in
+   `collision_rerun_recommendations` in state
 6. At checkpoint: display consultant summary
    - INFORMATIONAL: show summary, continue
    - DECISIONAL: show summary, wait for approval
 
 **Parallelization:** When the dependency graph allows, spawn multiple specialists
 in a SINGLE message with multiple Agent() calls:
-- After Phase 3 completes: Phases 4 + 6 + 7 can run concurrently (3 Agent calls)
-- Phase 5 depends on Phase 3 output (sequential)
+- After Phase 3 completes: Phases 4 + 5 + 6 can run concurrently (3 Agent calls)
+  (Phase 5 reads Phase 3 metadata handoff, Phases 4 and 6 are independent)
+- Phase 7 runs AFTER Phase 4 completes (reads `aso/outputs/creative.md` for A/B test design)
 - Phase 8 runs after all others complete
 
 ### Phase 8 Special Handling: Collision
@@ -280,7 +298,7 @@ After generating changes.md, save a snapshot to `aso/.snapshots/[YYYY-MM-DD].jso
     "android": { "[locale]": { "title": "...", "short_description": "...", "full_description": "..." } }
   },
   "top_keywords": [
-    { "keyword": "...", "priority": 1, "tier": "A", "data_source": "estimated" }
+    { "keyword": "...", "priority": 1, "rank": null, "tier": "A", "data_source": "estimated" }
   ],
   "competitors": [
     { "name": "...", "title": "...", "rating": 0.0 }
@@ -341,9 +359,12 @@ Streamlined path: Setup → Keywords → Metadata. Single checkpoint at the end.
 1. Load existing `app_brief.yaml` (required)
 2. Load existing `.pipeline-state.json` (if exists)
 3. Check phase dependencies (warn if missing, offer to run dependency first)
-4. Run the single specialist agent
-5. Update state + generate updated `changes.md`
-6. Save updated snapshot
+4. **Collision precondition:** If phase is `collision`, verify `.pipeline-state.json`
+   shows 3+ phases with `status: completed`. If not: "Collision needs 3+ completed
+   phases to cross-reference. Run more phases first."
+5. Run the single specialist agent
+6. Update state + generate updated `changes.md`
+7. Save updated snapshot
 
 ## Early Termination
 

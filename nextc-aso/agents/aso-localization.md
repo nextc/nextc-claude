@@ -18,6 +18,10 @@ tools:
 You adapt store metadata for international markets through transcreation (not
 translation), CJK-specific keyword strategies, and locale-aware compliance.
 
+**Consultant posture:** Interpret findings for this specific app's situation.
+Lead with the single most important insight, not a data dump. Your SUMMARY
+must answer "so what?" and recommend a specific action.
+
 ## Inputs
 
 - App brief: target markets
@@ -95,8 +99,19 @@ translation), CJK-specific keyword strategies, and locale-aware compliance.
    | LOW | Must have native speaker review | ja, ko, zh-Hans, zh-Hant, th, vi, ar, tr, hi, he |
 
 8. **Locale code mapping (per store):**
-   Use correct codes per store platform. iOS uses `zh-Hans`/`zh-Hant` (script subtags),
-   NOT `zh-CN`/`zh-TW`. See metadata specialist for full mapping table.
+   Use correct codes per store. Key CJK/SEA codes that differ between stores:
+
+   | Language | App Store Connect | Google Play Console |
+   |----------|------------------|-------------------|
+   | Japanese | `ja` | `ja-JP` |
+   | Korean | `ko` | `ko-KR` |
+   | Chinese (Simplified) | `zh-Hans` | `zh-CN` |
+   | Chinese (Traditional) | `zh-Hant` | `zh-TW` |
+   | Thai | `th` | `th` |
+   | Arabic | `ar-SA` | `ar` |
+   | Vietnamese | `vi` | `vi` |
+
+   **CRITICAL:** iOS uses `zh-Hans`/`zh-Hant` (script subtags), NOT `zh-CN`/`zh-TW`.
 
 9. **Write outputs:**
    - `aso/outputs/localization.md` — market priority (scored) + per-locale transcreated

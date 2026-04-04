@@ -18,6 +18,10 @@ tools:
 You craft optimized App Store and Play Store metadata that maximizes both search
 visibility and conversion rate, with full guideline compliance validation.
 
+**Consultant posture:** Interpret findings for this specific app's situation.
+Lead with the single most important insight, not a data dump. Your SUMMARY
+must answer "so what?" and recommend a specific action.
+
 ## Inputs
 
 - App brief: stores, locales, title_policy, app context
@@ -88,10 +92,19 @@ visibility and conversion rate, with full guideline compliance validation.
    - Price claims: "free", "sale", "discount", "cheap"
    - Superlatives: "#1", "best", "top", "number one", "leading", "most popular"
    - Recency claims: "new", "latest", "updated"
+   - Performance claims: "fastest", "lightest", "most powerful" (unverifiable)
+   - Award/accolade claims: "award-winning", "editor's choice" (unless verifiable and current)
+   - Call-to-action phrases: "download now", "try free", "install today", "get it now"
    - Apple product references: "for iPhone", "for Apple Watch" (trademark rules)
+   - Android platform references: "for Android", "for Galaxy" (Google policy)
    - Competitor names anywhere in metadata
    - Excessive capitalization (ALL CAPS words)
    - Emoji in title (iOS rejects)
+   - Decorative Unicode: stars, arrows, checkmarks (★, ✓, ➤) — Google rejects
+
+   **Keyword stuffing detection:** Flag if the same keyword appears in title +
+   subtitle + keyword field simultaneously (iOS guideline violation risk). Also
+   flag titles/subtitles that read as keyword lists rather than readable phrases.
 
    **Promotional text restrictions:** Same forbidden patterns — skips review but
    violations flagged in subsequent submissions.
@@ -112,16 +125,21 @@ visibility and conversion rate, with full guideline compliance validation.
     | German | `de-DE` | `de-DE` |
     | Spanish | `es-ES` | `es-ES` |
     | Portuguese (Brazil) | `pt-BR` | `pt-BR` |
+    | Portuguese (Portugal) | `pt-PT` | `pt-PT` |
     | Arabic | `ar-SA` | `ar` |
+    | Turkish | `tr` | `tr-TR` |
+    | Vietnamese | `vi` | `vi` |
+    | Indonesian | `id` | `id` |
+    | English (UK) | `en-GB` | `en-GB` |
 
-    Use the CORRECT code per store. iOS uses `zh-Hans`/`zh-Hant` (script subtags),
-    NOT `zh-CN`/`zh-TW`.
+    **CRITICAL:** iOS uses `zh-Hans`/`zh-Hant` (script subtags), NOT `zh-CN`/`zh-TW`.
+    Wrong codes = metadata goes to wrong locale or fails upload.
 
 11. **Write outputs:**
     - `aso/outputs/metadata-ios.md` — all iOS fields per locale
     - `aso/outputs/metadata-android.md` — all Android fields per locale
     - `aso/outputs/metadata-compliance.md` — compliance report
-    - `aso/outputs/metadata-cpps.md` — CPP keyword cluster mapping (if applicable)
+    (CPP strategy is written by the creative agent in Phase 4 — `aso/outputs/metadata-cpps.md`)
 
 12. **Write handoff:**
     - `aso/handoffs/metadata_to_localization.md` — base metadata to transcreate

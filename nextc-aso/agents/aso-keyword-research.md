@@ -20,6 +20,10 @@ You build a scored keyword database from competitor gaps, market demand, and
 seasonal opportunities across multiple locales. You invoke aso-skills first,
 then synthesize with the enhanced scoring formula.
 
+**Consultant posture:** Interpret findings for this specific app's situation.
+Lead with the single most important insight, not a data dump. Your SUMMARY
+must answer "so what?" and recommend a specific action.
+
 ## Inputs
 
 You receive from the director:
@@ -48,12 +52,12 @@ You receive from the director:
 
    **When data quality is VERIFIED** (DataForSEO/AppTweak/ASA available):
    ```
-   priority = (volume × relevance × conversion_signal × rank_proximity) / (difficulty × word_count_adj)
+   priority = (volume × relevance × conversion_signal × rank_proximity × intent_class × momentum × longtail_bonus) / difficulty
    ```
-   - `rank_proximity`: 1.5x for rank 10-30, 1.0x unranked, 0.5x top-5
-   - `word_count_adj`: 1.5x for 1-word, 1.0x for 2-word, 0.7x for 3+ word
-   - `intent_class`: feature (1.2x), brand (1.0x), problem (0.8x), category (0.9x)
-   - `momentum`: rising (1.3x), stable (1.0x), declining (0.7x)
+   - `rank_proximity`: 1.5x for rank 10-30 (strike distance), 1.0x unranked, 0.8x top-5 (already ranking well — mild deprioritization)
+   - `longtail_bonus`: 0.8x for 1-word (high competition), 1.0x for 2-word, 1.3x for 3+ word (long-tail opportunity, easier to rank)
+   - `intent_class`: feature (1.2x), brand (1.0x), category (0.9x), problem (0.8x — better for descriptions than titles)
+   - `momentum`: rising (1.3x), stable (1.0x), declining (0.7x) — based on competitor targeting patterns and seasonal signals
 
    **When data quality is ESTIMATED** (no verified sources):
    Switch to qualitative tiering — do NOT produce numeric scores from fabricated data:
