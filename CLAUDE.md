@@ -7,7 +7,7 @@ Claude Code marketplace — 5 plugins with custom agents, rules, and workflow sk
 ```
 # Add marketplace + install plugins
 /plugin marketplace add nextc/nextc-claude
-/plugin install nextc-workflow@nextc-claude
+/plugin install nextc-core@nextc-claude
 /plugin install nextc-product@nextc-claude
 /plugin install nextc-project-kickoff@nextc-claude
 /plugin install nextc-flutter@nextc-claude
@@ -25,7 +25,7 @@ Claude Code marketplace — 5 plugins with custom agents, rules, and workflow sk
 
 ```
 .claude-plugin/marketplace.json   — Marketplace manifest (5 plugins)
-nextc-workflow/                   — Development workflows (6 skills, 2 agents)
+nextc-core/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
@@ -38,14 +38,14 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 
 | Dependency | Required By | Agents/Skills Used |
 |------------|-------------|-------------------|
-| **everything-claude-code** | `nextc-workflow` | planner, architect, code-reviewer, security-reviewer |
+| **everything-claude-code** | `nextc-core` | planner, architect, code-reviewer, security-reviewer |
 | **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
 | **marketingskills** | `nextc-product` | customer-research |
 | **aso-skills** | `nextc-aso` | 27 ASO skills |
 
 ## Plugins
 
-### nextc-workflow
+### nextc-core
 
 | Skill | Command | Purpose |
 |-------|---------|---------|

@@ -5,14 +5,14 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 **Quick start:**
 ```
 /plugin marketplace add nextc/nextc-claude
-/plugin install nextc-workflow@nextc-claude
+/plugin install nextc-core@nextc-claude
 ```
 
 ## Plugins
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
-| **nextc-workflow** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
+| **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
 | **nextc-product** | product-explore | Raw idea to validated proposal with market research |
 | **nextc-project-kickoff** | flutter-kickoff | Proposal to production-grade Flutter project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
@@ -27,7 +27,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 /plugin marketplace add nextc/nextc-claude
 
 # 2. Install the plugins you need
-/plugin install nextc-workflow@nextc-claude
+/plugin install nextc-core@nextc-claude
 /plugin install nextc-product@nextc-claude
 /plugin install nextc-project-kickoff@nextc-claude
 /plugin install nextc-flutter@nextc-claude
@@ -42,7 +42,7 @@ cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 
 ```bash
 # Remove individual plugins
-/plugin uninstall nextc-workflow@nextc-claude
+/plugin uninstall nextc-core@nextc-claude
 
 # Remove the marketplace entirely
 /plugin marketplace remove nextc-claude
@@ -59,7 +59,7 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 
 | Dependency | Required By | Install |
 |------------|-------------|---------|
-| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | `nextc-workflow` — uses planner, architect, code-reviewer, security-reviewer | `/plugin marketplace add affaan-m/everything-claude-code` then `/plugin install everything-claude-code@everything-claude-code` |
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | `nextc-core` — uses planner, architect, code-reviewer, security-reviewer | `/plugin marketplace add affaan-m/everything-claude-code` then `/plugin install everything-claude-code@everything-claude-code` |
 
 **Required for specific plugins:**
 
@@ -84,7 +84,7 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 |------|--------|---------|-------------|
 | Explore | nextc-product | `/product-explore` | Validates idea with research. Outputs `docs/proposal.md`. |
 | Kickoff | nextc-project-kickoff | `/flutter-kickoff` | Reads proposal, scaffolds production-grade project. |
-| Build features | nextc-workflow | `/feature-dev` | Full pipeline: plan, implement, review, cleanup, docs. |
+| Build features | nextc-core | `/feature-dev` | Full pipeline: plan, implement, review, cleanup, docs. |
 | Localize | nextc-flutter | `/flutter-l10n` | Multi-step l10n pipeline. |
 | Ship | nextc-flutter | `/flutter-build` | Build APK/IPA with logging. |
 
@@ -98,11 +98,11 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 /bug-fix ──→ /cleanup (if 3+ files changed)
 ```
 
-All from **nextc-workflow**. Skills auto-chain.
+All from **nextc-core**. Skills auto-chain.
 
 ### Design Workflow
 
-The `ui-ux-developer` agent (in **nextc-workflow**) enforces strict design compliance — tool-agnostic. Provide design assets from any tool, and it implements with pixel-perfect fidelity to `docs/design.md`.
+The `ui-ux-developer` agent (in **nextc-core**) enforces strict design compliance — tool-agnostic. Provide design assets from any tool, and it implements with pixel-perfect fidelity to `docs/design.md`.
 
 ### ASO Pipeline
 
@@ -121,18 +121,17 @@ nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 5 plugins)
 ├── rules/nextc-claude/               (8 rules, shared via symlink)
 ├── setup-rules.sh
-├── nextc-workflow/                    (6 skills, 2 agents)
+├── nextc-core/                    (6 skills, 2 agents)
 ├── nextc-product/                    (1 skill, 1 agent)
 ├── nextc-project-kickoff/            (1 skill, 1 agent)
 ├── nextc-flutter/                    (8 skills, 2 agents)
 └── nextc-aso/                        (1 skill, 8 agents)
 ```
 
-### Rules (8, shared across all plugins)
+### Rules (7, shared across all plugins)
 
 **All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
 **Flutter:** flutter-build-rules, flutter-l10n-rules
-**ASO:** aso-pipeline-rules
 
 ---
 

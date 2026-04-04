@@ -10,8 +10,8 @@
   },
   "plugins": [
     {
-      "name": "nextc-workflow",
-      "source": "./nextc-workflow",
+      "name": "nextc-core",
+      "source": "./nextc-core",
       "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs.",
       "category": "workflow"
     },
