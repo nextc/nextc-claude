@@ -123,6 +123,17 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 
 **All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing
 
+## Changelog
+
+- After any response that changes files, suggest updating `CHANGELOG.md` (e.g. "Want me to update the changelog?")
+- Before every commit, verify `CHANGELOG.md` is up to date — update it if not
+
+Update rules:
+
+1. Add entries under `## [Unreleased]` grouped by: Added, Changed, Fixed, Removed
+2. Write human-readable summaries — explain *what changed and why*, not commit messages
+3. When a version is released, move unreleased entries into a new version heading
+
 ## Design Principles
 
 - **Project-agnostic** — no hardcoded project paths or domain terms
