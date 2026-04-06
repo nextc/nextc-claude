@@ -65,6 +65,21 @@ Ask: **"How much reasoning does this task require?"**
 4. **Never use opus for chore tasks** — doc updates, build scripts, file scanning, status dashboards
 5. **Escalate on failure** — if a haiku agent fails due to reasoning limits, retry with sonnet (not opus)
 
+## Parallel Execution (CRITICAL)
+
+ALWAYS launch independent agent operations in parallel, never sequentially:
+
+```markdown
+# GOOD: Parallel execution
+Launch 3 agents in parallel:
+1. Agent 1: Security analysis of auth module
+2. Agent 2: Performance review of cache system
+3. Agent 3: Type checking of utilities
+
+# BAD: Sequential when unnecessary
+First agent 1, then agent 2, then agent 3
+```
+
 ## Enforcement
 
 - Every `Agent()` call MUST include a `model` parameter

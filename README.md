@@ -59,7 +59,7 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 
 | Dependency | Required By | Install |
 |------------|-------------|---------|
-| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | `nextc-core` — uses planner, architect, code-reviewer, security-reviewer | `/plugin marketplace add affaan-m/everything-claude-code` then `/plugin install everything-claude-code@everything-claude-code` |
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | `nextc-core` — agents only (planner, architect, code-reviewer, security-reviewer). Rules are self-contained in nextc-claude. | `/plugin marketplace add affaan-m/everything-claude-code` then `/plugin install everything-claude-code@everything-claude-code` |
 
 **Required for specific plugins:**
 
@@ -119,18 +119,18 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 5 plugins)
-├── rules/nextc-claude/               (8 rules, shared via symlink)
+├── rules/nextc-claude/               (7 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
 ├── nextc-core/                    (6 skills, 2 agents)
-├── nextc-product/                    (1 skill, 1 agent)
-├── nextc-project-kickoff/            (1 skill, 1 agent)
+├── nextc-product/                    (1 skill, 5 agents)
+├── nextc-project-kickoff/            (1 skill, 3 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
-└── nextc-aso/                        (1 skill, 8 agents)
+└── nextc-aso/                        (1 skill, 9 agents)
 ```
 
-### Rules (5, shared across all plugins)
+### Rules (7, shared across all plugins)
 
-**All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
+**All projects:** agents, safety, practices, git-workflow, skill-selection, project-docs, no-auto-testing
 
 ---
 

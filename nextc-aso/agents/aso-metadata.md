@@ -115,24 +115,7 @@ must answer "so what?" and recommend a specific action.
 
 10. **Copy-paste output with correct locale codes:**
 
-    | Language | App Store Connect | Google Play Console |
-    |----------|------------------|-------------------|
-    | English (US) | `en-US` | `en-US` |
-    | Japanese | `ja` | `ja-JP` |
-    | Korean | `ko` | `ko-KR` |
-    | Chinese (Simplified) | `zh-Hans` | `zh-CN` |
-    | Chinese (Traditional) | `zh-Hant` | `zh-TW` |
-    | Thai | `th` | `th` |
-    | French | `fr-FR` | `fr-FR` |
-    | German | `de-DE` | `de-DE` |
-    | Spanish | `es-ES` | `es-ES` |
-    | Portuguese (Brazil) | `pt-BR` | `pt-BR` |
-    | Portuguese (Portugal) | `pt-PT` | `pt-PT` |
-    | Arabic | `ar-SA` | `ar` |
-    | Turkish | `tr` | `tr-TR` |
-    | Vietnamese | `vi` | `vi` |
-    | Indonesian | `id` | `id` |
-    | English (UK) | `en-GB` | `en-GB` |
+    Use the locale code mapping table from the `aso-localization` agent (the authoritative source for iOS vs Android locale codes).
 
     **CRITICAL:** iOS uses `zh-Hans`/`zh-Hant` (script subtags), NOT `zh-CN`/`zh-TW`.
     Wrong codes = metadata goes to wrong locale or fails upload.

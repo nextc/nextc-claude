@@ -1,4 +1,4 @@
-> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Re-check rules before completing each response.
+> **IMPORTANT:** All rules in `~/.claude/rules/nextc-claude/` are mandatory. Review and follow them throughout the entire session — not just at the start. Re-check rules before completing each response.
 
 # nextc-claude
 
@@ -30,7 +30,7 @@ nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
-rules/nextc-claude/               — Shared rules (8 rules, symlinked)
+rules/nextc-claude/               — Shared rules (7 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
 
@@ -38,7 +38,7 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 
 | Dependency | Required By | Agents/Skills Used |
 |------------|-------------|-------------------|
-| **everything-claude-code** | `nextc-core` | planner, architect, code-reviewer, security-reviewer |
+| **everything-claude-code** | `nextc-core` | planner, architect, code-reviewer, security-reviewer (agents only — rules are self-contained) |
 | **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
 | **marketingskills** | `nextc-product` | customer-research |
 | **aso-skills** | `nextc-aso` | 27 ASO skills |
@@ -119,9 +119,9 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
-## Rules (5)
+## Rules (7)
 
-**All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
+**All projects:** agents, safety, practices, git-workflow, skill-selection, project-docs, no-auto-testing
 
 ## Design Principles
 

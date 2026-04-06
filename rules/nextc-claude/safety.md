@@ -140,6 +140,13 @@ catch (error) {
 }
 ```
 
+## Rule 3: Secret Management
+
+- NEVER hardcode secrets in source code
+- ALWAYS use environment variables or a secret manager
+- Validate that required secrets are present at startup
+- Rotate any secrets that may have been exposed
+
 ## Enforcement
 
 - When writing ANY new code with error handling in ANY language, apply both rules
