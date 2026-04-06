@@ -24,10 +24,10 @@ Search registries and GitHub **before coding** when the task involves:
 
 **Skip searching** for routine feature work, bug fixes, or simple UI changes in a known stack.
 
-When searching:
-1. **GitHub/registries first:** `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
-2. **Library docs second:** Context7 or vendor docs for API behavior and version details
-3. **Exa last:** broader web research only when the first two are insufficient
+When searching (MUST follow this order):
+1. **Context7 first:** library/API docs, usage examples, version details
+2. **GitHub/registries second:** `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
+3. **Web last:** WebFetch/WebSearch only when the first two are insufficient
 - Prefer battle-tested packages over hand-rolled code
 
 ## Workflow
