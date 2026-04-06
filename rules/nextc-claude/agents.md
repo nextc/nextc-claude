@@ -1,88 +1,46 @@
 # Model Selection (CRITICAL — ALWAYS ENFORCE)
 
-These rules apply to ALL nextc-claude skills and agents. Every agent spawn, every
-subagent invocation, every parallel worker MUST specify the correct model tier.
+Every `Agent()` call MUST include a `model` parameter. Every agent definition MUST have `model:` in frontmatter.
 
-## Model Tiers
+## Tiers
 
-| Model | Cost | Use For | Examples |
-|-------|------|---------|----------|
-| **Opus** | Highest | Complex reasoning, creative design, architecture decisions, multi-file coordination, deep analysis | UI/UX design, architecture review, complex state management, root cause synthesis |
-| **Sonnet** | Standard | Most development work, orchestration, implementation, analysis | Feature implementation, code review, l10n translation, keyword research, planning |
-| **Haiku** | Lowest | Chore tasks, simple scanning, docs updates, config changes, scripted steps | Doc updates, build scripts, simple renames, import fixes, coverage dashboards, file scanning |
+| Model | Use When | Examples |
+|-------|----------|----------|
+| **Opus** | Deep reasoning, creative design, architecture, multi-file coordination | Architecture review, complex state management, root cause synthesis |
+| **Sonnet** | Standard dev work, orchestration, implementation, analysis | Feature impl, code review, l10n, planning — handles 80% of tasks |
+| **Haiku** | Chore tasks, scanning, docs, config, scripted steps | Doc updates, build scripts, renames, import fixes, file scanning |
 
-## Decision Framework
+**Decision rule:** "How much reasoning?" Deep → Opus. Standard → Sonnet. Minimal → Haiku.
 
-Ask: **"How much reasoning does this task require?"**
+## Model Assignments
 
-- **Deep reasoning required** (creative decisions, trade-off analysis, multi-file coordination, adversarial review) → **Opus**
-- **Standard reasoning** (implement a plan, follow patterns, analyze data, write code) → **Sonnet**
-- **Minimal reasoning** (follow a script, scan files, update docs, run commands, simple edits) → **Haiku**
+| Agent / Context | Model |
+|---|---|
+| `doc-keeper`, `flutter-builder` | haiku |
+| `flutter-l10n-agent`, `ui-ux-developer`, `aso-director`, `aso-*` | sonnet |
+| `planner`, `code-reviewer`, `security-reviewer` | sonnet |
+| `architect` | opus |
+| Explore agents, bug investigation, codebase search | haiku |
+| Bug synthesis / root cause (if complex) | opus |
+| Team workers: data model, repo, provider, service, UI | sonnet |
+| Team workers: rename, import fix, config, l10n extraction | haiku |
+| Team workers: complex state mgmt, multi-file coordination | opus |
+| L10n translation orchestration | sonnet |
 
-## Agent Model Assignments
+## Cost Rules
 
-### Agents (defined in agents/)
-
-| Agent | Model | Rationale |
-|-------|-------|-----------|
-| `doc-keeper` | haiku | Scripted doc updates, follows templates |
-| `flutter-builder` | haiku | Scripted build steps, command execution |
-| `flutter-l10n-agent` | sonnet | Nuanced l10n work, ICU syntax, cross-locale judgment |
-| `ui-ux-developer` | sonnet | Implementation from design assets + design.md |
-| `aso-director` | sonnet | Pipeline orchestration, quality gate validation |
-| `aso-*` (all specialists) | sonnet | Analysis and content generation |
-
-### Spawned Agents (from skills)
-
-| Context | Agent Type | Model | Rationale |
-|---------|-----------|-------|-----------|
-| Planning | `everything-claude-code:planner` | sonnet | Structured plan generation |
-| Architecture review | `everything-claude-code:architect` | opus | Deep reasoning, trade-off analysis |
-| Code review | `everything-claude-code:code-reviewer` | sonnet | Pattern matching, style checks |
-| Security review | `everything-claude-code:security-reviewer` | sonnet | Vulnerability scanning |
-| Bug investigation (Explore) | Explore agents | haiku | File scanning, evidence gathering |
-| Bug synthesis | Main orchestrator | sonnet/opus | Root cause analysis (opus if complex) |
-| Codebase exploration | Explore agent | haiku | Quick file/pattern search |
-| Doc updates | `doc-keeper` | haiku | Template-driven doc maintenance |
-| Build execution | `flutter-builder` | haiku | Command execution |
-
-### Team Workers (from /team-feature-dev)
-
-| Task Type | Model | Rationale |
-|-----------|-------|-----------|
-| Data model, repository, provider, service | sonnet | Standard implementation |
-| Complex state management, multi-file coordination | opus | Deep reasoning required |
-| UI screen implementation (`ui-ux-developer`) | sonnet | Implementation from design.md |
-| Simple rename, import fix, config change | haiku | Minimal reasoning |
-| L10n string extraction | haiku | Mechanical text processing |
-| L10n translation orchestration | sonnet | Cross-locale judgment |
-
-## Cost Optimization Rules
-
-1. **Default to the lowest sufficient tier** — don't use opus for tasks sonnet can handle
-2. **Haiku for volume** — when spawning many parallel agents for scanning/searching, always use haiku
-3. **Opus sparingly** — reserve for genuinely complex reasoning; most coding is sonnet-tier
-4. **Never use opus for chore tasks** — doc updates, build scripts, file scanning, status dashboards
-5. **Escalate on failure** — if a haiku agent fails due to reasoning limits, retry with sonnet (not opus)
+1. **Default to lowest sufficient tier** — don't use opus when sonnet works
+2. **Haiku for volume** — parallel scanning/searching agents always use haiku
+3. **Opus sparingly** — most coding is sonnet-tier
+4. **Never opus for chores** — docs, builds, scanning, dashboards
+5. **Escalate on failure** — haiku fails → retry with sonnet (not opus)
 
 ## Parallel Execution (CRITICAL)
 
-ALWAYS launch independent agent operations in parallel, never sequentially:
-
-```markdown
-# GOOD: Parallel execution
-Launch 3 agents in parallel:
-1. Agent 1: Security analysis of auth module
-2. Agent 2: Performance review of cache system
-3. Agent 3: Type checking of utilities
-
-# BAD: Sequential when unnecessary
-First agent 1, then agent 2, then agent 3
-```
+ALWAYS launch independent agent operations in parallel, never sequentially.
 
 ## Enforcement
 
-- Every `Agent()` call MUST include a `model` parameter
-- Every agent definition MUST have a `model:` field in frontmatter
-- Skills that spawn agents MUST document which model each agent uses
-- When in doubt, use sonnet — it handles 80% of coding tasks well
+- Every `Agent()` call: `model` parameter required
+- Every agent definition: `model:` field in frontmatter
+- When in doubt: use sonnet
