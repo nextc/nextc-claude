@@ -9,6 +9,13 @@
 
 Types: feat, fix, refactor, docs, test, chore, perf, ci
 
+## Pre-Commit Check
+
+Before committing, verify that docs are up to date:
+- If `doc-keeper` was spawned this session, confirm it has completed
+- If docs are stale or doc-keeper hasn't run, update docs first
+- Never commit with outdated docs
+
 ## Pull Request Workflow
 
 When creating PRs:
