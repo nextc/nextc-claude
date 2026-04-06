@@ -128,10 +128,9 @@ nextc-claude/                         (marketplace root)
 └── nextc-aso/                        (1 skill, 8 agents)
 ```
 
-### Rules (7, shared across all plugins)
+### Rules (5, shared across all plugins)
 
 **All projects:** model-selection, error-handling, no-auto-testing, project-docs, skill-selection
-**Flutter:** flutter-build-rules, flutter-l10n-rules
 
 ---
 

@@ -11,7 +11,7 @@ allowed-tools: Read Grep Glob Bash Write Edit
 # Flutter L10n Audit — Text Auditor
 
 You audit all user-facing text in a Flutter project for compliance with the
-localization text principles defined in `~/.claude/rules/nextc-claude/flutter-l10n-rules.md`.
+localization text principles defined in `nextc-flutter/agents/flutter-l10n-agent.md`.
 
 ## When to Use
 
@@ -23,7 +23,7 @@ localization text principles defined in `~/.claude/rules/nextc-claude/flutter-l1
 
 ### Step 1: Load Context
 
-1. Read `~/.claude/rules/nextc-claude/flutter-l10n-rules.md` for text principles
+1. Read `nextc-flutter/agents/flutter-l10n-agent.md` for text principles
 2. Read `docs/glossary.md` for canonical terms and no-translate list
 3. Read `docs/tone.md` or `docs/design.md` for product voice/tone
 4. Read `lib/l10n/app_en.arb` if it exists (to know what's already extracted)
@@ -139,7 +139,7 @@ For each `context.go()`, `context.push()`, `context.pushReplacement()` call, ext
 **Cross-reference:**
 For each navigation call site, check if the label key matches the destination screen's
 title key. Flag mismatches as `NAV_LABEL_MISMATCH`. Exclude exceptions defined in
-`flutter-l10n-rules.md` (empty state CTAs, back buttons, dynamic titles, screens without
+the text principles in `flutter-l10n-agent.md` (empty state CTAs, back buttons, dynamic titles, screens without
 AppBar titles, cross-domain action buttons).
 
 Also flag any `context.go()`/`context.push()` using a string literal instead of
