@@ -29,6 +29,10 @@ You are spawned by the `/flutter-build` skill with a prompt containing:
 1. Read `pubspec.yaml` — confirm current version line exists
 2. If env file specified, verify it exists
 3. Verify `flutter` is available: `flutter --version`
+4. Run `git status` — if there are uncommitted changes, **STOP** and ask the user to review:
+   - Show the list of modified/untracked files
+   - Ask: "You have uncommitted changes. Should I commit these first, or proceed with the build as-is?"
+   - Do NOT proceed until the user confirms
 
 ### Phase 2: Version Bump
 
