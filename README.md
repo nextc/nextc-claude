@@ -130,7 +130,7 @@ nextc-claude/                         (marketplace root)
 
 ### Rules (7, shared across all plugins)
 
-**All projects:** agents, safety, practices, git-workflow, skill-selection, project-docs, no-auto-testing
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing
 
 ---
 

@@ -121,7 +121,7 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 
 ## Rules (7)
 
-**All projects:** agents, safety, practices, git-workflow, skill-selection, project-docs, no-auto-testing
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing
 
 ## Design Principles
 
