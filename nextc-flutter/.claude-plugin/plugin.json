@@ -1,6 +1,6 @@
 {
   "name": "nextc-flutter",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Flutter build and localization — APK/IPA builds with logging, and a full l10n pipeline (audit, harmonize, extract, translate, verify).",
   "author": {
     "name": "nextc"

@@ -1,14 +1,17 @@
 # Changelog
 
-All notable changes to nextc-claude are documented here.
+All notable changes to nextc-claude are documented here, grouped by date.
 
-## [Unreleased]
+## 2026-04-07
 
 ### Added
-- CHANGELOG.md with human-readable summaries of all past releases
+- CHANGELOG.md with human-readable summaries of all past changes
 - Changelog rule in CLAUDE.md — proactively suggest updates after file changes, enforce as a gate before every commit
 
-## [1.2.0] - 2026-04-06
+### Changed
+- Bumped all plugin versions to 1.2.1
+
+## 2026-04-06
 
 ### Rules Overhaul
 
@@ -35,7 +38,7 @@ Similarly, the project-docs rule was slimmed down to just "spawn doc-keeper" —
 - Renamed `nextc-workflow` to `nextc-core` to better reflect its role as the main development plugin.
 - Bumped all plugin versions to 1.2.0.
 
-## [1.1.0] - 2026-04-04
+## 2026-04-04
 
 ### ASO Pipeline Rebuild
 
@@ -47,7 +50,7 @@ Each phase (competitive analysis, keyword research, metadata, creative, localiza
 
 Added concrete quality gates with examples throughout the pipeline. Infrastructure verification is now a hard gate — agents must confirm their dependencies exist before proceeding. Went through an audit pass that fixed 18 issues across all pipeline files.
 
-## [1.0.0] - 2026-04-02
+## 2026-04-02
 
 ### Marketplace Architecture
 
@@ -72,7 +75,7 @@ All templates were deleted and replaced with architectural blueprints — agents
 - Removed Stitch MCP dependency, keeping only the design-enforcing UI agent.
 - Added preflight dependency checks to skills that rely on external plugins.
 
-## [0.1.0] - 2026-03-28
+## 2026-03-28
 
 ### Initial Release
 

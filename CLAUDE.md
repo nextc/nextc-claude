@@ -130,9 +130,9 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 
 Update rules:
 
-1. Add entries under `## [Unreleased]` grouped by: Added, Changed, Fixed, Removed
+1. Add entries under today's date heading (`## YYYY-MM-DD`), grouped by: Added, Changed, Fixed, Removed
 2. Write human-readable summaries — explain *what changed and why*, not commit messages
-3. When a version is released, move unreleased entries into a new version heading
+3. If today's date section already exists, append to it
 
 ## Design Principles
 
