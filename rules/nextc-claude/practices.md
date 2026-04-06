@@ -14,23 +14,23 @@ Rationale: Immutable data prevents hidden side effects, makes debugging easier, 
 
 ## Research & Reuse
 
-Search registries and GitHub **before coding** when the task involves:
+**Search before coding** when the task involves:
 - Common infrastructure (auth, payments, file upload, caching, etc.)
-- Animations, transitions, or visual effects — these usually have polished open-source packages
+- Animations, transitions, or visual effects
 - Choosing between competing libraries
 - Unfamiliar ecosystems or frameworks
-
-- When you're not confident in your solution — search registries for pre-built packages, then search GitHub/web for existing solutions, before writing from scratch
+- Any solution you're not confident about
 
 **Skip searching** for routine feature work, bug fixes, or simple UI changes in a known stack.
 
-When searching (MUST follow this order):
-1. **Context7 first:** library/API docs, usage examples, version details
-2. **GitHub/registries second:** `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
-3. **Web last:** WebFetch/WebSearch only when the first two are insufficient
-- Prefer battle-tested packages over hand-rolled code
+**Search order:**
+1. **Context7** — library/API docs, usage examples, version details. Skip if not a library/API question.
+2. **GitHub/registries** — `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
+3. **Web** — WebFetch/WebSearch only when 1-2 are insufficient
+
+Prefer battle-tested packages over hand-rolled code.
 
 ## Workflow
 
-1. **Plan** — Use **planner** agent for complex features. Break into phases.
-2. **Code Review** — Use **code-reviewer** agent after writing code. Address CRITICAL and HIGH issues.
+1. **Plan** — Use **planner** agent for multi-file features or architectural changes. Skip for single-file changes.
+2. **Code Review** — Use **code-reviewer** agent after writing code. Fix CRITICAL and HIGH issues. MEDIUM/LOW are optional.
