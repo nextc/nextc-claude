@@ -16,6 +16,20 @@ allowed-tools:
 
 Gather context about recent changes and spawn the doc-keeper agent to update project documentation.
 
+## When to Update
+
+After ANY response that:
+1. Implements a new feature → update `CLAUDE.md` + `tasks.md` + relevant `spec/*.md` + `product-guide.md` + `changelog.md` + relevant `qc/<feature>.md`
+2. Fixes a bug → update `tasks.md` (known bugs section) + `changelog.md` + update affected `qc/*.md`
+3. Changes data models or DB schema → update relevant `spec/*.md` + update affected `qc/*.md`
+4. Changes design/theme → update `design.md`
+5. Completes a phase/milestone → update `CLAUDE.md` + `README.md` + `tasks.md` + `changelog.md`
+6. Discovers new tasks or bugs → add to `tasks.md`
+7. Changes architecture, tech stack, or folder structure → update `CLAUDE.md` + `README.md`
+8. Introduces new domain terms → add to `glossary.md` with placeholder definitions
+9. Adds/changes API endpoints → update `api.md` (only if project has its own API)
+10. Changes testing scope or adds feature areas → update `qc/test-plan.md`
+
 ## Step 1: Gather Context
 
 Run these in parallel:
@@ -52,7 +66,7 @@ Build the prompt by combining:
 2. The mode instruction:
    - Bootstrap: "Bootstrap the full docs structure by reading the codebase. Create CLAUDE.md, docs/proposal.md, docs/design.md, docs/tasks.md, and docs/spec/ files as needed."
    - Update: "Update existing docs to reflect the changes shown above. Only modify files that are affected by the changes."
-3. End with: "Follow the structure and content guidelines in ~/.claude/rules/nextc-claude/project-docs.md."
+3. End with: "Follow the structure and content guidelines in your agent definition."
 
 ## Step 4: Report
 
@@ -60,4 +74,4 @@ Tell the user the doc-keeper is running in the background. Mention which files a
 
 ## Fallback
 
-If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from `~/.claude/rules/nextc-claude/project-docs.md`.
+If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from the doc-keeper agent definition.

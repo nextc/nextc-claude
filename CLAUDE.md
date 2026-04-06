@@ -1,4 +1,4 @@
-> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes project-docs, git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Re-check rules before completing each response.
+> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Re-check rules before completing each response.
 
 # nextc-claude
 

@@ -24,6 +24,10 @@ You are spawned at the end of a coding session to update project documentation. 
 1. **Assess what changed** — Read the git diff or the prompt context to understand what was added, modified, or fixed.
 
 2. **Update `CLAUDE.md`** (project root) — Keep this as the concise project context file:
+   - **Must start with** a rules reminder block (add if missing):
+     ```
+     > **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Spawn doc-keeper after code changes. Re-check rules before completing each response.
+     ```
    - Project summary, tech stack, folder structure
    - Key commands (build, run, analyze)
    - Current phase/status (one line)
@@ -117,3 +121,20 @@ Infer the content from the codebase — read `lib/`, `pubspec.yaml`, `.claude/pl
 - QC docs must be written for non-developers — no code references, only user-facing behavior
 - `product-guide.md` must use plain language suitable for end-users
 - `api.md` is conditional — only create if the project has its own external-facing API endpoints (Supabase/Firebase/etc. don't count)
+
+## What NOT to Put in docs/
+
+- Implementation plans → `.claude/plan/`
+- Personal preferences / feedback → `.claude/memory/`
+- Raw git history → `git log` (but curated user-facing changelog goes in `docs/changelog.md`)
+- Code comments → inline in source
+- Automated test specs → code repo test files (QC docs are for manual human testers only)
+
+## Relationship to .claude/
+
+| Location | Purpose | Audience | Persistence |
+|----------|---------|----------|-------------|
+| `CLAUDE.md` | Project context — loaded first every conversation | Agents (primary) | Git committed |
+| `docs/` | Product truth — what exists now | Humans + agents | Git committed |
+| `.claude/plan/` | How to build it — implementation steps | Agents | Git committed |
+| `.claude/memory/` | Why decisions were made — context | Agents | Gitignored, per-dev |
