@@ -158,7 +158,7 @@ Write clarified-spec.md with `[inferred]` labels on uncertain fields. Print pre-
 
 ### Phase 2: Research
 
-Spawn `nextc-product:product-researcher`. Pass mode, Exa flag, terms.json
+Spawn `nextc-product:product-researcher`. Pass mode, terms.json
 content, file paths, Phase 1 signals. (Model defined in agent frontmatter.)
 
 Parse structured return. Collect signals.
@@ -375,7 +375,7 @@ Update `.pipeline-state.json` with `fast_3: completed`.
 Spawn a single focused agent on the specific topic.
 - Fact-based topics (competitor, regulation, market data): Haiku model
 - Analytical topics (business model analysis, positioning strategy): Sonnet model
-- Use Exa for web research if available
+- Use WebSearch/WebFetch for web research
 - Write to `docs/explore/facts/deep-dive-{topic-slug}.md`
 - Append summary to relevant section of `docs/proposal.md`
 - If findings are significant (new competitor, regulatory blocker, market data that
@@ -404,7 +404,7 @@ Each slide: content + speaker notes with talking points.
 |----------|----------|
 | Required skill/agent fails | Stop. Show error. |
 | Best-effort agent fails | Continue. Mark section unavailable. |
-| Exa unavailable | Research degraded. Market sizing skipped. |
+| Web search returns no data | Research degraded. Market sizing skipped. |
 | User says "stop" | End. Preserve files + partial proposal. |
 | Signal triggers phase skip | Log reason. Note in proposal. |
 | All collisions filtered out | Warn: "No strong insights. Data may be too thin." |

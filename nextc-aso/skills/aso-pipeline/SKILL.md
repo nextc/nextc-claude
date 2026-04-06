@@ -56,8 +56,6 @@ Provides: `competitor-analysis`, `competitor-tracking`, `market-pulse`, `market-
 
 ### Optional Checks
 
-- **Exa MCP:** Check if `mcp__plugin_everything-claude-code_exa__web_search_exa` is accessible.
-  If absent, warn: live competitor/market data unavailable — LLM knowledge only.
 - **DataForSEO MCP:** Check if `mcp__plugin_everything-claude-code_dataforseo__*` tools exist.
   If absent, warn: no verified keyword volumes — qualitative tiering mode only.
 - **`docs/proposal.md`:** If exists, product context available for brief seeding.
@@ -73,7 +71,6 @@ PLUGINS:
     /plugin install aso-skills@aso-skills
 
 OPTIONAL:
-  - Exa MCP not detected — competitor research will use LLM knowledge only.
   - DataForSEO not detected — keyword data will be qualitative (Tier A/B/C), not numeric.
 
 Install missing dependencies and run /aso-pipeline again.
@@ -86,7 +83,7 @@ STOP here. Do NOT proceed until required plugins are installed.
 ```
 Preflight passed.
   Plugins: aso-skills ✓
-  Optional: Exa [✓/missing], DataForSEO [✓/missing]
+  Optional: DataForSEO [✓/missing]
   Proposal: docs/proposal.md [found/not found]
   Prior state: aso/.pipeline-state.json [found/not found]
 ```
@@ -103,7 +100,7 @@ Need EITHER a store URL to fetch listing data OR user-provided answers.
 ### Process
 
 1. Ask for store URL (App Store or Play Store) if not in existing `app_brief.yaml`
-2. Attempt to fetch the public listing page via WebFetch or Exa
+2. Attempt to fetch the public listing page via WebFetch
 3. If fetch succeeds, extract: title, subtitle, description length, screenshot count,
    video presence, rating, review count, localization count
 4. If fetch fails, ask the user to provide:
@@ -181,7 +178,6 @@ Agent(
   Mode: [run/express/audit/diff/build/phase-name]
   Phase (if single-phase): [phase name]
   Working directory: [cwd]
-  Exa available: [yes/no]
   DataForSEO available: [yes/no]
   Proposal exists: [yes/no]
   Prior state exists: [yes/no]

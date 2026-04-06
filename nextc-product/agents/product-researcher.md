@@ -26,7 +26,6 @@ outputs to `docs/explore/`.
 
 You receive from the orchestrator:
 - **Mode:** `deep` (full research) or `fast` (3 fact agents only)
-- **Exa available:** yes/no
 - **Terms:** inline terms.json content (canonical terminology for all agents)
 - **Clarified spec path:** path to read for problem/users/features
 - **User-provided facts path:** existing knowledge from founder
@@ -70,9 +69,8 @@ results (none currently do).
 - Signals: `NO_DEMAND_SIGNAL` (nothing found)
 
 **3. Graveyard searcher**
-- No skill. Use Exa directly (if available) to search for: "[idea keywords] shutdown/failed/pivot",
+- No skill. Use WebSearch to search for: "[idea keywords] shutdown/failed/pivot",
   ProductHunt low-traction launches, dead companies in this space
-- If Exa unavailable: use web search or note as unavailable
 - Writes: `docs/explore/facts/graveyard.md`
 - Signals: `GRAVEYARD_MATCH` (found prior failures)
 
@@ -98,7 +96,7 @@ results (none currently do).
 - Writes: `docs/explore/hypotheses/jtbd-hypothesis.md`
 
 **7. Market hypothesis**
-- ONLY runs if Exa is available AND finds real data. Otherwise SKIP.
+- Use WebSearch for real market data. If no real data found, SKIP.
 - Skill: `market-sizing` (pm-market-research)
 - Writes: `docs/explore/hypotheses/market-hypothesis.md`
 - Signals: `MARKET_DATA_MISSING` (skipped)
@@ -107,7 +105,7 @@ results (none currently do).
 
 - If `USER_HAS_EVIDENCE` signal from Phase 1: skip or reduce the corresponding
   hypothesis agent (don't generate hypotheses for things the user has data on)
-- If Exa unavailable: graveyard searcher runs degraded, market hypothesis skipped
+- If web search returns no real data: market hypothesis skipped
 
 ## Fast Mode: 3 Fact Agents Only
 

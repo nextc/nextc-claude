@@ -107,8 +107,6 @@ ls ~/.claude/plugins/cache/marketingskills/ 2>/dev/null
 
 ### Optional Checks
 
-- **Exa MCP:** Check if `mcp__plugin_everything-claude-code_exa__web_search_exa` is accessible.
-  If absent, warn: market sizing will be skipped, fact-based research will be degraded.
 - **everything-claude-code:** Check `~/.claude/plugins/cache/everything-claude-code/`.
   Not used by product-explore directly, but the next step (`/flutter-kickoff` or `/feature-dev`)
   requires it. Warn early.
@@ -139,8 +137,6 @@ OPTIONAL:
     /plugin marketplace add affaan-m/everything-claude-code
     /plugin install everything-claude-code@everything-claude-code
 
-  - Exa MCP not detected — market research will be limited.
-
 Install missing dependencies and run /product-explore again.
 ```
 
@@ -151,7 +147,7 @@ STOP here. Do NOT proceed to the agent until all required plugins are installed.
 ```
 Preflight passed.
   Plugins: pm-skills ✓, marketingskills ✓
-  Optional: everything-claude-code [✓/missing], Exa MCP [available/unavailable]
+  Optional: everything-claude-code [✓/missing]
   Skills: [N] available
   Flags: auto=[yes/no], quick=[yes/no], no-collision=[yes/no]
 ```
@@ -194,7 +190,6 @@ Agent(
   Mode: [deep/fast/update/branch/deep-dive/export]
   Flags: auto=[yes/no], quick=[yes/no], no-collision=[yes/no]
   Arguments: $ARGUMENTS (with flags stripped)
-  Exa available: [yes/no]
   Working directory: [current project root]
   Template path: ~/.claude/plugins/cache/nextc-claude/nextc-product/skills/product-explore/templates/proposal.md
 

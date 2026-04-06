@@ -48,7 +48,7 @@ must answer "so what?" and recommend a specific action.
       ```
    f. Generate response templates based on top themes
 
-   **Note:** Review text requires either store URL (for public scraping via Exa)
+   **Note:** Review text requires either store URL (for public scraping via WebFetch)
    or ASC access. Without either, this analysis runs on user-provided review themes
    and LLM knowledge of the category. Flag the data source clearly.
 
