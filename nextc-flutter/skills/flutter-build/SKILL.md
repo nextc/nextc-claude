@@ -61,23 +61,21 @@ Proceed?
 
 Wait for user confirmation. If they say no or want changes, go back to Step 2.
 
-## Step 4: Spawn flutter-builder
+## Step 4: Build
 
-Use the Agent tool:
+### Single platform (android or ios)
+
+Spawn one flutter-builder agent in foreground with the full pipeline:
 
 ```
 Agent(
   subagent_type: "flutter-builder",
-  description: "Build Flutter app",
+  model: "haiku",
+  description: "Build Flutter {platform}",
   run_in_background: false,
-  prompt: <see below>
-)
-```
-
-Build the prompt with all confirmed parameters:
-```
+  prompt: """
 Build the Flutter app with the following configuration:
-- Platform: {platforms}
+- Platform: {platform}
 - Build mode: {mode}
 - Version: {version}
 - Build number: {build}
@@ -85,9 +83,95 @@ Build the Flutter app with the following configuration:
 - Project root: {absolute path to project}
 
 Follow your full process: validate, bump version, build, rename artifacts, update buildlog, report, commit, and tag.
+"""
+)
 ```
 
-Do NOT run in background — the user needs to see build output and any errors.
+### Both platforms (parallel)
+
+When building both platforms, the skill orchestrates shared steps and spawns two agents in parallel:
+
+**Step 4a: Pre-build validation (in skill)**
+
+Run these checks before spawning agents:
+1. Read `pubspec.yaml` — confirm version line exists
+2. If env file specified, verify it exists
+3. Run `flutter --version` — verify Flutter is available
+4. Run `git status` — if uncommitted changes, ask user before proceeding
+
+**Step 4b: Version bump (in skill)**
+
+Update `pubspec.yaml` version line to `version: {version}+{build}` using the Edit tool. This happens once, before agents are spawned.
+
+**Step 4c: Spawn two agents in parallel**
+
+Launch BOTH agents in a single message (parallel tool calls). Both run in background:
+
+```
+Agent(
+  subagent_type: "flutter-builder",
+  model: "haiku",
+  name: "build-android",
+  description: "Build Flutter APK",
+  run_in_background: true,
+  prompt: """
+Build the Flutter app with the following configuration:
+- Platform: android
+- Build mode: {mode}
+- Version: {version}
+- Build number: {build}
+- Env file: {path to .env or "none"}
+- Project root: {absolute path to project}
+
+PARTIAL MODE — the skill is orchestrating a parallel build:
+- SKIP Phase 1 (pre-build validation) — already done by skill
+- SKIP Phase 2 (version bump) — already done by skill
+- DO Phase 3 (build) — Android only
+- DO Phase 4 (artifact rename) — Android only
+- SKIP Phase 5 (build log) — skill will handle
+- DO Phase 6 (build report) — report Android results
+- SKIP Phase 7 (git commit & tag) — skill will handle
+"""
+)
+
+Agent(
+  subagent_type: "flutter-builder",
+  model: "haiku",
+  name: "build-ios",
+  description: "Build Flutter IPA",
+  run_in_background: true,
+  prompt: """
+Build the Flutter app with the following configuration:
+- Platform: ios
+- Build mode: {mode}
+- Version: {version}
+- Build number: {build}
+- Env file: {path to .env or "none"}
+- Project root: {absolute path to project}
+
+PARTIAL MODE — the skill is orchestrating a parallel build:
+- SKIP Phase 1 (pre-build validation) — already done by skill
+- SKIP Phase 2 (version bump) — already done by skill
+- DO Phase 3 (build) — iOS only
+- DO Phase 4 (artifact rename) — iOS only
+- SKIP Phase 5 (build log) — skill will handle
+- DO Phase 6 (build report) — report iOS results
+- SKIP Phase 7 (git commit & tag) — skill will handle
+"""
+)
+```
+
+**Step 4d: Post-build (in skill)**
+
+After BOTH agents complete:
+
+1. **Build log** — Update `docs/buildlog.md` following the same format as the agent's Phase 5:
+   - Run `git log` to gather changes since last build tag
+   - Write curated "What's new" section
+   - Include both platform results in a single entry
+2. **Git commit** — Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`
+3. **Git tag** — Only if BOTH builds succeeded: `git tag build/{version}+{build}`
+   - If one platform failed, do NOT tag — report which failed
 
 ## Step 5: Report
 

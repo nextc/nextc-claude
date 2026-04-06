@@ -4,6 +4,9 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ## 2026-04-07
 
+### Changed
+- Flutter build now runs Android and iOS builds in parallel when "both" platforms are selected, instead of sequentially. The skill handles shared steps (version bump, buildlog, commit) once, while two background agents build simultaneously.
+
 ### Added
 - CHANGELOG.md with human-readable summaries of all past changes
 - Changelog rule in CLAUDE.md — proactively suggest updates after file changes, enforce as a gate before every commit

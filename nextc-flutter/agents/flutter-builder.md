@@ -140,6 +140,17 @@ git tag build/{version}+{build}
 
 Do NOT push — the user will push when ready.
 
+## Partial Mode
+
+When the prompt includes `PARTIAL MODE`, the skill is orchestrating a parallel build (both platforms at once). In this mode:
+
+- Only execute the phases explicitly marked as `DO` in the prompt
+- Skip all phases marked as `SKIP` — the skill handles them
+- Still report build results (Phase 6) so the skill can aggregate them
+- If the build fails, report the failure clearly — the skill needs to know
+
+This mode exists because shared steps (version bump, buildlog, commit) must happen exactly once, not twice.
+
 ## Rules
 
 - NEVER push to remote — only commit and tag locally
