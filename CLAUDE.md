@@ -6,15 +6,15 @@ Claude Code marketplace — 6 plugins with custom agents, rules, and workflow sk
 
 ```
 # Add marketplace + install global plugins
-/plugin marketplace add nextc/nextc-claude
-/plugin install nextc-core@nextc-claude
-/plugin install nextc-ecc@nextc-claude
+claude plugin marketplace add nextc/nextc-claude
+claude plugin install nextc-core@nextc-claude
+claude plugin install nextc-ecc@nextc-claude
 
-# Per-project (install when needed)
-/plugin install nextc-product@nextc-claude
-/plugin install nextc-project-kickoff@nextc-claude
-/plugin install nextc-flutter@nextc-claude
-/plugin install nextc-aso@nextc-claude
+# Per-project (install as local scope)
+claude plugin install nextc-product@nextc-claude --scope local
+claude plugin install nextc-project-kickoff@nextc-claude --scope local
+claude plugin install nextc-flutter@nextc-claude --scope local
+claude plugin install nextc-aso@nextc-claude --scope local
 
 # Symlink rules (not installed by marketplace)
 ./setup-rules.sh

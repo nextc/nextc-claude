@@ -21,11 +21,11 @@ Install these once — they're useful in every project:
 
 ```bash
 # Add the marketplace
-/plugin marketplace add nextc/nextc-claude
+claude plugin marketplace add nextc/nextc-claude
 
 # Install core plugins globally
-/plugin install nextc-core@nextc-claude
-/plugin install nextc-ecc@nextc-claude
+claude plugin install nextc-core@nextc-claude
+claude plugin install nextc-ecc@nextc-claude
 
 # Symlink rules (not covered by plugin system)
 git clone <repo-url> ~/code/nextc/nextc-claude
@@ -36,22 +36,24 @@ This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-featur
 
 ### Per-Project (install when needed)
 
-Domain-specific plugins should be installed per-project, not globally. Run these inside the project directory:
+Domain-specific plugins should be installed per-project with **local** scope (`--scope local`). This stores them in `.claude/settings.local.json` (gitignored) instead of `.claude/settings.json`, so they won't be committed or forced on other contributors.
+
+Run these inside the project directory:
 
 **Product exploration** (starting a new product):
 ```bash
-/plugin install nextc-product@nextc-claude
+claude plugin install nextc-product@nextc-claude --scope local
 ```
 
 **Flutter projects:**
 ```bash
-/plugin install nextc-project-kickoff@nextc-claude   # scaffolding from proposal
-/plugin install nextc-flutter@nextc-claude            # build + l10n
+claude plugin install nextc-project-kickoff@nextc-claude --scope local
+claude plugin install nextc-flutter@nextc-claude --scope local
 ```
 
 **App Store Optimization:**
 ```bash
-/plugin install nextc-aso@nextc-claude
+claude plugin install nextc-aso@nextc-claude --scope local
 ```
 
 ### Third-Party Dependencies
@@ -60,26 +62,26 @@ These marketplaces provide skills that power specific nextc plugins. Install the
 
 | Marketplace | Powers | Install |
 |-------------|--------|---------|
-| [pm-skills](https://github.com/phuryn/pm-skills) | `nextc-product` — 12 PM skills for market research, personas, competitor analysis | `/plugin marketplace add phuryn/pm-skills` then install 6 sub-plugins |
-| [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research skill | `/plugin marketplace add coreyhaines31/marketingskills` then `/plugin install marketing-skills@marketingskills` |
-| [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills for keywords, metadata, creatives | `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills` |
+| [pm-skills](https://github.com/phuryn/pm-skills) | `nextc-product` — 12 PM skills for market research, personas, competitor analysis | `claude plugin marketplace add phuryn/pm-skills` then install 6 sub-plugins |
+| [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research skill | `claude plugin marketplace add coreyhaines31/marketingskills` then `claude plugin install marketing-skills@marketingskills` |
+| [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills for keywords, metadata, creatives | `claude plugin marketplace add Eronred/aso-skills` then `claude plugin install aso-skills@aso-skills` |
 
 ### Recommended Plugins
 
 | Plugin | Description | Install |
 |--------|-------------|---------|
-| [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | UI/UX design intelligence — 50+ styles, 161 color palettes, 57 font pairings, UX guidelines. Pairs well with `nextc-core`'s `ui-ux-developer` agent. | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` |
-| [claude-seo](https://github.com/AgriciDaniel/claude-seo) | Comprehensive SEO analysis — technical audits, content quality, schema markup, competitor pages, and Google Search Console integration. | `/plugin marketplace add AgriciDaniel/claude-seo` |
-| [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) | GEO-first SEO — optimize for AI-powered search engines (ChatGPT, Perplexity, Gemini, Google AI Overviews). | `/plugin marketplace add zubair-trabzada/geo-seo-claude` |
+| [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | UI/UX design intelligence — 50+ styles, 161 color palettes, 57 font pairings, UX guidelines. Pairs well with `nextc-core`'s `ui-ux-developer` agent. | `claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` |
+| [claude-seo](https://github.com/AgriciDaniel/claude-seo) | Comprehensive SEO analysis — technical audits, content quality, schema markup, competitor pages, and Google Search Console integration. | `claude plugin marketplace add AgriciDaniel/claude-seo` |
+| [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) | GEO-first SEO — optimize for AI-powered search engines (ChatGPT, Perplexity, Gemini, Google AI Overviews). | `claude plugin marketplace add zubair-trabzada/geo-seo-claude` |
 
 ### Uninstall
 
 ```bash
 # Remove individual plugins
-/plugin uninstall nextc-core@nextc-claude
+claude plugin uninstall nextc-core@nextc-claude
 
 # Remove the marketplace entirely
-/plugin marketplace remove nextc-claude
+claude plugin marketplace remove nextc-claude
 
 # Remove symlinked rules
 rm ~/.claude/rules/nextc-claude
