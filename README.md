@@ -2,31 +2,28 @@
 
 Claude Code marketplace — workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization.
 
-**Quick start:**
-```
-/plugin marketplace add nextc/nextc-claude
-/plugin install nextc-core@nextc-claude
-```
-
 ## Plugins
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
 | **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
+| **nextc-ecc** | save-session, verification-loop, council, +13 more | Core agents + quality tools migrated from Everything Claude Code |
 | **nextc-product** | product-explore | Raw idea to validated proposal with market research |
 | **nextc-project-kickoff** | flutter-kickoff | Proposal to production-grade Flutter project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
 | **nextc-aso** | aso-pipeline | App Store Optimization multi-agent pipeline |
 
-## Setup
+## Recommended Installation
 
-### Install Plugins
+### Step 1: Install all plugins globally
+
+Install everything once so it's cached and ready. Domain-specific plugins are disabled by default — enable them per-project.
 
 ```bash
-# 1. Add the marketplace (once)
+# Add the marketplace
 /plugin marketplace add nextc/nextc-claude
 
-# 2. Install the plugins you need
+# Install all plugins (globally cached)
 /plugin install nextc-core@nextc-claude
 /plugin install nextc-ecc@nextc-claude
 /plugin install nextc-product@nextc-claude
@@ -34,10 +31,51 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 /plugin install nextc-flutter@nextc-claude
 /plugin install nextc-aso@nextc-claude
 
-# 3. Symlink rules (not covered by plugin system)
+# Disable domain-specific plugins globally (keep cached, not active)
+/plugin disable nextc-product@nextc-claude --scope user
+/plugin disable nextc-project-kickoff@nextc-claude --scope user
+/plugin disable nextc-flutter@nextc-claude --scope user
+/plugin disable nextc-aso@nextc-claude --scope user
+```
+
+**Always active:** `nextc-core` + `nextc-ecc` — useful in every project.
+
+### Step 2: Symlink rules
+
+Rules are not installed by the plugin system — symlink them manually:
+
+```bash
 git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 ```
+
+### Step 3: Enable plugins per-project
+
+Enable domain-specific plugins only in projects that need them:
+
+```bash
+# Product exploration (new product ideas)
+/plugin enable nextc-product@nextc-claude --scope project
+
+# Flutter projects
+/plugin enable nextc-project-kickoff@nextc-claude --scope project
+/plugin enable nextc-flutter@nextc-claude --scope project
+
+# App Store Optimization
+/plugin enable nextc-aso@nextc-claude --scope project
+```
+
+This writes to `.claude/settings.json` in the project, so the setting persists and is shareable with your team.
+
+### Third-Party Dependencies
+
+These marketplaces provide skills that power specific nextc plugins. Install them alongside the plugins that need them:
+
+| Marketplace | Powers | Install |
+|-------------|--------|---------|
+| [pm-skills](https://github.com/phuryn/pm-skills) | `nextc-product` — 12 PM skills for market research, personas, competitor analysis | `/plugin marketplace add phuryn/pm-skills` then install 6 sub-plugins |
+| [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research skill | `/plugin marketplace add coreyhaines31/marketingskills` then `/plugin install marketing-skills@marketingskills` |
+| [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills for keywords, metadata, creatives | `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills` |
 
 ### Uninstall
 
@@ -52,24 +90,6 @@ cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 rm ~/.claude/rules/nextc-claude
 ```
 
-### Dependencies
-
-Plugins invoke agents and skills from other plugins. Install these for full functionality.
-
-**Required** — core workflows need this:
-
-| Dependency | Required By | Install |
-|------------|-------------|---------|
-| nextc-ecc | `nextc-core` — agents (planner, architect, code-reviewer, security-reviewer) + quality tools. Bundled in this marketplace. | `/plugin install nextc-ecc@nextc-claude` |
-
-**Required for specific plugins:**
-
-| Dependency | Required By | Install |
-|------------|-------------|---------|
-| [pm-skills](https://github.com/phuryn/pm-skills) | `nextc-product` — 12 PM skills for market research | `/plugin marketplace add phuryn/pm-skills` then install 6 sub-plugins |
-| [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research | `/plugin marketplace add coreyhaines31/marketingskills` then `/plugin install marketing-skills@marketingskills` |
-| [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills | `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills` |
-
 ---
 
 ## Workflows
@@ -77,7 +97,7 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 ### Product Pipeline: Idea to Running App
 
 ```
-/product-explore ──→ /flutter-kickoff ──→ /feature-dev ──→ /flutter-build
+/product-explore --> /flutter-kickoff --> /feature-dev --> /flutter-build
      (proposal)         (project)          (features)        (APK/IPA)
 ```
 
@@ -92,11 +112,11 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 ### Development Pipeline
 
 ```
-/clarify ──→ /feature-dev ──→ /cleanup
-                  ↓
+/clarify --> /feature-dev --> /cleanup
+                  |
           /team-feature-dev (parallel variant)
 
-/bug-fix ──→ /cleanup (if 3+ files changed)
+/bug-fix --> /cleanup (if 3+ files changed)
 ```
 
 All from **nextc-core**. Skills auto-chain.
@@ -119,10 +139,11 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 
 ```
 nextc-claude/                         (marketplace root)
-├── .claude-plugin/marketplace.json   (lists 5 plugins)
+├── .claude-plugin/marketplace.json   (lists 6 plugins)
 ├── rules/nextc-claude/               (7 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
-├── nextc-core/                    (6 skills, 2 agents)
+├── nextc-core/                       (6 skills, 2 agents)
+├── nextc-ecc/                        (16 skills, 13 agents, 3 hooks)
 ├── nextc-product/                    (1 skill, 5 agents)
 ├── nextc-project-kickoff/            (1 skill, 3 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
