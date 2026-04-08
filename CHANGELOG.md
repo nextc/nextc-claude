@@ -7,6 +7,8 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ### Changed
 - Install commands switched from `/plugin` slash commands to `claude plugin` CLI syntax for scriptability
 - Per-project plugins now use `--scope local` to store in `.claude/settings.local.json` (gitignored), avoiding forced installs on other contributors
+- Git workflow rule now enforces `.claude/settings.local.json` and `.claude/.mcp.json` in `.gitignore` — personal config stays personal
+- Bumped all plugin versions to 1.3.1
 
 ## 2026-04-08
 

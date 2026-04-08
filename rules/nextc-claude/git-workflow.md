@@ -16,6 +16,15 @@ Before committing, verify that docs are up to date:
 - If docs are stale or doc-keeper hasn't run, update docs first
 - Never commit with outdated docs
 
+## Gitignore Rules
+
+The `.claude/` folder MUST be committed — it contains project settings and plugin config shared across the team. However, these files MUST be gitignored because they are personal to each contributor:
+
+- `.claude/settings.local.json` — local plugin installs and personal overrides
+- `.claude/.mcp.json` — each person has their own MCP server setup
+
+When initializing a project or noticing these files are not ignored, add them to `.gitignore`.
+
 ## Pull Request Workflow
 
 When creating PRs:
