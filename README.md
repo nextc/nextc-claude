@@ -28,6 +28,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 
 # 2. Install the plugins you need
 /plugin install nextc-core@nextc-claude
+/plugin install nextc-ecc@nextc-claude
 /plugin install nextc-product@nextc-claude
 /plugin install nextc-project-kickoff@nextc-claude
 /plugin install nextc-flutter@nextc-claude
@@ -59,7 +60,7 @@ Plugins invoke agents and skills from other plugins. Install these for full func
 
 | Dependency | Required By | Install |
 |------------|-------------|---------|
-| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | `nextc-core` — agents only (planner, architect, code-reviewer, security-reviewer). Rules are self-contained in nextc-claude. | `/plugin marketplace add affaan-m/everything-claude-code` then `/plugin install everything-claude-code@everything-claude-code` |
+| nextc-ecc | `nextc-core` — agents (planner, architect, code-reviewer, security-reviewer) + quality tools. Bundled in this marketplace. | `/plugin install nextc-ecc@nextc-claude` |
 
 **Required for specific plugins:**
 

@@ -18,8 +18,11 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 |---|---|
 | `doc-keeper`, `flutter-builder` | haiku |
 | `flutter-l10n-agent`, `ui-ux-developer`, `aso-director`, `aso-*` | sonnet |
-| `planner`, `code-reviewer`, `security-reviewer` | sonnet |
-| `architect` | opus |
+| `planner`, `architect` | opus |
+| `code-reviewer`, `security-reviewer` | sonnet |
+| `code-architect`, `code-explorer`, `code-simplifier`, `silent-failure-hunter` | sonnet |
+| `build-error-resolver`, `refactor-cleaner` | sonnet |
+| `opensource-forker`, `opensource-sanitizer`, `opensource-packager` | sonnet |
 | Explore agents, bug investigation, codebase search | haiku |
 | Bug synthesis / root cause (if complex) | opus |
 | Team workers: data model, repo, provider, service, UI | sonnet |

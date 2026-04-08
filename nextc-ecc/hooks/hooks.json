@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx block-no-verify@1.1.2"
+          }
+        ],
+        "description": "Block git hook-bypass flags to protect pre-commit, commit-msg, and pre-push hooks from being skipped",
+        "id": "pre:bash:block-no-verify"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/config-protection.js\""
+          }
+        ],
+        "description": "Block modifications to linter/formatter config files — fix code, not config",
+        "id": "pre:write-edit:config-protection"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/suggest-compact.js\""
+          }
+        ],
+        "description": "Suggest compaction at logical task boundaries",
+        "id": "pre:edit-write:suggest-compact"
+      }
+    ]
+  }
+}

@@ -48,9 +48,9 @@ never fail one-at-a-time.
 Check that these plugin agents/skills are accessible. For each, check if the plugin
 cache directory exists:
 
-**everything-claude-code** (primary dependency):
+**nextc-ecc** (primary dependency):
 ```
-~/.claude/plugins/cache/everything-claude-code/
+~/.claude/plugins/cache/nextc-ecc/
 ```
 Provides: `planner`, `architect`, `code-reviewer`, `security-reviewer` agents.
 These are not used by kickoff directly, but `/feature-dev` (the next step after kickoff)
@@ -60,7 +60,7 @@ requires them. Warn now so the user doesn't hit a wall after scaffolding.
 
 Check for cached plugin directories:
 ```bash
-ls ~/.claude/plugins/cache/everything-claude-code/ 2>/dev/null
+ls ~/.claude/plugins/cache/nextc-ecc/ 2>/dev/null
 ```
 
 ### Required Tools
@@ -134,10 +134,9 @@ Report ALL missing items at once with exact install commands:
 Preflight FAILED. Missing dependencies:
 
 PLUGINS:
-  - everything-claude-code — Required for /feature-dev (your next step after kickoff).
+  - nextc-ecc — Required for /feature-dev (your next step after kickoff).
     Install:
-      /plugin marketplace add affaan-m/everything-claude-code
-      /plugin install everything-claude-code@everything-claude-code
+      /plugin install nextc-ecc@nextc-claude
 
 TOOLS:
   - Flutter SDK not found
@@ -155,7 +154,7 @@ STOP here. Do NOT proceed to the agent until all required items are resolved.
 
 ```
 Preflight passed.
-  Plugins: everything-claude-code ✓
+  Plugins: nextc-ecc ✓
   Flutter: 3.x.x (channel stable)
   Platforms: android ✓, ios ✓, web ✓
   Proposal: docs/proposal.md (full)

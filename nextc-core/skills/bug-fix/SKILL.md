@@ -196,7 +196,7 @@ Once the user approves (or if confidence is high and the fix is low-risk):
 
 ## Phase 6: Review
 
-Spawn a **code-reviewer** agent (use `everything-claude-code:code-reviewer`):
+Spawn a **code-reviewer** agent (use `nextc-ecc:code-reviewer`):
 - Review ALL files changed in this fix
 - Check for: correctness, regression risk, error handling, style
 - Flag issues as CRITICAL / HIGH / MEDIUM / LOW
@@ -208,7 +208,7 @@ Spawn a **code-reviewer** agent (use `everything-claude-code:code-reviewer`):
 - LOW: skip unless trivial
 
 For fixes touching auth, payments, or user data, also spawn
-`everything-claude-code:security-reviewer` in parallel.
+`nextc-ecc:security-reviewer` in parallel.
 
 ## Phase 7: Cleanup + Re-verify
 
@@ -371,8 +371,8 @@ Explicitly down-rank hypotheses that depend on tier 5-6 evidence when stronger c
 |-------|--------------|-------|------|
 | Phase 1 | Explore agent | haiku | Gather codebase context |
 | Phase 3 | Explore agents (parallel) | haiku | One per hypothesis lane — evidence gathering |
-| Phase 6 | `everything-claude-code:code-reviewer` | sonnet | Always |
-| Phase 6 | `everything-claude-code:security-reviewer` | sonnet | Auth/payments/user data |
+| Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Always |
+| Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Auth/payments/user data |
 | Phase 7 | `/cleanup` skill | — | Fix touched 3+ files |
 | Phase 8 | `doc-keeper` agent | haiku | Always (background) |
 

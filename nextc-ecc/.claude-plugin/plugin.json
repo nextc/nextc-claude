@@ -1,0 +1,10 @@
+{
+  "name": "nextc-ecc",
+  "version": "1.3.0",
+  "description": "Core agents and quality tools — planner, architect, code-reviewer, security-reviewer, session management, verification loops, and safety guards. Migrated from Everything Claude Code.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["agents", "code-review", "security", "session", "verification", "safety"]
+}

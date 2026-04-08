@@ -86,13 +86,13 @@ dependencies that can be assigned to parallel workers.
 
 ### Step 2a: Plan
 
-Spawn an `everything-claude-code:planner` agent:
+Spawn an `nextc-ecc:planner` agent:
 - Input: feature description + project context + existing spec
 - Output: implementation plan with steps, files, dependencies, acceptance criteria
 
 ### Step 2b: Architecture Review
 
-Spawn an `everything-claude-code:architect` agent:
+Spawn an `nextc-ecc:architect` agent:
 - Review plan for soundness, missed dependencies, simpler alternatives
 - Must provide at least one alternative considered and why rejected
 - Must flag risks
@@ -322,7 +322,7 @@ Spawn a **code-reviewer** agent (NOT as a team worker — as a direct agent):
 - Check for: consistency between workers' code, style alignment, error handling
 - Flag cross-worker issues (e.g., worker-1 used pattern A, worker-2 used pattern B)
 
-For auth/payments/user data: also spawn `everything-claude-code:security-reviewer`.
+For auth/payments/user data: also spawn `nextc-ecc:security-reviewer`.
 
 Fix any CRITICAL/HIGH issues (assign to idle workers or fix directly).
 
@@ -453,14 +453,14 @@ Present the final summary to the user:
 |-------|---------------------|-------|---------|
 | Gate 0 | `/clarify` skill | — | Vague request → clear spec |
 | Phase 1 | Existing `docs/spec/` | — | Skip planning if spec exists |
-| Phase 2a | `everything-claude-code:planner` | sonnet | Create implementation plan |
-| Phase 2b | `everything-claude-code:architect` | opus | Adversarial architecture review |
+| Phase 2a | `nextc-ecc:planner` | sonnet | Create implementation plan |
+| Phase 2b | `nextc-ecc:architect` | opus | Adversarial architecture review |
 | Phase 3 | User provides design assets | — | Core screen design (UI features) |
 | Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | — | Native team orchestration |
 | Phase 4 | `ui-ux-developer` agent (as teammate) | sonnet | UI screen implementation |
 | Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |
-| Phase 6 | `everything-claude-code:code-reviewer` | sonnet | Cross-worker code review |
-| Phase 6 | `everything-claude-code:security-reviewer` | sonnet | Security review (when needed) |
+| Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
+| Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
 | Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
 | Phase 8 | `TeamDelete` + `doc-keeper` agent | haiku | Clean shutdown + documentation |
 

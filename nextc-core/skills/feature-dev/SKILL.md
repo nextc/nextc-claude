@@ -115,7 +115,7 @@ Generate a plan and validate it through adversarial review.
 
 ### Step 2a: Plan
 
-Spawn a **planner** agent (use `everything-claude-code:planner` or the general-purpose agent in plan mode):
+Spawn a **planner** agent (use `nextc-ecc:planner` or the general-purpose agent in plan mode):
 - Input: feature description + project context + existing spec (if any)
 - Output: implementation plan with:
   - Ordered list of implementation steps
@@ -126,7 +126,7 @@ Spawn a **planner** agent (use `everything-claude-code:planner` or the general-p
 
 ### Step 2b: Architecture Review
 
-Spawn an **architect** agent (use `everything-claude-code:architect`):
+Spawn an **architect** agent (use `nextc-ecc:architect`):
 - Review the plan for:
   - Architectural soundness — does it fit the existing patterns?
   - Missed dependencies — what could break?
@@ -312,7 +312,7 @@ After all implementation steps complete:
 
 ## Phase 6: Review
 
-Spawn a **code-reviewer** agent (use `everything-claude-code:code-reviewer`):
+Spawn a **code-reviewer** agent (use `nextc-ecc:code-reviewer`):
 - Review ALL files changed in this feature (not just the last edit)
 - Check for: correctness, style, security, error handling, performance
 - Flag issues as CRITICAL / HIGH / MEDIUM / LOW
@@ -323,7 +323,7 @@ Spawn a **code-reviewer** agent (use `everything-claude-code:code-reviewer`):
 - MEDIUM: fix if quick, otherwise note for later
 - LOW: skip unless trivial
 
-For features touching auth, payments, or user data, also spawn `everything-claude-code:security-reviewer` in parallel with the code reviewer.
+For features touching auth, payments, or user data, also spawn `nextc-ecc:security-reviewer` in parallel with the code reviewer.
 
 ## Phase 7: Cleanup + Re-verify
 
@@ -444,13 +444,13 @@ This skill composes other skills and agents. Here's what it invokes:
 |-------|--------------|-------|------|
 | Gate 0 | `/clarify` skill | — | Request too vague |
 | Phase 1 | Existing `docs/spec/` | — | Spec exists from prior `/clarify` — skip Phase 2a |
-| Phase 2a | `everything-claude-code:planner` agent | sonnet | No existing spec |
-| Phase 2b | `everything-claude-code:architect` agent | opus | Always |
+| Phase 2a | `nextc-ecc:planner` agent | sonnet | No existing spec |
+| Phase 2b | `nextc-ecc:architect` agent | opus | Always |
 | Phase 3 | User provides design assets | — | UI feature, core screen needed |
 | Phase 4 | `ui-ux-developer` agent | sonnet | UI feature, screen implementation |
 | Phase 4 | `/flutter-l10n-extract` skill | — | Flutter UI feature, l10n enabled |
-| Phase 6 | `everything-claude-code:code-reviewer` agent | sonnet | Always |
-| Phase 6 | `everything-claude-code:security-reviewer` agent | sonnet | Auth/payments/user data |
+| Phase 6 | `nextc-ecc:code-reviewer` agent | sonnet | Always |
+| Phase 6 | `nextc-ecc:security-reviewer` agent | sonnet | Auth/payments/user data |
 | Phase 7 | `/cleanup` skill | — | Always (re-verify after) |
 | Phase 8 | `doc-keeper` agent | haiku | Always (background) |
 

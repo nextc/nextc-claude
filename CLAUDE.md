@@ -2,7 +2,7 @@
 
 # nextc-claude
 
-Claude Code marketplace — 5 plugins with custom agents, rules, and workflow skills.
+Claude Code marketplace — 6 plugins with custom agents, rules, and workflow skills.
 
 ```
 # Add marketplace + install plugins
@@ -12,6 +12,7 @@ Claude Code marketplace — 5 plugins with custom agents, rules, and workflow sk
 /plugin install nextc-project-kickoff@nextc-claude
 /plugin install nextc-flutter@nextc-claude
 /plugin install nextc-aso@nextc-claude
+/plugin install nextc-ecc@nextc-claude
 
 # Symlink rules (not installed by marketplace)
 ./setup-rules.sh
@@ -24,12 +25,13 @@ Claude Code marketplace — 5 plugins with custom agents, rules, and workflow sk
 ## Structure
 
 ```
-.claude-plugin/marketplace.json   — Marketplace manifest (5 plugins)
+.claude-plugin/marketplace.json   — Marketplace manifest (6 plugins)
 nextc-core/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
+nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 3 hooks)
 rules/nextc-claude/               — Shared rules (7 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
@@ -38,7 +40,7 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 
 | Dependency | Required By | Agents/Skills Used |
 |------------|-------------|-------------------|
-| **everything-claude-code** | `nextc-core` | planner, architect, code-reviewer, security-reviewer (agents only — rules are self-contained) |
+| **nextc-ecc** | `nextc-core` | planner, architect, code-reviewer, security-reviewer (agents) |
 | **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
 | **marketingskills** | `nextc-product` | customer-research |
 | **aso-skills** | `nextc-aso` | 27 ASO skills |
@@ -103,6 +105,31 @@ Agents: `flutter-builder` (haiku), `flutter-l10n-agent` (sonnet)
 | | `/aso-pipeline [phase]` | Run a single phase |
 
 Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet)
+
+### nextc-ecc
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| save-session | `/save-session` | Structured session handoff with failure tracking |
+| resume-session | `/resume-session` | Load previous session state |
+| aside | `/aside` | Interrupt-safe side questions |
+| strategic-compact | `/strategic-compact` | Smart compaction at logical boundaries |
+| context-budget | `/context-budget` | Token consumption audit |
+| learn-eval | `/learn-eval` | Quality-gated pattern extraction |
+| token-budget-advisor | `/token-budget-advisor` | User-controlled response depth |
+| verification-loop | `/verification-loop` | Build, typecheck, lint pipeline |
+| safety-guard | `/safety-guard` | Prevent destructive operations |
+| search-first | `/search-first` | Research-before-coding workflow |
+| codebase-onboarding | `/codebase-onboarding` | Structured onboarding for unfamiliar codebases |
+| team-builder | `/team-builder` | Dynamic agent composition |
+| opensource-pipeline | `/opensource-pipeline` | Safe open-source release pipeline |
+| council | `/council` | 4-voice decision council |
+| agent-introspection-debugging | `/agent-introspection-debugging` | Self-debugging for agent stalls |
+| workspace-surface-audit | `/workspace-surface-audit` | Audit repo + plugins + MCP setup |
+
+Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
+
+Hooks: `block-no-verify`, `config-protection`, `suggest-compact`
 
 ## Pipeline
 

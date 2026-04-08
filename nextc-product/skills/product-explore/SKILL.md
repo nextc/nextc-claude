@@ -107,7 +107,7 @@ ls ~/.claude/plugins/cache/marketingskills/ 2>/dev/null
 
 ### Optional Checks
 
-- **everything-claude-code:** Check `~/.claude/plugins/cache/everything-claude-code/`.
+- **nextc-ecc:** Check `~/.claude/plugins/cache/nextc-ecc/`.
   Not used by product-explore directly, but the next step (`/flutter-kickoff` or `/feature-dev`)
   requires it. Warn early.
 
@@ -133,9 +133,8 @@ PLUGINS:
     /plugin install marketing-skills@marketingskills
 
 OPTIONAL:
-  - everything-claude-code not detected — your next step (/flutter-kickoff or /feature-dev) needs it.
-    /plugin marketplace add affaan-m/everything-claude-code
-    /plugin install everything-claude-code@everything-claude-code
+  - nextc-ecc not detected — your next step (/flutter-kickoff or /feature-dev) needs it.
+    /plugin install nextc-ecc@nextc-claude
 
 Install missing dependencies and run /product-explore again.
 ```
@@ -147,7 +146,7 @@ STOP here. Do NOT proceed to the agent until all required plugins are installed.
 ```
 Preflight passed.
   Plugins: pm-skills ✓, marketingskills ✓
-  Optional: everything-claude-code [✓/missing]
+  Optional: nextc-ecc [✓/missing]
   Skills: [N] available
   Flags: auto=[yes/no], quick=[yes/no], no-collision=[yes/no]
 ```

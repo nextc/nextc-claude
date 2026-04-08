@@ -2,6 +2,22 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-08
+
+### Added
+- New `nextc-ecc` plugin — migrated core gems from Everything Claude Code (ECC) 1.10.0 into the nextc-claude marketplace as a self-contained plugin
+- 13 agents: planner, architect, code-reviewer, security-reviewer, build-error-resolver, refactor-cleaner, code-architect, code-explorer, code-simplifier, silent-failure-hunter, opensource-forker, opensource-sanitizer, opensource-packager
+- 16 skills: save-session, resume-session, aside, strategic-compact, context-budget, learn-eval, token-budget-advisor, verification-loop, safety-guard, search-first, codebase-onboarding, team-builder, opensource-pipeline, council, agent-introspection-debugging, workspace-surface-audit
+- 3 hooks: block-no-verify, config-protection, suggest-compact
+
+### Changed
+- All `everything-claude-code:` agent references in nextc-core skills updated to `nextc-ecc:` (feature-dev, bug-fix, team-feature-dev)
+- ECC is no longer a required external dependency — nextc-ecc is bundled in the marketplace
+- Updated preflight checks in product-explore, flutter-kickoff, and aso-pipeline to reference nextc-ecc
+- Updated marketplace.json, CLAUDE.md, README.md, and docs/recommended-plugins.md
+- build-error-resolver and refactor-cleaner generalized beyond TypeScript to support any project type
+- code-reviewer stripped of React/Node.js specific sections for project-agnostic use
+
 ## 2026-04-07
 
 ### Changed

@@ -10,7 +10,7 @@ Curated list of Claude Code marketplaces and plugins that complement nextc-claud
 
 | Marketplace | Install | Description |
 |-------------|---------|-------------|
-| everything-claude-code **(dep)** | `/plugin marketplace add affaan-m/everything-claude-code` | Planner, architect, code-reviewer, security-reviewer agents used by nextc-claude workflows |
+| nextc-ecc **(bundled)** | `/plugin install nextc-ecc@nextc-claude` | Planner, architect, code-reviewer, security-reviewer agents + quality tools. Bundled in this marketplace. |
 | claude-plugins-official | `/plugin marketplace add anthropics/claude-plugins-official` | Anthropic's official directory — 100+ plugins |
 | claude-code-workflows | `/plugin marketplace add wshobson/claude-code-workflows` | 72 plugins, 112 agents, 146 skills |
 | claude-mem | `/plugin marketplace add thedotmack/claude-mem` | Persistent cross-session memory |
@@ -40,7 +40,7 @@ Curated list of Claude Code marketplaces and plugins that complement nextc-claud
 
 | Plugin | Marketplace | Description |
 |--------|-------------|-------------|
-| everything-claude-code **(dep)** | everything-claude-code | Planner, architect, code-reviewer, security-reviewer agents |
+| nextc-ecc **(bundled)** | nextc-claude | Planner, architect, code-reviewer, security-reviewer agents + quality tools |
 | skill-creator | claude-plugins-official | Create and improve skills with evals |
 | ralph-loop | claude-plugins-official | Iterative agent loops |
 | claude-mem | claude-mem | Persistent memory across sessions |
