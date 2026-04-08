@@ -64,6 +64,14 @@ These marketplaces provide skills that power specific nextc plugins. Install the
 | [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research skill | `/plugin marketplace add coreyhaines31/marketingskills` then `/plugin install marketing-skills@marketingskills` |
 | [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills for keywords, metadata, creatives | `/plugin marketplace add Eronred/aso-skills` then `/plugin install aso-skills@aso-skills` |
 
+### Recommended Plugins
+
+| Plugin | Description | Install |
+|--------|-------------|---------|
+| [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | UI/UX design intelligence — 50+ styles, 161 color palettes, 57 font pairings, UX guidelines. Pairs well with `nextc-core`'s `ui-ux-developer` agent. | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` |
+| [claude-seo](https://github.com/AgriciDaniel/claude-seo) | Comprehensive SEO analysis — technical audits, content quality, schema markup, competitor pages, and Google Search Console integration. | `/plugin marketplace add AgriciDaniel/claude-seo` |
+| [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) | GEO-first SEO — optimize for AI-powered search engines (ChatGPT, Perplexity, Gemini, Google AI Overviews). | `/plugin marketplace add zubair-trabzada/geo-seo-claude` |
+
 ### Uninstall
 
 ```bash
