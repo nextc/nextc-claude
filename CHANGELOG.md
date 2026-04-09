@@ -9,6 +9,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ### Added
 - `tool-awareness` hook — logs Agent and Skill invocations to stderr so the user sees what's being spawned in real time, without relying on Claude to manually output it
+- Bumped all plugin versions to 1.3.2
 - Install commands switched from `/plugin` slash commands to `claude plugin` CLI syntax for scriptability
 - Per-project plugins now use `--scope local` to store in `.claude/settings.local.json` (gitignored), avoiding forced installs on other contributors
 - Git workflow rule now enforces `.claude/settings.local.json` and `.claude/.mcp.json` in `.gitignore` — personal config stays personal
