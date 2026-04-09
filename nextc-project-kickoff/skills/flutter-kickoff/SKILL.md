@@ -27,7 +27,7 @@ Parse `$ARGUMENTS` to determine mode:
 | Argument | Mode | Phases | Description |
 |----------|------|--------|-------------|
 | _(none)_ | Default | 0-3 | Standard kickoff: preflight, decisions, create, docs |
-| `--auto` | Autopilot | 0-3 (zero questions) | All decisions from proposal |
+| `--auto` | Autopilot | 0-3 (zero questions) | All decisions from proposal, uses default subfolder |
 | `--full` | Full | 0-8 | Default + l10n, design, routes, collision, git |
 | `--auto --full` | Full autopilot | 0-8 (zero questions) | Full with no interaction |
 | `--minimal` | Minimal | 0-2 | Bare project + deps, no docs |
@@ -108,8 +108,23 @@ Quick-read the proposal and classify:
 
 **5. Target directory:**
 
-Derive project dir name from proposal product name (kebab-case). Check it doesn't
-already exist. If it does: offer rename, delete (confirm), or abort.
+**Always ask the user where to create the project** (unless `--dir` was provided):
+
+```
+Where should I create the project?
+
+  1. Current directory (.) — scaffold directly here
+  2. Subfolder: ./[derived-name]/ (default)
+  3. Custom path
+
+Choice (1/2/3, or enter a path):
+```
+
+Derive the default subfolder name from proposal product name (kebab-case).
+If the chosen directory already exists and is non-empty: offer rename, delete (confirm), or abort.
+If the user picks `.` (current directory), verify it's empty or only contains `docs/` and dotfiles.
+When passing to the orchestrator, set `Target dir` to `.` — the scaffolder will create
+files directly in the working directory instead of a subfolder.
 
 **6. Git context:**
 

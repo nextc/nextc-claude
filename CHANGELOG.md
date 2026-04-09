@@ -4,6 +4,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ## 2026-04-10
 
+### Fixed
+- Unity scaffolder: `ProjectVersion.txt` now includes explanation that `m_EditorVersionWithRevision` should NOT be written (requires changeset hash only Unity Editor knows) — fixes Unity Hub prompting to download a different editor version
+- Both `/flutter-kickoff` and `/unity-kickoff` now ask the user where to create the project (current dir, subfolder, or custom path) instead of silently creating a subfolder inside cwd
+
 ### Added
 - New `/unity-kickoff` skill in `nextc-project-kickoff` — scaffolds production-grade Unity C# game projects from `docs/proposal.md`, mirroring the `/flutter-kickoff` pipeline
 - Four new agent definitions: `unity-kickoff-agent` (orchestrator, sonnet), `unity-scaffolder` (haiku), `unity-doc-seeder` (sonnet)

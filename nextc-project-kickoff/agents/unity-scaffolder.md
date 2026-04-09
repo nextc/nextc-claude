@@ -182,7 +182,13 @@ Merge all dependencies into a single `manifest.json` with alphabetically sorted 
 m_EditorVersion: [unity_version]
 ```
 
-Use the exact version from decisions.json.
+Use the exact version from decisions.json (e.g., `6000.4.1f1`). Unity Hub reads this
+file to determine which Editor to open — **if it's missing, Hub will prompt the user
+to download a different version.**
+
+Do NOT write `m_EditorVersionWithRevision` — that line requires a changeset hash
+(e.g., `6000.4.1f1 (2c130e7eb67a)`) which cannot be determined from the terminal.
+Unity Editor populates it automatically on first open.
 
 ## Step 4: Write ProjectSettings/EditorSettings.asset
 
