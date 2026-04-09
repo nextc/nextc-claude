@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization for Claude Code.",
-    "version": "1.3.4",
+    "version": "1.3.5",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
@@ -24,7 +24,7 @@
     {
       "name": "nextc-project-kickoff",
       "source": "./nextc-project-kickoff",
-      "description": "Project scaffolding from proposal — clean Flutter project with deps and architectural blueprints for /feature-dev.",
+      "description": "Project scaffolding from proposal — Flutter and Unity projects with deps and architectural blueprints for /feature-dev.",
       "category": "project-setup"
     },
     {

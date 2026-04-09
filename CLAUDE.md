@@ -31,7 +31,7 @@ claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 .claude-plugin/marketplace.json   — Marketplace manifest (7 plugins)
 nextc-core/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
-nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
+nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
 nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
@@ -77,8 +77,9 @@ Agents: `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet),
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | flutter-kickoff | `/flutter-kickoff` | Proposal to production-grade Flutter project |
+| unity-kickoff | `/unity-kickoff` | Proposal to production-grade Unity C# game project |
 
-Agents: `flutter-kickoff-agent` orchestrator (sonnet), `flutter-scaffolder` (haiku), `flutter-doc-seeder` (sonnet)
+Agents: `flutter-kickoff-agent` orchestrator (sonnet), `flutter-scaffolder` (haiku), `flutter-doc-seeder` (sonnet), `unity-kickoff-agent` orchestrator (sonnet), `unity-scaffolder` (haiku), `unity-doc-seeder` (sonnet)
 
 ### nextc-flutter
 
@@ -146,6 +147,9 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 ```
 /product-explore ──→ /flutter-kickoff ──→ /feature-dev ──→ /cleanup
      (proposal)         (project)          (features)
+
+/product-explore ──→ /unity-kickoff ──→ /feature-dev ──→ /cleanup
+     (proposal)        (game project)     (features)
 
 /clarify ──→ /feature-dev ──→ /cleanup
                   ↓

@@ -2,6 +2,20 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-10
+
+### Added
+- New `/unity-kickoff` skill in `nextc-project-kickoff` — scaffolds production-grade Unity C# game projects from `docs/proposal.md`, mirroring the `/flutter-kickoff` pipeline
+- Four new agent definitions: `unity-kickoff-agent` (orchestrator, sonnet), `unity-scaffolder` (haiku), `unity-doc-seeder` (sonnet)
+- Unity-specific scaffolding: UPM `manifest.json` with OpenUPM scoped registries, ProjectSettings (Force Text serialization, Visible Meta Files), assembly definitions (.asmdef), `.gitattributes` with LFS patterns, and `Makefile` with Unity batchmode targets
+- 13-section `docs/architecture.md` blueprint for Unity games: error handling, service pattern (VContainer/Zenject/SO), scene management, input handling, UI architecture, audio system, save/load, object pooling, event system, game state machine
+- Supports same 6 modes as flutter-kickoff: default, auto, full, auto-full, minimal, resume
+- Full mode adds scene hierarchy setup, GameCI CI/CD pipeline, build profiles, collision check, and git+LFS init
+
+### Changed
+- Updated `nextc-project-kickoff` plugin description and keywords to reflect both Flutter and Unity support
+- Updated marketplace manifest description for `nextc-project-kickoff`
+
 ## 2026-04-09
 
 ### Changed
