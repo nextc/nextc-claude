@@ -19,7 +19,7 @@ On every user prompt, evaluate the available skills list and determine which (if
 
 ## Guidelines
 
-- Do NOT force skills when none are relevant — skip the skills output entirely for simple questions or conversations
-- Do NOT delay responses with unnecessary evaluation — if the prompt is clearly a question or discussion, just answer it
+- ALWAYS show the context block, even for simple questions or conversations. If no skills/agents are invoked, show `**Rules:**` with whichever rules informed the response.
+- Do NOT delay responses with unnecessary evaluation — keep the block brief and move on
 - When multiple skills apply, invoke them in logical order (e.g., planner before code-reviewer)
 - If a skill is already running or was just invoked in the current turn, do not re-invoke it

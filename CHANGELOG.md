@@ -5,6 +5,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-04-09
 
 ### Changed
+- Agentic-awareness rule now requires the context block (Skills/Agents/Rules) on every response, even for simple questions — no more skipping for "simple conversations"
+
+### Added
+- `tool-awareness` hook — logs Agent and Skill invocations to stderr so the user sees what's being spawned in real time, without relying on Claude to manually output it
 - Install commands switched from `/plugin` slash commands to `claude plugin` CLI syntax for scriptability
 - Per-project plugins now use `--scope local` to store in `.claude/settings.local.json` (gitignored), avoiding forced installs on other contributors
 - Git workflow rule now enforces `.claude/settings.local.json` and `.claude/.mcp.json` in `.gitignore` — personal config stays personal

@@ -33,7 +33,7 @@ nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
-nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 3 hooks)
+nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
 rules/nextc-claude/               — Shared rules (7 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
@@ -131,7 +131,7 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 
 Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
-Hooks: `block-no-verify`, `config-protection`, `suggest-compact`
+Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`
 
 ## Pipeline
 
