@@ -7,6 +7,8 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ### Fixed
 - Unity scaffolder: `ProjectVersion.txt` now includes explanation that `m_EditorVersionWithRevision` should NOT be written (requires changeset hash only Unity Editor knows) — fixes Unity Hub prompting to download a different editor version
 - Both `/flutter-kickoff` and `/unity-kickoff` now ask the user where to create the project (current dir, subfolder, or custom path) instead of silently creating a subfolder inside cwd
+- README: added note that `marketplace update` only updates the index — plugins must be re-installed to pick up changes
+- README: updated to reflect unity-kickoff (plugin table, workflow diagram, structure counts)
 
 ### Added
 - New `/unity-kickoff` skill in `nextc-project-kickoff` — scaffolds production-grade Unity C# game projects from `docs/proposal.md`, mirroring the `/flutter-kickoff` pipeline

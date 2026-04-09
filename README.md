@@ -9,7 +9,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
 | **nextc-ecc** | save-session, verification-loop, council, +13 more | Core agents + quality tools migrated from Everything Claude Code |
 | **nextc-product** | product-explore | Raw idea to validated proposal with market research |
-| **nextc-project-kickoff** | flutter-kickoff | Proposal to production-grade Flutter project |
+| **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
 | **nextc-aso** | aso-pipeline | App Store Optimization multi-agent pipeline |
 
@@ -81,6 +81,16 @@ These marketplaces provide skills that power specific nextc plugins. Install the
 claude plugin marketplace update nextc-claude
 ```
 
+**Important:** `marketplace update` only updates the marketplace index. You must also re-install any plugins that changed to pick up new skills, agents, or fixes:
+
+```bash
+# Re-install plugins that were updated
+claude plugin install nextc-core@nextc-claude
+claude plugin install nextc-ecc@nextc-claude
+# ...and any per-project plugins you use
+claude plugin install nextc-project-kickoff@nextc-claude --scope local
+```
+
 If the release notes mention new rules, re-run the symlink script:
 
 ```bash
@@ -109,12 +119,15 @@ rm ~/.claude/rules/nextc-claude
 ```
 /product-explore --> /flutter-kickoff --> /feature-dev --> /flutter-build
      (proposal)         (project)          (features)        (APK/IPA)
+
+/product-explore --> /unity-kickoff --> /feature-dev
+     (proposal)        (game project)     (features)
 ```
 
 | Step | Plugin | Command | What It Does |
 |------|--------|---------|-------------|
 | Explore | nextc-product | `/product-explore` | Validates idea with research. Outputs `docs/proposal.md`. |
-| Kickoff | nextc-project-kickoff | `/flutter-kickoff` | Reads proposal, scaffolds production-grade project. |
+| Kickoff | nextc-project-kickoff | `/flutter-kickoff` or `/unity-kickoff` | Reads proposal, scaffolds production-grade project. |
 | Build features | nextc-core | `/feature-dev` | Full pipeline: plan, implement, review, cleanup, docs. |
 | Localize | nextc-flutter | `/flutter-l10n` | Multi-step l10n pipeline. |
 | Ship | nextc-flutter | `/flutter-build` | Build APK/IPA with logging. |
@@ -155,7 +168,7 @@ nextc-claude/                         (marketplace root)
 ├── nextc-core/                       (6 skills, 2 agents)
 ├── nextc-ecc/                        (16 skills, 13 agents, 3 hooks)
 ├── nextc-product/                    (1 skill, 5 agents)
-├── nextc-project-kickoff/            (1 skill, 3 agents)
+├── nextc-project-kickoff/            (2 skills, 6 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
 └── nextc-aso/                        (1 skill, 9 agents)
 ```
