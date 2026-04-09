@@ -229,24 +229,13 @@ MCP context cost has dropped — tool descriptions are deferred and loaded on-de
 
 Before installing an MCP, check if a built-in tool already covers it.
 
-**Already built in — skip these:**
-
-| Popular MCP | Built-in Equivalent |
-|---|---|
-| server-memory | Auto-memory (`~/.claude/` files) |
-| mcp-server-fetch | `WebFetch` tool |
-| GitHub MCP | `gh` CLI via Bash |
-| Playwright MCP | `npx playwright` via Bash |
-| Git MCP | Native git tools + Bash |
-| Filesystem MCP | Read / Write / Edit / Glob / Grep tools |
-
-**Must-have:**
+#### **Must-have:**
 
 | MCP | Why | Install |
 |---|---|---|
 | **Context7** | Live, version-specific docs for 50+ frameworks. No built-in equivalent. No API key needed. | `claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest` |
 
-**Situational — only if you use the service:**
+#### **Situational — only if you use the service:**
 
 | MCP | Install |
 |---|---|
@@ -258,31 +247,21 @@ Before installing an MCP, check if a built-in tool already covers it.
 | Do | Don't |
 |---|---|
 | Install Context7 globally (`--scope user`) | Install MCPs that duplicate built-in tools |
-| Prefer CLI tools (`gh`, `npx playwright`) over MCP equivalents | Default to MCPs when a CLI does the same thing |
+| Prefer CLI tools (`gh`, `playwright-cli`) over MCP equivalents | Default to MCPs when a CLI does the same thing |
 | Only install service MCPs you actively use | Install service MCPs "just in case" |
 
 ### 17. Install CLIs That Expand Capabilities
 
 Claude Code inherits your shell — every CLI becomes a tool it can call.
 
-**Already built in — skip these:**
-
-| CLI | Built-in Equivalent |
-|---|---|
-| ripgrep (`rg`) | Grep tool (is ripgrep under the hood) |
-| `fd` / `find` | Glob tool |
-| `sed` / `sd` | Edit tool |
-| `curl` / `wget` | WebFetch tool |
-| `cat` / `head` / `tail` | Read tool |
-
-**Essential:**
+#### **Essential:**
 
 | CLI | What it unlocks | Install |
 |---|---|---|
 | **gh** | PRs, issues, GitHub search, CI logs, workflows. Without it, Claude can't interact with GitHub. Run `gh auth login` after installing. | `brew install gh` |
 | **jq** | JSON querying in shell pipelines. Used constantly with `gh`, APIs, and config files. | `brew install jq` |
 
-**Recommended:**
+#### **Recommended:**
 
 | CLI | What it unlocks | Install |
 |---|---|---|
@@ -290,8 +269,9 @@ Claude Code inherits your shell — every CLI becomes a tool it can call.
 | **ast-grep** | Structural code search using AST patterns (20+ languages). Finds patterns impossible to express with regex. | `brew install ast-grep` |
 | **yq** | Structured YAML/TOML editing that preserves indentation and comments. | `brew install yq` |
 | **semgrep** | Security scanning across 30+ languages with 1000+ rules. | `brew install semgrep` |
+| **[playwright-cli](https://github.com/microsoft/playwright-cli)** | Browser automation optimized for coding agents — more token-efficient than Playwright MCP. | `npm install -g @playwright/cli@latest` |
 
-**Quick setup:**
+#### **Quick setup:**
 
 ```bash
 brew install gh jq shellcheck ast-grep yq semgrep

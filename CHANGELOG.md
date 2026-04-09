@@ -9,6 +9,8 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - Reorganized `handbook-dev.md` — general AI tips (1-6) now come first, Claude Code specifics (7-17) follow after a divider. Tightened prose throughout for scannability.
 - Added `/hooks` command to the Essential Commands table in `handbook-dev.md`
 - Fully translated both Vietnamese handbooks (`handbook-dev-vi.md`, `handbook-general-vi.md`) — all content now in Vietnamese, matching the reorganized EN structure
+- Handbook: removed "Already built in — skip these" tables (MCP + CLI), added `playwright-cli` to recommended CLIs, updated Playwright references to use the dedicated CLI
+- Handbook: converted bold subtitles under numbered sections to `####` headings for proper hierarchy
 - Agentic-awareness rule now requires the context block (Skills/Agents/Rules) on every response, even for simple questions — no more skipping for "simple conversations"
 
 ### Added
