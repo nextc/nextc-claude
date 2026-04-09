@@ -6,7 +6,12 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ### Changed
 - Bumped all plugin versions to 1.3.4
+- Reorganized `handbook-dev.md` — general AI tips (1-6) now come first, Claude Code specifics (7-17) follow after a divider. Tightened prose throughout for scannability.
+- Added `/hooks` command to the Essential Commands table in `handbook-dev.md`
 - Agentic-awareness rule now requires the context block (Skills/Agents/Rules) on every response, even for simple questions — no more skipping for "simple conversations"
+
+### Added
+- Update guide in README — `marketplace update` + restart is all you need, re-run `setup-rules.sh` only when new rules are added
 
 ### Fixed
 - Trimmed skill descriptions exceeding 250-char listing limit: `flutter-kickoff` (301→213), `token-budget-advisor` (816→230), `workspace-surface-audit` (343→222) — no information lost, details moved to skill body where already covered

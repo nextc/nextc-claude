@@ -148,6 +148,7 @@ These commands are worth committing to muscle memory. They give you visibility a
 | `/config` | Browse and change all Claude Code settings |
 | `/plugin` | Manage installed plugins |
 | `/mcp` | Manage MCP servers — enable, disable, configure |
+| `/hooks` | View configured hooks for tool events |
 | `/buddy` | Hatch a companion pet that lives in your terminal |
 
 | Do | Don't |

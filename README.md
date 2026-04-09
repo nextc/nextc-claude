@@ -74,6 +74,19 @@ These marketplaces provide skills that power specific nextc plugins. Install the
 | [claude-seo](https://github.com/AgriciDaniel/claude-seo) | Comprehensive SEO analysis — technical audits, content quality, schema markup, competitor pages, and Google Search Console integration. | `claude plugin marketplace add AgriciDaniel/claude-seo` |
 | [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) | GEO-first SEO — optimize for AI-powered search engines (ChatGPT, Perplexity, Gemini, Google AI Overviews). | `claude plugin marketplace add zubair-trabzada/geo-seo-claude` |
 
+### Updating
+
+```bash
+# Pull latest versions — takes effect on next Claude Code session
+claude plugin marketplace update nextc-claude
+```
+
+If the release notes mention new rules, re-run the symlink script:
+
+```bash
+cd ~/code/nextc/nextc-claude && git pull && ./setup-rules.sh
+```
+
 ### Uninstall
 
 ```bash
