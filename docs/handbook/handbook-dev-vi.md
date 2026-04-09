@@ -1,34 +1,103 @@
-# AI Handbook — Dev
+# Sổ tay AI — Dev
 
-> Engineering guide for AI-assisted development.
+> Hướng dẫn kỹ thuật cho phát triển phần mềm với sự hỗ trợ của AI.
 
-## Working with AI Coding Tools
+## Làm việc với công cụ lập trình AI
 
-These tips use Claude Code as the reference, but the concepts apply to Cursor, Copilot, Windsurf, and other AI coding tools. Adapt the specific commands to your tool.
+Các mẹo này dùng Claude Code làm ví dụ tham chiếu, nhưng khái niệm cũng áp dụng cho Cursor, Copilot, Windsurf, và các công cụ lập trình AI khác.
 
-### 1. Manage Long Conversations Manually
+### 1. Chủ động quản lý hội thoại dài
 
-Sometimes you can't avoid a long conversation — a complex feature, a multi-step debugging session. When that happens, take control of the compaction process before the AI does it automatically and loses what matters.
+Hội thoại dài là điều khó tránh — tính năng phức tạp, gỡ lỗi nhiều bước. Khi điều đó xảy ra, hãy tự kiểm soát quá trình nén ngữ cảnh.
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Watch your context usage — when it's getting full, compact proactively | Let the AI auto-compact and hope it keeps the right details |
-| Guide the compaction by telling the AI what to retain (e.g. `/compact Keep the data model decisions, the API contract, and the current bug hypothesis`) | Compact without guidance — the AI will keep a generic summary and drop specifics |
-| After compacting, briefly verify the AI still has the critical context ("What's our current approach for X?") | Assume everything survived the compression |
+| Theo dõi mức dùng ngữ cảnh và chủ động nén sớm | Để auto-compact tự quyết định phải giữ gì |
+| Hướng dẫn khi nén: `/compact Keep the data model, API contract, and current hypothesis` | Nén mà không hướng dẫn — bạn sẽ nhận một bản tóm tắt chung chung |
+| Kiểm tra sau khi nén: "Cách tiếp cận hiện tại của chúng ta cho X là gì?" | Mặc định tin rằng mọi thứ đều còn nguyên |
 
-### 2. Enable Sandboxing
+### 2. Không bao giờ nén giữa chừng một tác vụ
 
-Sandboxing lets the AI execute shell commands in a restricted environment — it can work freely within safe boundaries without asking permission for every step. This speeds up your workflow significantly.
+Nén ngữ cảnh khi đang triển khai là cách nhanh nhất để làm chệch hướng phiên làm việc. AI sẽ mất tên biến, đường dẫn tệp, và trạng thái dang dở.
 
-In Claude Code, sandboxing uses OS-level isolation (Apple's SeatBelt on macOS) for both filesystem and network access.
-
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Enable sandboxing and configure explicit filesystem/network boundaries | Run without sandboxing and approve every command manually |
-| Limit write access to your project directory and tool caches only | Give blanket write access to your entire home directory |
-| Review and tighten the default config to match your actual needs | Copy someone else's config without understanding what it allows |
+| Nén giữa các tác vụ đã hoàn tất — sau một tính năng, sau một mốc gỡ lỗi | Nén khi đang sửa file hoặc đang gỡ lỗi |
+| Dùng `/clear` để reset tức thì miễn phí giữa các tác vụ không liên quan | Dùng `/compact` khi `/clear` đã đủ |
+| Nén tại các điểm dừng hợp lý: sau nghiên cứu, sau mốc quan trọng, sau các cách tiếp cận thất bại | Nén chỉ vì thanh ngữ cảnh trông có vẻ đầy |
 
-**Example config** (`~/.claude/settings.json` for global, or `.claude/settings.json` for per-project):
+### 3. Dùng Plan Mode cho tác vụ lớn
+
+**Shift + Tab** vào Plan Mode — Claude có thể đọc và nghiên cứu nhưng không thể sửa file cho tới khi bạn phê duyệt.
+
+| Nên | Không nên |
+|---|---|
+| Dùng Plan Mode cho tính năng nhiều file, refactor, hoặc thay đổi kiến trúc | Để Claude bắt đầu sửa ngay trên các tác vụ phức tạp |
+| Đọc kế hoạch và lặp lại trước khi phê duyệt | Phê duyệt kế hoạch đầu tiên mà không đọc |
+| Bỏ qua Plan Mode cho thay đổi nhỏ, rõ ràng — nó tạo thêm chi phí điều phối | Dùng Plan Mode cho một sửa lỗi một dòng |
+
+### 4. Kiểm soát chi phí
+
+| Thành phần | Chi phí | Lý do |
+|---|---|---|
+| **Skills & agents** | Rẻ | Nạp theo nhu cầu. Cài 200 skill = chi phí nền tối thiểu. |
+| **MCPs** | Vừa phải | Trì hoãn việc nạp công cụ. Ban đầu chỉ nạp tên server/tool. |
+| **Rules** | Đắt | Được nạp vào mọi prompt, mọi lần. |
+| **Hook dùng AI** | Đắt | Chạy trên mọi prompt. Hook không dùng AI thì ổn. |
+
+| Nên | Không nên |
+|---|---|
+| Cài bao nhiêu skill tùy nhu cầu | Lo lắng về số lượng skill |
+| Giữ rule thật tối thiểu — chỉ những gì phải áp dụng cho mọi cuộc trò chuyện | Thêm các rule "có thì tốt" làm phình to mọi prompt |
+| Chỉ giữ MCP bạn thật sự dùng | Bật hàng chục MCP "phòng khi cần" |
+| Giữ hook đơn giản và không dùng AI | Thêm hook dùng AI chạy trên mọi prompt |
+
+### 5. Mỗi agent chỉ nên có một trách nhiệm
+
+Agent phạm vi hẹp với công việc rõ ràng hiệu quả hơn mega-agent cố làm mọi thứ.
+
+| Nên | Không nên |
+|---|---|
+| Giao cho mỗi agent một trách nhiệm duy nhất, được định nghĩa rõ | Tạo agent xử lý "review + testing + deployment + docs" |
+| Kết hợp các agent hẹp bằng orchestration cho tác vụ phức tạp | Xây một agent khổng lồ cho mọi trường hợp biên |
+| Giữ mô tả agent dưới 500 token | Viết mô tả dài như tiểu thuyết làm tốn ngữ cảnh |
+
+### 6. Tự động hóa workflow nhiều tác vụ
+
+Khi bạn có một kế hoạch có cấu trúc (ví dụ một file `sprint1.md` với các giai đoạn và tác vụ), hãy dùng **ralph-loop** để AI tự động: hoàn thành tác vụ, đánh dấu đã xong, chuyển sang giai đoạn tiếp theo. Bắt đầu với `/ralph-loop`.
+
+| Nên | Không nên |
+|---|---|
+| Dùng tự động hóa khi kế hoạch rõ ràng và có cấu trúc | Tự điều khiển từng tác vụ khi kế hoạch đã được trình bày sẵn |
+| Chia kế hoạch thành các giai đoạn với tác vụ rời rạc, được định nghĩa rõ | Đưa cho loop một kế hoạch mơ hồ rồi kỳ vọng nó tự tìm ra chi tiết |
+
+---
+
+## Claude Code — Thiết lập, cấu hình & lệnh
+
+### 7. Thiết lập terminal của bạn
+
+Phiên bản terminal hỗ trợ tmux, chia pane, và điều phối nhóm. Sau khi cài đặt, chạy các lệnh này bên trong Claude:
+
+- **`/terminal-setup`** — cấu hình Shift+Enter cho nhập liệu nhiều dòng
+- **`/statusline`** — thêm thanh trạng thái với model, mức dùng ngữ cảnh, và thông tin phiên
+
+| Nên | Không nên |
+|---|---|
+| Chạy `/terminal-setup` và `/statusline` trong lần thiết lập đầu | Bỏ qua rồi thắc mắc vì sao nhập nhiều dòng không hoạt động |
+| Dùng phiên bản terminal với tmux cho workflow nâng cao | Tự giới hạn trong extension của IDE |
+
+### 8. Bật sandboxing
+
+Sandboxing cho phép AI thực thi lệnh trong một môi trường bị giới hạn — nó có thể làm việc tự do trong các ranh giới an toàn mà không phải xin phép ở từng bước. Claude Code dùng cơ chế cô lập cấp hệ điều hành (SeatBelt của Apple trên macOS).
+
+| Nên | Không nên |
+|---|---|
+| Bật sandboxing với ranh giới filesystem/network rõ ràng | Chạy không có sandboxing và phê duyệt thủ công mọi lệnh |
+| Giới hạn quyền ghi vào thư mục dự án và cache của công cụ | Cấp quyền ghi trọn gói vào thư mục home |
+| Xem lại và siết cấu hình mặc định | Sao chép cấu hình của người khác mà không hiểu |
+
+**Cấu hình ví dụ** (`~/.claude/settings.json` hoặc `.claude/settings.json`):
 
 ```json
 {
@@ -36,198 +105,201 @@ In Claude Code, sandboxing uses OS-level isolation (Apple's SeatBelt on macOS) f
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "network": {
-      "allowUnixSockets": [
-        "/private/tmp/tmux-501/default"
-      ]
+      "allowUnixSockets": ["/private/tmp/tmux-501/default"]
     },
     "filesystem": {
       "allowWrite": [
-        "/Users/<your-username>/.claude",
+        "/Users/<you>/.claude",
         "/private/tmp/tmux-501/"
       ],
       "allowRead": [
-        "/Users/<your-username>/.pub-cache",
-        "/Users/<your-username>/.flutter",
-        "/Users/<your-username>/.config/flutter",
-        "/Users/<your-username>/.gradle",
-        "/Users/<your-username>/.npm",
-        "/Users/<your-username>/.cache"
+        "/Users/<you>/.pub-cache",
+        "/Users/<you>/.flutter",
+        "/Users/<you>/.config/flutter",
+        "/Users/<you>/.gradle",
+        "/Users/<you>/.npm",
+        "/Users/<you>/.cache"
       ]
     }
   }
 }
 ```
 
-Adjust the read/write paths based on your tech stack. The example above is for a Flutter/Node.js setup — add or remove paths for your toolchain.
+Điều chỉnh đường dẫn đọc/ghi cho stack của bạn. Ví dụ trên phù hợp với Flutter/Node.js.
 
-### 3. Set Up Your Terminal (Claude Code)
+### 9. Hiểu ba phạm vi cấu hình
 
-Running Claude Code in the terminal is recommended — it enables tmux, pane splitting, and team orchestration later. After installing, run these two commands inside Claude:
+Settings được xếp theo lớp — mỗi phạm vi ghi đè phạm vi phía trên nó.
 
-- **`/terminal-setup`** — configures terminal utilities like Shift+Enter for multi-line input
-- **`/statusline`** — adds a status bar showing the current model, context usage percentage, and other useful info
-
-| Do | Don't |
-|---|---|
-| Run `/terminal-setup` and `/statusline` when first setting up Claude Code | Skip terminal setup and wonder why multi-line input doesn't work |
-| Use the terminal version with tmux for advanced workflows | Limit yourself to the IDE extension if you want full control |
-
-### 4. Automate Multi-Task Workflows with ralph-loop
-
-When you have a structured plan — for example, a `sprint1.md` with multiple phases, each containing multiple tasks — you can use **ralph-loop** to let the AI automate the process: auto-completing tasks in a phase, marking them done, and advancing to the next phase.
-
-Install ralph-loop in Claude Code, then start it with `/ralph-loop`. Other AI coding tools have similar automation features.
-
-| Do | Don't |
-|---|---|
-| Use ralph-loop when you have a clear, structured plan the AI can follow | Manually drive each task one by one when the plan is already laid out |
-| Break your plan into phases with discrete, well-defined tasks | Give the loop a vague plan and expect it to figure out the details |
-
-### 5. Control Your Costs
-
-Not everything in your AI coding setup costs the same. Understanding what consumes tokens helps you avoid surprise bills.
-
-**What's cheap:**
-- **Skills and agents** load on-demand. Even with 200 skills installed, only their names and descriptions are loaded — minimal token cost.
-
-**What's expensive:**
-- **Rules** are always loaded into context on every prompt. Keep only what's strictly mandatory.
-- **Hooks** run before or after every prompt. If a hook involves an AI call, that's an extra cost per interaction. Keep hooks lean and non-AI where possible.
-
-**What's moderate:**
-- **MCPs** now use deferred tool loading — only server names and tool names are loaded upfront, not full descriptions. This makes them much cheaper than before, but each enabled server still adds some baseline overhead. Keep only the ones you actively use.
-
-| Do | Don't |
-|---|---|
-| Install as many skills as you need — they're cheap | Worry about skill count affecting cost |
-| Keep rules minimal — only what must apply to every conversation | Add "nice to have" rules that bloat every prompt |
-| Keep only the MCPs you actively use | Leave dozens of MCPs enabled "just in case" |
-| Keep hooks simple and non-AI when possible | Add AI-powered hooks that run on every single prompt |
-
-### 6. Understand the Three Config Scopes
-
-Claude Code settings are layered into three scopes. Each scope overrides the one above it, so you can set global defaults and override per-project or per-person.
-
-| Scope | Location | What it's for |
+| Phạm vi | Vị trí | Mục đích |
 |---|---|---|
-| **Global (User)** | `~/.claude/settings.json` | Your personal defaults across all projects — preferred model, output style, global rules |
-| **Project** | `.claude/settings.json` | Shared team settings committed to the repo — project rules, plugins, agent configs |
-| **Local** | `.claude/settings.local.json` | Your personal overrides for this project — not committed, gitignored |
+| **Global** | `~/.claude/settings.json` | Mặc định của bạn trên tất cả dự án |
+| **Project** | `.claude/settings.json` | Thiết lập của nhóm, được commit vào repo |
+| **Local** | `.claude/settings.local.json` | Ghi đè cá nhân, được gitignore |
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Set team-wide conventions in project scope so everyone gets them | Put team settings in your global config where nobody else benefits |
-| Use local scope for personal preferences that differ from the team | Commit `.claude/settings.local.json` — it's personal to each contributor |
-| Keep global scope lean — only what applies to every project you touch | Dump everything into global and wonder why projects behave differently |
+| Đặt quy ước của nhóm trong phạm vi project | Đặt thiết lập của nhóm trong config global của bạn |
+| Dùng phạm vi local cho tùy chọn cá nhân | Commit `.claude/settings.local.json` |
+| Giữ phạm vi global gọn nhẹ | Nhét mọi thứ vào global |
 
-### 7. Review Your Config
+### 10. Rà soát cấu hình của bạn
 
-Type `/config` in Claude Code to see all available settings. Some important ones to consider:
+Chạy `/config` để duyệt mọi thiết lập. Các mục quan trọng:
 
-| Setting | Recommendation | Why |
+| Thiết lập | Khuyến nghị | Lý do |
 |---|---|---|
-| **auto-compact** | Turn off | Compact manually with `/compact [prompt]` to control what gets retained. Auto-compact causes context rot. |
-| **output style** | Choose based on your needs | `default` = concise. `explanatory` = explains every choice and thought process. `learning` = asks about your decisions and learns from you (see continuous-learning for developing the AI into your coding style). |
-| **default teammate model** | Change to Sonnet | The default is Opus, which is significantly more expensive. Sonnet handles most coding tasks well. |
+| **auto-compact** | Tắt | Nén thủ công với `/compact [prompt]` để kiểm soát những gì được giữ lại. |
+| **output style** | Tùy bạn | `default` = ngắn gọn. `explanatory` = giải thích lựa chọn. `learning` = học từ quyết định của bạn. |
+| **default teammate model** | Sonnet | Opus là mặc định nhưng đắt hơn đáng kể. Sonnet xử lý tốt hầu hết tác vụ. |
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Go through `/config` settings when first setting up | Use defaults without understanding what they do |
-| Set `auto-compact` to off and compact manually with guidance | Let auto-compact silently degrade your context |
-| Set default teammate model to Sonnet to save cost | Leave it on Opus unless you specifically need deep reasoning for every sub-task |
+| Đi qua `/config` trong lần thiết lập đầu | Dùng mặc định mà không hiểu chúng |
+| Tắt auto-compact | Để auto-compact âm thầm làm suy giảm ngữ cảnh |
+| Đặt teammate model thành Sonnet | Để Opus cho mọi sub-task |
 
-### 8. Know Your Essential Commands
+### 11. Biết các lệnh thiết yếu
 
-These commands are worth committing to muscle memory. They give you visibility and control over your session.
-
-| Command | What it does |
+| Lệnh | Tác dụng |
 |---|---|
-| `/usage` | Check your token consumption for the current session |
-| `/context` | See what's currently loaded in context — rules, MCPs, tools, conversation history |
-| `/clear` | Reset the conversation without closing the session — free and instant |
-| `/config` | Browse and change all Claude Code settings |
-| `/plugin` | Manage installed plugins |
-| `/mcp` | Manage MCP servers — enable, disable, configure |
-| `/hooks` | View configured hooks for tool events |
-| `/buddy` | Hatch a companion pet that lives in your terminal |
+| `/usage` | Kiểm tra lượng token tiêu thụ cho phiên hiện tại |
+| `/context` | Xem những gì đang được nạp — rules, MCPs, tools, lịch sử hội thoại |
+| `/clear` | Reset hội thoại mà không đóng phiên — miễn phí và tức thì |
+| `/config` | Duyệt và thay đổi thiết lập |
+| `/plugin` | Quản lý plugin đã cài |
+| `/mcp` | Quản lý MCP server |
+| `/hooks` | Xem hook đã cấu hình cho các sự kiện công cụ |
+| `/rename` | Đổi tên cuộc trò chuyện hiện tại — hiển thị trên thanh prompt |
+| `/resume` | Tiếp tục một cuộc trò chuyện trước đó bằng ID, tên, hoặc chọn từ danh sách |
+| `/buddy` | Ấp một thú cưng đồng hành trong terminal của bạn |
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Check `/usage` regularly to stay aware of your token spend | Wait until you hit the limit to wonder where your tokens went |
-| Use `/context` to debug unexpected behavior — see what's actually loaded | Guess why the AI is behaving differently than expected |
-| Use `/clear` between unrelated tasks for a free context reset | Start a new terminal session when `/clear` would suffice |
+| Kiểm tra `/usage` thường xuyên | Chờ tới khi chạm giới hạn rồi mới thắc mắc token đã đi đâu |
+| Dùng `/context` để gỡ lỗi hành vi bất ngờ | Đoán vì sao AI hành xử khác kỳ vọng |
+| Dùng `/clear` giữa các tác vụ không liên quan | Mở phiên terminal mới khi `/clear` đã đủ |
 
-### 9. Checklist for a New Project
+### 12. Checklist cho dự án mới
 
-When you open Claude Code in a new project or working directory for the first time, run through this checklist before you start working. A few minutes of setup prevents hours of confusion.
+Đi qua danh sách này trước khi bạn bắt đầu làm việc trong một thư mục dự án mới:
 
-1. **Check rules** — read `.claude/` for project rules. Understand what constraints and conventions are already set.
-2. **Check `/mcp`** — see which MCP servers are configured. Enable what you need, disable what you don't.
-3. **Check `/plugin`** — see which plugins are installed. Install any that the team recommends.
-4. **Check `.claude/settings.json`** — review project-level settings. Understand what's shared across the team.
+1. **Kiểm tra rules** — đọc `.claude/` để biết ràng buộc và quy ước của dự án
+2. **Kiểm tra `/mcp`** — bật những gì bạn cần, tắt những gì bạn không cần
+3. **Kiểm tra `/plugin`** — cài những gì nhóm khuyến nghị
+4. **Kiểm tra `.claude/settings.json`** — rà soát thiết lập dùng chung của nhóm
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Run through this checklist on every new project | Jump straight into coding and wonder why the AI behaves strangely |
-| Read the project's rules to understand team conventions | Assume your global settings cover everything |
-| Verify MCP and plugin setup matches what the team expects | Ignore project-specific tooling and rely on your personal setup |
+| Chạy checklist này trên mọi dự án mới | Nhảy vào code rồi thắc mắc vì sao AI hành xử kỳ lạ |
+| Đọc rule của dự án để hiểu quy ước nhóm | Cho rằng thiết lập global của bạn bao phủ mọi thứ |
+| Xác minh thiết lập MCP và plugin khớp với kỳ vọng của nhóm | Phớt lờ tooling riêng của dự án |
 
-### 10. Keep MCPs Under Control
+### 13. Vệ sinh bảo mật
 
-MCP context cost has dropped significantly — tool descriptions are now deferred and loaded on-demand rather than all upfront. But each enabled server still adds some overhead (server names, tool names, and connection management), and tools are fetched into context when the AI decides to use them. More servers means more noise for the AI to sort through.
+Công cụ lập trình AI truy cập filesystem và thực thi lệnh. Hãy xem cấu hình của bạn như một bề mặt tấn công.
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Keep under 10 MCP servers enabled per project | Enable dozens of servers and assume deferred loading makes them free |
-| Disable unused servers with `disabledMcpServers` in config or `/mcp` in console | Keep servers enabled for tools you use once a month |
-| Periodically audit which MCPs you actually use | Accumulate MCP servers across projects without cleaning up |
+| Chạy `/security-scan` định kỳ | Cho rằng config của bạn an toàn vì hôm qua nó chạy ổn |
+| Không bao giờ hardcode API key trong agents, skills, hoặc rules | Nhúng secret vào file cấu hình sẽ được commit |
+| Dùng hook để chặn mẫu secret trong prompt (sk-, ghp_, AKIA) | Dựa vào trí nhớ để tránh dán secret |
 
-### 11. Never Compact Mid-Task
+### 14. Ưu tiên Skills hơn Rules
 
-Compacting while you're in the middle of implementation is one of the fastest ways to derail a session. The AI loses variable names, file paths, partial state, and the thread of what it was doing.
+Skills chỉ nạp theo nhu cầu khi được gọi. Rules được nạp vào từng prompt một.
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Compact between completed tasks — after finishing a feature, after a debugging milestone | Compact while the AI is mid-edit or mid-debugging |
-| Use `/clear` for an instant free reset between unrelated tasks | Use `/compact` when `/clear` would be more appropriate |
-| Compact at logical breakpoints: after research before implementation, after milestones, after failed approaches | Compact just because the context bar looks full — finish the current task first |
+| Mã hóa workflow tái sử dụng thành skills | Đặt hướng dẫn tùy chọn trong rules |
+| Dành rules cho những thứ bắt buộc áp dụng cho mọi cuộc trò chuyện | Dùng rules cho các mối quan tâm riêng của từng tác vụ |
+| Định kỳ rà soát rules — chuyển rule thỉnh thoảng mới hữu ích thành skill | Để thư mục rules tăng trưởng không kiểm soát |
 
-### 12. Use Plan Mode for Big Tasks
+### 15. Kiểm soát MCP
 
-Press **Shift + Tab** to enter Plan Mode. In this mode, Claude reads and researches but cannot edit files until you approve the plan. This is essential for large-scoped tasks where you want to brainstorm and align on approach before any code gets written.
+Chi phí ngữ cảnh của MCP đã giảm — mô tả công cụ được trì hoãn và chỉ nạp theo nhu cầu. Nhưng mỗi server vẫn thêm overhead, và công cụ được fetch khi AI quyết định dùng chúng.
 
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Use Plan Mode for multi-file features, refactors, or architectural changes | Let Claude start editing immediately on complex tasks and hope it gets it right |
-| Review the plan, ask questions, and iterate before approving | Approve the first plan without reading it |
-| Use normal mode for small, well-defined changes — Plan Mode adds overhead | Use Plan Mode for a one-line fix |
+| Giữ dưới 10 MCP server mỗi dự án | Bật hàng chục server và cho rằng nạp trì hoãn nghĩa là miễn phí |
+| Tắt server không dùng qua config hoặc `/mcp` | Giữ server được bật cho công cụ bạn dùng mỗi tháng một lần |
+| Audit MCP bạn thật sự dùng | Tích lũy server mà không dọn dẹp |
 
-### 13. Security Hygiene
+### 16. MCP server được khuyến nghị
 
-AI coding tools have access to your filesystem and can execute commands. Treat your config as an attack surface.
+Trước khi cài một MCP, kiểm tra xem công cụ tích hợp sẵn đã bao phủ nó chưa.
 
-| Do | Don't |
+**Đã tích hợp sẵn — hãy bỏ qua các mục này:**
+
+| MCP phổ biến | Tương đương tích hợp sẵn |
 |---|---|
-| Run `/security-scan` periodically to audit your Claude Code configuration | Assume your config is safe because it worked yesterday |
-| Never hardcode API keys in agent definitions, skills, or rules | Embed secrets directly in config files that get committed to git |
-| Use hooks to block common secret patterns in prompts (sk-, ghp_, AKIA) | Rely on memory alone to avoid pasting secrets |
+| server-memory | Auto-memory (`~/.claude/` files) |
+| mcp-server-fetch | Công cụ `WebFetch` |
+| GitHub MCP | `gh` CLI qua Bash |
+| Playwright MCP | `npx playwright` qua Bash |
+| Git MCP | Công cụ git gốc + Bash |
+| Filesystem MCP | Công cụ Read / Write / Edit / Glob / Grep |
 
-### 14. Prefer Skills Over Rules
+**Bắt buộc nên có:**
 
-Skills and rules both encode knowledge, but they cost differently. Skills load on-demand when invoked. Rules load into every single prompt.
+| MCP | Lý do | Cài đặt |
+|---|---|---|
+| **Context7** | Tài liệu sống, đúng theo phiên bản cho hơn 50 framework. Không có tương đương tích hợp sẵn. Không cần API key. | `claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest` |
 
-| Do | Don't |
+**Theo tình huống — chỉ khi bạn dùng dịch vụ đó:**
+
+| MCP | Cài đặt |
 |---|---|
-| Encode reusable workflows and best practices as skills | Put "nice to have" guidance in rules |
-| Reserve rules for things that must apply to every conversation without exception | Use rules for anything that only applies to specific tasks |
-| Review your rules periodically — if a rule only matters sometimes, convert it to a skill | Let your rules directory grow unchecked |
+| Supabase | `claude mcp add --transport http supabase https://mcp.supabase.com/mcp` |
+| Sentry | `claude mcp add --transport http sentry https://mcp.sentry.dev/mcp` |
+| Figma | Qua app desktop Figma hoặc remote MCP |
+| Notion | `claude mcp add --transport http notion https://mcp.notion.com/mcp` |
 
-### 15. One Responsibility Per Agent
-
-When creating custom agents, keep them focused. A narrow agent with a clear job produces better results than a mega-agent trying to do everything.
-
-| Do | Don't |
+| Nên | Không nên |
 |---|---|
-| Give each agent a single, well-defined responsibility | Create agents that handle "code review + testing + deployment + docs" |
-| Use agent orchestration to combine narrow agents for complex tasks | Build one giant agent and hope it handles all edge cases |
-| Keep agent descriptions under 500 tokens — concise scope, clear tools | Write novel-length agent descriptions that consume context |
+| Cài Context7 ở global (`--scope user`) | Cài MCP trùng chức năng với công cụ tích hợp sẵn |
+| Ưu tiên công cụ CLI (`gh`, `npx playwright`) hơn MCP tương đương | Mặc định dùng MCP khi CLI làm được cùng việc |
+| Chỉ cài MCP dịch vụ mà bạn chủ động dùng | Cài MCP dịch vụ "phòng khi cần" |
+
+### 17. Cài các CLI mở rộng năng lực
+
+Claude Code kế thừa shell của bạn — mọi CLI đều trở thành một công cụ nó có thể gọi.
+
+**Đã tích hợp sẵn — hãy bỏ qua các mục này:**
+
+| CLI | Tương đương tích hợp sẵn |
+|---|---|
+| ripgrep (`rg`) | Công cụ Grep (bên dưới dùng ripgrep) |
+| `fd` / `find` | Công cụ Glob |
+| `sed` / `sd` | Công cụ Edit |
+| `curl` / `wget` | Công cụ WebFetch |
+| `cat` / `head` / `tail` | Công cụ Read |
+
+**Thiết yếu:**
+
+| CLI | Mở khóa khả năng gì | Cài đặt |
+|---|---|---|
+| **gh** | PR, issue, tìm kiếm GitHub, log CI, workflow. Không có nó, Claude không thể tương tác với GitHub. Chạy `gh auth login` sau khi cài. | `brew install gh` |
+| **jq** | Truy vấn JSON trong pipeline shell. Dùng liên tục với `gh`, API, và file cấu hình. | `brew install jq` |
+
+**Khuyến nghị:**
+
+| CLI | Mở khóa khả năng gì | Cài đặt |
+|---|---|---|
+| **shellcheck** | Phân tích tĩnh cho shell script. Bắt lỗi trước khi chúng gây hại. | `brew install shellcheck` |
+| **ast-grep** | Tìm kiếm code theo cấu trúc bằng mẫu AST (hơn 20 ngôn ngữ). Tìm được các mẫu không thể diễn đạt bằng regex. | `brew install ast-grep` |
+| **yq** | Sửa YAML/TOML có cấu trúc mà vẫn giữ indentation và comment. | `brew install yq` |
+| **semgrep** | Quét bảo mật trên hơn 30 ngôn ngữ với hơn 1000 rule. | `brew install semgrep` |
+
+**Thiết lập nhanh:**
+
+```bash
+brew install gh jq shellcheck ast-grep yq semgrep
+gh auth login
+```
+
+| Nên | Không nên |
+|---|---|
+| Cài `gh` trước và xác thực | Bỏ qua `gh auth login` — `gh` chưa xác thực gần như vô dụng |
+| Cài `shellcheck` — Claude viết shell thường xuyên, và lỗi shell có thể phá hoại | Tin rằng shell script của Claude luôn đúng |
+| Chỉ cài runtime và CLI cho stack thật sự của bạn | Cài mọi CLI "phòng khi cần" |
