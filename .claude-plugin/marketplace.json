@@ -44,6 +44,12 @@
       "source": "./nextc-ecc",
       "description": "Core agents and quality tools — planner, architect, reviewers, session management, verification, safety. Migrated from Everything Claude Code.",
       "category": "agents"
+    },
+    {
+      "name": "nextc-claude-toolbox",
+      "source": "./nextc-claude-toolbox",
+      "description": "Utility toolkit — validation and quality checks against Claude Code specs and repo conventions.",
+      "category": "quality"
     }
   ]
 }

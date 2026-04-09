@@ -8,6 +8,8 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - Agentic-awareness rule now requires the context block (Skills/Agents/Rules) on every response, even for simple questions — no more skipping for "simple conversations"
 
 ### Added
+- New `nextc-claude-toolbox` plugin — utility toolkit for marketplace quality checks
+- `validate` skill (`/validate`) — validates all plugins against official Claude Code specs (skills, agents, hooks, manifests) and repo conventions (model tier assignments, naming, version consistency). Hybrid approach: Node.js script for deterministic structural checks + LLM skill for best-practice analysis. Supports `--skills`, `--agents`, `--hooks`, `--manifests`, `--rules` scope filters and `--json` output for CI
 - `tool-awareness` hook — logs Agent and Skill invocations to stderr so the user sees what's being spawned in real time, without relying on Claude to manually output it
 - Bumped all plugin versions to 1.3.2
 - Install commands switched from `/plugin` slash commands to `claude plugin` CLI syntax for scriptability

@@ -1,0 +1,10 @@
+{
+  "name": "nextc-claude-toolbox",
+  "version": "1.3.2",
+  "description": "Utility toolkit for nextc-claude marketplace — validation, linting, and quality checks against Claude Code specs and repo conventions.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["validation", "linting", "quality", "toolbox"]
+}

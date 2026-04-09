@@ -230,3 +230,87 @@ When creating custom agents, keep them focused. A narrow agent with a clear job 
 | Give each agent a single, well-defined responsibility | Create agents that handle "code review + testing + deployment + docs" |
 | Use agent orchestration to combine narrow agents for complex tasks | Build one giant agent and hope it handles all edge cases |
 | Keep agent descriptions under 500 tokens — concise scope, clear tools | Write novel-length agent descriptions that consume context |
+
+### 16. Recommended MCP Servers
+
+Most popular MCP servers duplicate what Claude Code already does natively. Before installing an MCP, check if a built-in tool or CLI already covers it.
+
+**What's already built in (skip these MCPs):**
+
+| Popular MCP | Built-in Equivalent |
+|---|---|
+| server-memory | Auto-memory system (`~/.claude/` files) |
+| mcp-server-fetch | `WebFetch` tool |
+| GitHub MCP | `gh` CLI via Bash |
+| Playwright MCP | `npx playwright` via Bash |
+| Git MCP | Native git tools + Bash |
+| Filesystem MCP | Read / Write / Edit / Glob / Grep tools |
+
+**The one must-have:**
+
+| MCP | Why | Install |
+|---|---|---|
+| **Context7** | Pulls live, version-specific docs for 50+ frameworks (React, Next.js, Tailwind, etc.) directly into context. No built-in equivalent. No API key needed. | `claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest` |
+
+**Situational — only if you use the service:**
+
+| MCP | When to install | Install |
+|---|---|---|
+| Supabase | Your project uses Supabase | `claude mcp add --transport http supabase https://mcp.supabase.com/mcp` |
+| Sentry | You want error tracking context during debugging | `claude mcp add --transport http sentry https://mcp.sentry.dev/mcp` |
+| Figma | Design-to-code workflows | Via Figma desktop app or remote MCP |
+| Notion | You need workspace content in context | `claude mcp add --transport http notion https://mcp.notion.com/mcp` |
+
+| Do | Don't |
+|---|---|
+| Install Context7 globally (`--scope user`) — it's useful in every project | Install MCPs that duplicate built-in tools (Fetch, Memory, Filesystem, Git) |
+| Prefer CLI tools (`gh`, `npx playwright`, `docker`) over their MCP equivalents — CLIs give you full control | Default to MCPs when a CLI command does the same thing |
+| Only install service MCPs (Supabase, Sentry, Notion) if you actively use that service | Install service MCPs "just in case" — they add overhead and auth complexity |
+
+### 17. Install CLIs That Expand Claude Code's Capabilities
+
+Claude Code inherits your shell — every CLI on your machine becomes a tool it can call. But many popular CLIs are redundant with what's already built in.
+
+**What's already built in (skip these CLIs):**
+
+| Popular CLI | Built-in Equivalent |
+|---|---|
+| ripgrep (`rg`) | Grep tool — *is* ripgrep under the hood |
+| `fd` / `find` | Glob tool — fast file pattern matching |
+| `sed` / `sd` | Edit tool — context-aware string replacement |
+| `curl` / `wget` | WebFetch tool |
+| `cat` / `head` / `tail` | Read tool |
+
+**Essential — install these first:**
+
+| CLI | What Claude Code gains | Install |
+|---|---|---|
+| **gh** | Create PRs, manage issues, search GitHub code, read CI logs, trigger workflows. Without `gh`, Claude cannot interact with GitHub at all. **Highest-value CLI.** Run `gh auth login` after installing. | `brew install gh` |
+| **jq** | Query and transform JSON in shell pipelines. Used constantly with `gh`, API responses, `package.json`, and config files. | `brew install jq` |
+
+**Recommended — improves output quality:**
+
+| CLI | What Claude Code gains | Install |
+|---|---|---|
+| **shellcheck** | Static analysis for shell scripts Claude writes. Catches unquoted variables, POSIX issues, and logic errors before they cause damage. | `brew install shellcheck` |
+| **ast-grep** | Structural code search using AST patterns (20+ languages). Finds patterns impossible to express with regex — e.g. "all async functions that call fetch without await." | `brew install ast-grep` |
+| **yq** | Structured YAML/TOML editing that preserves indentation and comments. Text-based YAML editing (via Edit tool) risks breaking structure. | `brew install yq` |
+| **semgrep** | Security scanning across 30+ languages with 1000+ rules. Claude can scan code it writes and fix vulnerabilities before finishing a task. | `brew install semgrep` |
+
+**Domain-specific — install for your stack, skip the rest:**
+
+You know your stack. Install the runtimes, cloud CLIs, and database clients you actually use. Claude can't run Python without `python`, can't deploy to AWS without `awscli`, can't query Postgres without `psql`. Don't install tools for stacks you don't touch.
+
+**Quick setup (essentials + recommended):**
+
+```bash
+brew install gh jq shellcheck ast-grep yq semgrep
+gh auth login
+```
+
+| Do | Don't |
+|---|---|
+| Install `gh` first and run `gh auth login` — it unlocks the most capability | Skip authentication — an unauthenticated `gh` is useless |
+| Install `shellcheck` — Claude writes shell constantly, and mistakes in shell can be destructive | Trust that Claude's shell scripts are always correct |
+| Install only the language runtimes and cloud CLIs for your actual stack | Install every runtime and CLI "just in case" |
+| Keep CLIs updated — Claude benefits from latest features | Install once and forget for a year |

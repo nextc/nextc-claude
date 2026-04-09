@@ -2,7 +2,7 @@
 
 # nextc-claude
 
-Claude Code marketplace — 6 plugins with custom agents, rules, and workflow skills.
+Claude Code marketplace — 7 plugins with custom agents, rules, and workflow skills.
 
 ```
 # Add marketplace + install global plugins
@@ -15,6 +15,7 @@ claude plugin install nextc-product@nextc-claude --scope local
 claude plugin install nextc-project-kickoff@nextc-claude --scope local
 claude plugin install nextc-flutter@nextc-claude --scope local
 claude plugin install nextc-aso@nextc-claude --scope local
+claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 
 # Symlink rules (not installed by marketplace)
 ./setup-rules.sh
@@ -27,13 +28,14 @@ claude plugin install nextc-aso@nextc-claude --scope local
 ## Structure
 
 ```
-.claude-plugin/marketplace.json   — Marketplace manifest (6 plugins)
+.claude-plugin/marketplace.json   — Marketplace manifest (7 plugins)
 nextc-core/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (1 skill, 3 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
 nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
+nextc-claude-toolbox/             — Utility toolkit (1 skill)
 rules/nextc-claude/               — Shared rules (7 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
@@ -132,6 +134,12 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
 Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`
+
+### nextc-claude-toolbox
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| validate | `/validate` | Validate plugins against Claude Code specs and repo conventions |
 
 ## Pipeline
 
