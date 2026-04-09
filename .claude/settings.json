@@ -1,0 +1,5 @@
+{
+  "enabledPlugins": {
+    "nextc-claude-toolbox@nextc-claude": true
+  }
+}

@@ -1,10 +1,9 @@
 ---
 name: flutter-kickoff
-description: >
-  Scaffold a Flutter project from docs/proposal.md with architectural blueprints. Use when
-  starting a new Flutter app, kickoff a project, or going from proposal to code. Creates a
-  clean Flutter project with deps installed and docs/architecture.md that guides /feature-dev
-  to write production-grade code.
+description: >-
+  Scaffold a production-grade Flutter project from docs/proposal.md. Use when starting a new
+  Flutter app or going from proposal to code. Creates project with deps and
+  docs/architecture.md that guides /feature-dev.
 user-invocable: true
 argument-hint: [--auto/--full/--minimal/--proposal path/--resume]
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash

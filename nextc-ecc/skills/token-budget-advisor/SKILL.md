@@ -1,18 +1,9 @@
 ---
 name: token-budget-advisor
 description: >-
-  Offers the user an informed choice about how much response depth to
-  consume before answering. Use this skill when the user explicitly
-  wants to control response length, depth, or token budget.
-  TRIGGER when: "token budget", "token count", "token usage", "token limit",
-  "response length", "answer depth", "short version", "brief answer",
-  "detailed answer", "exhaustive answer", "respuesta corta vs larga",
-  "cuántos tokens", "ahorrar tokens", "responde al 50%", "dame la versión
-  corta", "quiero controlar cuánto usas", or clear variants where the
-  user is explicitly asking to control answer size or depth.
-  DO NOT TRIGGER when: user has already specified a level in the current
-  session (maintain it), the request is clearly a one-word answer, or
-  "token" refers to auth/session/payment tokens rather than response size.
+  Offers the user a choice about response depth before answering. TRIGGER when: user wants to
+  control response length, token budget, or answer depth (e.g. "short version", "detailed
+  answer", "token budget"). DO NOT TRIGGER for auth/session tokens.
 ---
 
 # Token Budget Advisor (TBA)

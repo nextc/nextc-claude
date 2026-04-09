@@ -1,6 +1,9 @@
 ---
 name: workspace-surface-audit
-description: Audit the active repo, MCP servers, plugins, connectors, env surfaces, and harness setup, then recommend the highest-value skills, hooks, agents, and operator workflows available in the nextc-claude marketplace. Use when the user wants help setting up Claude Code or understanding what capabilities are actually available in their environment.
+description: >-
+  Audit repo, MCP servers, plugins, and env surfaces, then recommend highest-value skills,
+  hooks, and agents from the nextc-claude marketplace. Use when setting up Claude Code or
+  understanding what capabilities are available.
 ---
 
 # Workspace Surface Audit

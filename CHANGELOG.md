@@ -5,10 +5,11 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-04-09
 
 ### Changed
+- Bumped all plugin versions to 1.3.4
 - Agentic-awareness rule now requires the context block (Skills/Agents/Rules) on every response, even for simple questions — no more skipping for "simple conversations"
 
-### Changed
-- Bumped all plugin versions to 1.3.3
+### Fixed
+- Trimmed skill descriptions exceeding 250-char listing limit: `flutter-kickoff` (301→213), `token-budget-advisor` (816→230), `workspace-surface-audit` (343→222) — no information lost, details moved to skill body where already covered
 
 ### Added
 - New `nextc-claude-toolbox` plugin — utility toolkit for marketplace quality checks
