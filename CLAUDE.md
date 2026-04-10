@@ -175,6 +175,22 @@ Update rules:
 2. Write human-readable summaries — explain *what changed and why*, not commit messages
 3. If today's date section already exists, append to it
 
+## Release / Version Bump
+
+When the user asks to "release", "bump version", or "cut a release":
+
+1. **Bump version** in ALL plugin files and marketplace manifest:
+   - `.claude-plugin/marketplace.json` → `metadata.version`
+   - Every `*/. claude-plugin/plugin.json` → `version`
+   - Use semver: patch for fixes, minor for features, major for breaking changes
+2. **Update `RELEASELOG.md`** (create if missing) with a release entry:
+   ```
+   ## vX.Y.Z (YYYY-MM-DD)
+
+   <summary of what changed since last release — pull from CHANGELOG.md>
+   ```
+3. **Commit** with message: `chore: bump to X.Y.Z`
+
 ## Design Principles
 
 - **Project-agnostic** — no hardcoded project paths or domain terms

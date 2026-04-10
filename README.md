@@ -2,6 +2,8 @@
 
 Claude Code marketplace — workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization.
 
+**[Release Log](RELEASELOG.md)**
+
 ## Plugins
 
 | Plugin | Skills | Description |

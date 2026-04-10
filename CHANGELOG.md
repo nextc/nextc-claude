@@ -7,6 +7,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ### Changed
 - Rule `git-workflow`: added No Auto-Commit section — never commit unless user explicitly asks
 - Rule `agents`: added Agent Teams section — use TeamCreate for 2+ coordinating workers instead of Agent()
+- CLAUDE.md: added Release / Version Bump workflow — bump all plugin versions, update RELEASELOG.md, commit
 
 ### Fixed
 - Unity scaffolder: `ProjectVersion.txt` now includes explanation that `m_EditorVersionWithRevision` should NOT be written (requires changeset hash only Unity Editor knows) — fixes Unity Hub prompting to download a different editor version
