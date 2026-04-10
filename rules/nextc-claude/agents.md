@@ -38,6 +38,14 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 4. **Never opus for chores** — docs, builds, scanning, dashboards
 5. **Escalate on failure** — haiku fails → retry with sonnet (not opus)
 
+## Agent Teams (Experimental)
+
+When a task involves 2+ parallel workers that need to coordinate with each other (not just report back), use TeamCreate instead of multiple Agent() calls. Teammates can message each other directly, claim tasks from a shared list, and appear in visible tmux panes.
+
+Examples: multi-feature sprint, parallel investigation with cross-checking, full-stack feature where frontend/backend need to sync.
+
+Use Agent() for everything else — it's simpler and cheaper.
+
 ## Parallel Execution (CRITICAL)
 
 ALWAYS launch independent agent operations in parallel, never sequentially.

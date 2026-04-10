@@ -1,5 +1,9 @@
 # Git Workflow
 
+## No Auto-Commit
+
+NEVER commit automatically. Only commit when the user explicitly asks (e.g., "commit", "/commit", "commit this"). Completing a task, fixing a bug, or finishing a feature is NOT implicit permission to commit.
+
 ## Commit Message Format
 ```
 <type>: <description>

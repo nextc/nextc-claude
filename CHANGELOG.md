@@ -4,6 +4,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ## 2026-04-10
 
+### Changed
+- Rule `git-workflow`: added No Auto-Commit section — never commit unless user explicitly asks
+- Rule `agents`: added Agent Teams section — use TeamCreate for 2+ coordinating workers instead of Agent()
+
 ### Fixed
 - Unity scaffolder: `ProjectVersion.txt` now includes explanation that `m_EditorVersionWithRevision` should NOT be written (requires changeset hash only Unity Editor knows) — fixes Unity Hub prompting to download a different editor version
 - Both `/flutter-kickoff` and `/unity-kickoff` now ask the user where to create the project (current dir, subfolder, or custom path) instead of silently creating a subfolder inside cwd
