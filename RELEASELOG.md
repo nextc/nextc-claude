@@ -1,5 +1,10 @@
 # Release Log
 
+## v1.3.7 (2026-04-13)
+
+- New rule `code-comments` — "your code is your docs" philosophy. No-comment default unless WHY is non-obvious, plus six mandatory tagged comment types for load-bearing code: `WORKAROUND`, `ASSUMPTION`, `ORDER`, `EXTERNAL`, `SECURITY`, `MAGIC`
+- CLAUDE.md + README: updated rule count to 8, added `code-comments` to the project rules list
+
 ## v1.3.6 (2026-04-10)
 
 - Rule `git-workflow`: added No Auto-Commit section — never commit unless user explicitly asks
@@ -17,9 +22,6 @@
 - Both kickoff skills now ask where to create the project (`.`, subfolder, or custom path)
 - Fixed `ProjectVersion.txt` — documents that `m_EditorVersionWithRevision` must not be written
 - README: added plugin re-install note to update guide
-- Rule `git-workflow`: added No Auto-Commit section
-- Rule `agents`: added Agent Teams section (use TeamCreate for 2+ coordinating workers)
-- Added release workflow to CLAUDE.md
 
 ## v1.3.4 (2026-04-09)
 
