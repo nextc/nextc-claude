@@ -2,6 +2,14 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-13
+
+### Added
+- New rule `code-comments` — "your code is your docs" philosophy. Enforces no-comment default unless WHY is non-obvious, and mandates six tagged comment types for load-bearing code: `WORKAROUND`, `ASSUMPTION`, `ORDER`, `EXTERNAL`, `SECURITY`, `MAGIC`. Each tag has clear scope, examples, and enforcement rules so future-you (or Claude in a later session) can instantly recognize innocent-looking code that isn't.
+
+### Changed
+- CLAUDE.md + README: updated rule count to 8, added `code-comments` to the project rules list
+
 ## 2026-04-10
 
 ### Changed
