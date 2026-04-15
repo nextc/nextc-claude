@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.3.8 (2026-04-15)
+
+- Fix `/flutter-build` APK/IPA filename mismatch. Skill now extracts `name:` from `pubspec.yaml` and injects a canonical `App name` + `Target artifact name` into both parallel agent prompts, so Android and iOS produce matching `{appname}_{version}_{build}` stems. Agent spec adds a STOP-at-first-match resolution order and forbids Gradle `rootProject.name` / Xcode `PRODUCT_NAME` / folder names (those were the source of past `open_journal_` vs `openjournal_` divergence). Example tables now use `{appname}` placeholders so they can't be pasted as literals.
+
 ## v1.3.7 (2026-04-13)
 
 - New rule `code-comments` — "your code is your docs" philosophy. No-comment default unless WHY is non-obvious, plus six mandatory tagged comment types for load-bearing code: `WORKAROUND`, `ASSUMPTION`, `ORDER`, `EXTERNAL`, `SECURITY`, `MAGIC`

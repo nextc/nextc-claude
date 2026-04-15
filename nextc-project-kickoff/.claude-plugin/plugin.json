@@ -1,6 +1,6 @@
 {
   "name": "nextc-project-kickoff",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "description": "Project scaffolding from proposal — Flutter and Unity projects with deps and architectural blueprints that guide /feature-dev.",
   "author": {
     "name": "nextc"
