@@ -15,7 +15,7 @@ Interactive build pipeline: gather build parameters, spawn the flutter-builder a
 ## Step 1: Read Current State
 
 Run in parallel:
-- Read `pubspec.yaml` — extract current `version:` line (format: `X.Y.Z+N`)
+- Read `pubspec.yaml` — extract current `version:` line (format: `X.Y.Z+N`) AND the `name:` line
 - Check if `.env` file exists in project root
 - Run `git log --oneline -5` — show recent commits for context
 
@@ -23,6 +23,9 @@ Parse the current version into:
 - `current_version` — the semantic version part (before `+`)
 - `current_build` — the integer build number (after `+`)
 - `next_build` — `current_build + 1`
+
+Also extract:
+- `appname` — the exact value of `name:` from `pubspec.yaml`, used verbatim for artifact filenames (no transformation, no lowercasing beyond what's already written). This is the canonical `{appname}` passed to build agents.
 
 ## Step 2: Gather Parameters
 
@@ -79,8 +82,13 @@ Build the Flutter app with the following configuration:
 - Build mode: {mode}
 - Version: {version}
 - Build number: {build}
+- App name: {appname}  (use EXACTLY this string for artifact filenames — do not transform)
 - Env file: {path to .env or "none"}
 - Project root: {absolute path to project}
+
+Target artifact names:
+- Android: {appname}_{version}_{build}.apk
+- iOS:     {appname}_{version}_{build}.ipa
 
 Follow your full process: validate, bump version, build, rename artifacts, update buildlog, report, commit, and tag.
 """
@@ -107,6 +115,8 @@ Update `pubspec.yaml` version line to `version: {version}+{build}` using the Edi
 
 Launch BOTH agents in a single message (parallel tool calls). Both run in background:
 
+CRITICAL: before constructing the prompts, substitute `{appname}` (from Step 1) and `{version}` / `{build}` as concrete strings. Do NOT leave placeholder tokens in the prompt text sent to the agents — both agents MUST receive the SAME authoritative app name so APK and IPA filenames match.
+
 ```
 Agent(
   subagent_type: "flutter-builder",
@@ -120,14 +130,17 @@ Build the Flutter app with the following configuration:
 - Build mode: {mode}
 - Version: {version}
 - Build number: {build}
+- App name: {appname}  (use EXACTLY this string for the APK filename — do not transform)
 - Env file: {path to .env or "none"}
 - Project root: {absolute path to project}
+
+Target artifact name: {appname}_{version}_{build}.apk
 
 PARTIAL MODE — the skill is orchestrating a parallel build:
 - SKIP Phase 1 (pre-build validation) — already done by skill
 - SKIP Phase 2 (version bump) — already done by skill
 - DO Phase 3 (build) — Android only
-- DO Phase 4 (artifact rename) — Android only
+- DO Phase 4 (artifact rename) — Android only, rename to the target artifact name above
 - SKIP Phase 5 (build log) — skill will handle
 - DO Phase 6 (build report) — report Android results
 - SKIP Phase 7 (git commit & tag) — skill will handle
@@ -146,14 +159,17 @@ Build the Flutter app with the following configuration:
 - Build mode: {mode}
 - Version: {version}
 - Build number: {build}
+- App name: {appname}  (use EXACTLY this string for the IPA filename — do not transform)
 - Env file: {path to .env or "none"}
 - Project root: {absolute path to project}
+
+Target artifact name: {appname}_{version}_{build}.ipa
 
 PARTIAL MODE — the skill is orchestrating a parallel build:
 - SKIP Phase 1 (pre-build validation) — already done by skill
 - SKIP Phase 2 (version bump) — already done by skill
 - DO Phase 3 (build) — iOS only
-- DO Phase 4 (artifact rename) — iOS only
+- DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
 - SKIP Phase 5 (build log) — skill will handle
 - DO Phase 6 (build report) — report iOS results
 - SKIP Phase 7 (git commit & tag) — skill will handle
@@ -180,10 +196,10 @@ After the agent completes, report:
 **Build report table:**
 
 ```
-| Platform | Status  | Artifact                   | Path                              |
-|----------|---------|----------------------------|-----------------------------------|
-| Android  | success | app_1.0.0_7.apk            | build/app/outputs/apk/release/    |
-| iOS      | success | app_1.0.0_7.ipa            | build/ios/ipa/                     |
+| Platform | Status  | Artifact                        | Path                              |
+|----------|---------|---------------------------------|-----------------------------------|
+| Android  | success | {appname}_{version}_{build}.apk | build/app/outputs/apk/release/    |
+| iOS      | success | {appname}_{version}_{build}.ipa | build/ios/ipa/                    |
 ```
 
 - **Path column shows the directory only** (no filename) — clickable in file explorer

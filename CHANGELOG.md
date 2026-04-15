@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-15
+
+### Fixed
+- `/flutter-build` skill + `flutter-builder` agent: APK and IPA filenames now match. Root cause was threefold — (1) the skill's Step 5 report example used `app_1.0.0_7.apk` as a literal string that looked pastable, (2) parallel-build mode never computed `{appname}` and passed it to the two agents, so each platform's agent inferred independently (Gradle `rootProject.name` vs pubspec `name:` diverged), and (3) the agent spec defined `{appname}` ambiguously. Fix: skill now extracts `name:` from pubspec.yaml in Step 1 and injects concrete "App name" + "Target artifact name" strings into both agent prompts; agent spec now has a STOP-at-first-match resolution order (prompt target → prompt App name → pubspec `name:`) with an explicit "never use Gradle/Xcode names" rule; examples in both files use `{appname}_{version}_{build}` placeholders so they can't be copy-pasted as literals.
+
 ## 2026-04-13
 
 ### Added

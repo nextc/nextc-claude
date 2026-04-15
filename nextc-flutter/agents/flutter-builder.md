@@ -19,8 +19,11 @@ You are spawned by the `/flutter-build` skill with a prompt containing:
 - **Build mode:** release, profile, or debug
 - **Version number:** semantic version (e.g., 1.2.3)
 - **Build number:** integer build number
+- **App name:** canonical `{appname}` string for artifact filenames (may be absent in older skill versions — see Phase 4 fallback)
 - **Env file:** path to .env file or "none"
 - **Project root:** absolute path to the Flutter project
+
+The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.0.0_7.apk`). When present, use it EXACTLY as the renamed output — do not derive your own.
 
 ## Process
 
@@ -68,7 +71,12 @@ mv build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/{
 mv build/ios/ipa/*.ipa build/ios/ipa/{appname}_{version}_{build}.ipa
 ```
 
-Where `{appname}` is the project name in lowercase with no spaces (from `pubspec.yaml` `name:` field).
+Resolving `{appname}` (canonical order — STOP at the first source that applies):
+1. If the spawn prompt contains a "Target artifact name" line, extract the basename and use it verbatim. Do NOT re-derive.
+2. Else, if the spawn prompt contains an "App name:" field, use that string EXACTLY — no lowercasing, no stripping, no substitution.
+3. Else, read `pubspec.yaml` from the project root and use the `name:` field value verbatim. Do NOT pull from Gradle `rootProject.name`, Xcode `PRODUCT_NAME`, folder names, or any other source — those diverge across platforms and cause Android/iOS filename mismatches.
+
+Both platforms MUST produce artifacts with the same `{appname}` stem. If you are in partial mode and cannot determine an authoritative `{appname}`, STOP and report — do not guess.
 
 CRITICAL: Rename in the **original build output directory** — never copy or move to a different directory (e.g., do NOT use `flutter-apk/`).
 
@@ -111,10 +119,10 @@ Entries are prepended (newest first) below the `# Build Log` header. NEVER delet
 Report results in a table:
 
 ```
-| Platform | Status  | Artifact                   | Path                              |
-|----------|---------|----------------------------|-----------------------------------|
-| Android  | success | appname_1.0.0_7.apk        | build/app/outputs/apk/release/    |
-| iOS      | success | appname_1.0.0_7.ipa        | build/ios/ipa/                     |
+| Platform | Status  | Artifact                        | Path                              |
+|----------|---------|---------------------------------|-----------------------------------|
+| Android  | success | {appname}_{version}_{build}.apk | build/app/outputs/apk/release/    |
+| iOS      | success | {appname}_{version}_{build}.ipa | build/ios/ipa/                    |
 ```
 
 - **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
