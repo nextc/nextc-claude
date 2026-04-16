@@ -4,6 +4,7 @@ description: >
   Phase 3 specialist: metadata optimization, compliance validation, promotional text,
   What's New templates. Invokes metadata-optimization, android-aso, app-launch, app-store-featured.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

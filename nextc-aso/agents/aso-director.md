@@ -5,6 +5,7 @@ description: >
   signal propagation, interactive checkpoints, changes.md generation, and snapshots.
   Spawned by /aso-pipeline skill.
 model: sonnet
+effort: high
 tools:
   - Agent
   - AskUserQuestion

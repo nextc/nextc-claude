@@ -5,6 +5,7 @@ description: >
   strategy, A/B test design. Invokes screenshot-optimization, app-icon-optimization,
   ab-test-store-listing, in-app-events, app-clips.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

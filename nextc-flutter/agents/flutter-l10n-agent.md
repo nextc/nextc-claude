@@ -6,6 +6,7 @@ description: >
   Knows ARB format, ICU MessageFormat, glossary protection, and incremental
   update semantics. Does NOT auto-run the full pipeline — users drive each step.
 model: sonnet
+effort: medium
 tools:
   - Read
   - Write

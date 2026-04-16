@@ -5,6 +5,7 @@ description: >
   framework, A/B test plans with platform constraints, re-run cadence.
   Invokes app-analytics, asc-metrics, ab-test-store-listing.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

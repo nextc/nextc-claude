@@ -12,6 +12,7 @@ tools:
   - Glob
   - Bash
 model: sonnet
+effort: high
 ---
 
 You are a senior frontend/mobile developer specializing in pixel-perfect UI implementation.

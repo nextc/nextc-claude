@@ -5,6 +5,7 @@ description: >
   response templates, reputation plan. Invokes rating-prompt-strategy, review-management,
   crash-analytics.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

@@ -5,6 +5,7 @@ description: >
   pre-mortem analysis, designs falsifiable experiments with kill criteria.
   Adversarial mandate. Spawned by product-explorer orchestrator.
 model: sonnet
+effort: high
 tools:
   - Agent
   - Read

@@ -4,6 +4,7 @@ description: >
   Phase 2 specialist: keyword discovery, scoring, multi-locale synthesis, seasonal
   calendar. Invokes keyword-research and seasonal-aso skills.
 model: sonnet
+effort: high
 tools:
   - Agent
   - Read

@@ -5,6 +5,7 @@ description: >
   manages state in docs/explore/, handles interactive checkpoints, and acts
   as a strategic consultant throughout. Spawned by /product-explore skill.
 model: sonnet
+effort: high
 tools:
   - Agent
   - AskUserQuestion

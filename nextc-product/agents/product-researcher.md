@@ -5,6 +5,7 @@ description: >
   collects signals, writes to docs/explore/. Invokes pm-skills and
   marketingskills. Spawned by product-explorer orchestrator.
 model: sonnet
+effort: high
 tools:
   - Agent
   - Read

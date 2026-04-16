@@ -6,6 +6,7 @@ description: >
   that guide /feature-dev to write production-grade C# code. Handles Phase 3 of the
   /unity-kickoff pipeline.
 model: sonnet
+effort: medium
 tools:
   - Read
   - Write

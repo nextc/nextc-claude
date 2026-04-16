@@ -29,6 +29,7 @@ const {
   VALID_ISOLATION_VALUES,
   VALID_MEMORY_SCOPES,
   MODEL_TIER_TABLE,
+  CONTENT_ANTIPATTERNS,
   KEBAB_CASE_PATTERN,
   SKILL_NAME_PATTERN,
   SEMVER_PATTERN,
@@ -141,6 +142,66 @@ function fail(plugin, component, name, id, message) {
   return result(plugin, component, name, id, 'FAIL', message);
 }
 
+// ─── Content antipattern scanner ───────────────────────────────────
+
+// Strip YAML frontmatter so scanner only looks at the body.
+function stripFrontmatter(content) {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+}
+
+// Scan body text for capability-restriction and repeated-fetch antipatterns.
+// Inline code (`...`) and fenced code blocks (```...```) are stripped before
+// scanning — these are literal examples, not instructions to Claude.
+// Authors can suppress false positives on legitimate documentation lines with
+// an HTML comment: <!-- validate:ignore --> on the same line, or wrap a block
+// between <!-- validate:ignore-start --> and <!-- validate:ignore-end -->.
+// Returns a list of WARN result objects. One warning per (antipattern, first match).
+function scanContentAntipatterns(content, plugin, component, name) {
+  const results = [];
+  const body = stripFrontmatter(content);
+  const rawLines = body.split('\n');
+
+  // Per-line strip: track fenced code blocks and ignore blocks; blank out inline code within prose lines.
+  // We preserve line indices so reported line numbers match the source.
+  const scannable = [];
+  let inFence = false;
+  let inIgnoreBlock = false;
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    if (/<!--\s*validate:ignore-start\s*-->/.test(line)) { inIgnoreBlock = true; scannable.push(''); continue; }
+    if (/<!--\s*validate:ignore-end\s*-->/.test(line)) { inIgnoreBlock = false; scannable.push(''); continue; }
+    if (inIgnoreBlock) { scannable.push(''); continue; }
+    if (/^\s*```/.test(line)) { inFence = !inFence; scannable.push(''); continue; }
+    if (inFence) { scannable.push(''); continue; }
+    if (/<!--\s*validate:ignore\s*-->/.test(line)) { scannable.push(''); continue; }
+    scannable.push(line.replace(/`[^`\n]*`/g, ''));
+  }
+
+  for (const ap of CONTENT_ANTIPATTERNS) {
+    let firstHit = null;
+    for (let i = 0; i < scannable.length && !firstHit; i++) {
+      for (const rx of ap.patterns) {
+        const m = scannable[i].match(rx);
+        if (m) {
+          firstHit = { line: i + 1, text: rawLines[i].trim().slice(0, 120), match: m[0] };
+          break;
+        }
+      }
+    }
+    if (firstHit) {
+      const snippet = firstHit.text.length === 120 ? firstHit.text + '…' : firstHit.text;
+      results.push(warn(
+        plugin,
+        component,
+        name,
+        ap.id,
+        `${ap.label} at line ${firstHit.line}: "${firstHit.match}" — ${ap.hint}. Context: ${snippet}`
+      ));
+    }
+  }
+  return results;
+}
+
 // ─── Discovery ─────────────────────────────────────────────────────
 
 function discoverPlugins(rootDir) {
@@ -231,6 +292,9 @@ function validateSkills(pluginName, pluginDir) {
     if (fm.context && fm.context !== 'fork') {
       results.push(warn(pluginName, 'skill', dir.name, 'S02', `Invalid context value: "${fm.context}" (expected: "fork")`));
     }
+
+    // S08 (C01 / C02): Content antipatterns in skill body
+    results.push(...scanContentAntipatterns(content, pluginName, 'skill', dir.name));
   }
 
   return results;
@@ -329,6 +393,9 @@ function validateAgents(pluginName, pluginDir) {
     if (fm.memory && !VALID_MEMORY_SCOPES.has(fm.memory)) {
       results.push(warn(pluginName, 'agent', agentName, 'A03', `Invalid memory scope: "${fm.memory}"`));
     }
+
+    // A09 (C01 / C02): Content antipatterns in agent body
+    results.push(...scanContentAntipatterns(content, pluginName, 'agent', agentName));
   }
 
   return results;
@@ -540,6 +607,9 @@ function validateRules(rootDir, rulesDir) {
     } else {
       results.push(pass('(global)', 'rule', ruleName, 'R01', 'Non-empty rule file'));
     }
+
+    // R02 / R03 (C01 / C02): Content antipatterns
+    results.push(...scanContentAntipatterns(content, '(global)', 'rule', ruleName));
   }
 
   return results;

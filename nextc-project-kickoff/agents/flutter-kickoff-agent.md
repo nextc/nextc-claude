@@ -6,6 +6,7 @@ description: >
   clean project setup, dependency installation, and architectural blueprints that
   guide /feature-dev to write production-grade code. Spawned by the /flutter-kickoff skill.
 model: sonnet
+effort: high
 tools:
   - Agent
   - AskUserQuestion

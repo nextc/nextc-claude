@@ -21,6 +21,17 @@ Parse `$ARGUMENTS` for:
 - **Output**: `--json` for raw JSON output
 - **Auto-fix**: `--fix` to apply simple fixes (missing chmod, etc.) — ask user before applying
 
+## Content antipatterns (scanned automatically)
+
+The Node.js validator scans rule bodies, agent bodies, and skill bodies for two language antipatterns that age poorly or waste tokens. Matches are emitted as WARN:
+
+<!-- validate:ignore-start -->
+- **C01 capability-restriction** — hardcoded claims about Claude/tool limitations (`CANNOT`, `does not support`, `cannot be overridden`, and similar). These become stale as Claude Code adds capabilities. Prefer describing a resolution order so future capabilities naturally take precedence.
+- **C02 repeated-fetch** — prose directing Claude to retrieve online docs or external references on a per-session or per-turn basis. Extra lookups cost tokens each run. The Agent() tool schema, CLAUDE.md, and rules are already in the system prompt.
+<!-- validate:ignore-end -->
+
+Patterns are defined in `scripts/schema.js` under `CONTENT_ANTIPATTERNS`. Authors can suppress a false positive with `<!-- validate:ignore -->` on the same line, or wrap a block between `<!-- validate:ignore-start -->` and `<!-- validate:ignore-end -->`.
+
 ## Step 1: Run structural validator
 
 Execute the bundled Node.js validator script:

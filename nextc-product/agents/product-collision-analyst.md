@@ -5,6 +5,7 @@ description: >
   outputs for non-obvious insights that no single phase could produce alone.
   Runs adversarial filter on its own output. Spawned by product-explorer.
 model: opus
+effort: xhigh
 tools:
   - Agent
   - Read

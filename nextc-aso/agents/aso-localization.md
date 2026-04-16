@@ -4,6 +4,7 @@ description: >
   Phase 5 specialist: market prioritization, transcreation, CJK keyword repacking,
   confidence scoring, compliance per locale. Invokes localization skill.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

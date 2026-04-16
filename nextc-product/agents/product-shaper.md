@@ -5,6 +5,7 @@ description: >
   names, taglines, canvas, positioning) and execute (runs Opus creative
   synthesis with user's choices). Spawned by product-explorer orchestrator.
 model: sonnet
+effort: high
 tools:
   - Agent
   - Read

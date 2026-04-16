@@ -6,6 +6,7 @@ description: >
   clean project setup, UPM package configuration, and architectural blueprints that
   guide /feature-dev to write production-grade code. Spawned by the /unity-kickoff skill.
 model: sonnet
+effort: high
 tools:
   - Agent
   - AskUserQuestion

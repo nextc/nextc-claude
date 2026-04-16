@@ -6,6 +6,7 @@ description: >
   compiles. Handles Phase 2 of the /flutter-kickoff pipeline. Does NOT generate
   application code — that is done by /feature-dev following architectural blueprints.
 model: haiku
+effort: medium
 tools:
   - Read
   - Write

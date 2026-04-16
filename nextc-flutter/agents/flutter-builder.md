@@ -5,6 +5,7 @@ description: >
   version bumps. Handles platform selection, build mode, version/build number
   increments, artifact renaming, and post-build documentation.
 model: haiku
+effort: medium
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 ---
 

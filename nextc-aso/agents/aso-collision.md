@@ -5,6 +5,7 @@ description: >
   re-run recommendations. Reads all phase outputs and handoffs to find insights
   no single phase produced alone.
 model: sonnet
+effort: high
 tools:
   - Read
   - Write

@@ -6,6 +6,7 @@ description: >
   and build tooling. Handles Phase 2 of the /unity-kickoff pipeline. Does NOT generate
   game code — that is done by /feature-dev following architectural blueprints.
 model: haiku
+effort: medium
 tools:
   - Read
   - Write

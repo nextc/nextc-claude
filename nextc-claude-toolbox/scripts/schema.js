@@ -100,7 +100,7 @@ const VALID_MODEL_SHORTHANDS = new Set([
 const MODEL_ID_PATTERN = /^claude-[a-z0-9-]+$/;
 
 // --- Effort levels ---
-const VALID_EFFORTS = new Set(['low', 'medium', 'high', 'max']);
+const VALID_EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
 
 // --- Agent display colors ---
 const VALID_COLORS = new Set([
@@ -146,6 +146,35 @@ const MODEL_TIER_TABLE = {
   'opensource-packager': 'sonnet',
 };
 
+// --- Content antipatterns ---
+// These scan rule bodies, agent bodies, and skill bodies for language that
+// either (1) hardcodes claims about Claude/tool capabilities that age poorly,
+// or (2) causes repeated online fetches that cost tokens each session.
+// Each pattern is heuristic — emitted as WARN so authors can review.
+const CONTENT_ANTIPATTERNS = [
+  {
+    id: 'C01',
+    label: 'capability-restriction',
+    hint: 'avoid hardcoding Claude/tool limitations — describe a resolution order so future capabilities naturally take precedence',
+    patterns: [
+      /\bCANNOT\b/,
+      /\b(cannot|can'?t) be (overridden|changed|modified|configured|set)\b/i,
+      /\bdoes not (support|accept|allow|expose)\b/i,
+      /\bis not (supported|possible|available) (by|in|for|through|via) (claude|the agent|the tool|agent\(\)|subagent)/i,
+      /\bnever supports?\b/i,
+    ],
+  },
+  {
+    id: 'C02',
+    label: 'repeated-fetch',
+    hint: 'the Agent() tool schema, CLAUDE.md, and rules are already in your system prompt — avoid instructions that trigger extra fetches each session',
+    patterns: [
+      /\b(check|fetch|verify|consult|visit|reload|retrieve|read)\s+(?:the\s+)?(?:current|latest|online|upstream|updated|remote|live)\s+(?:claude(?:\s+code)?\s+)?(?:docs|documentation|specs?|api|website|reference)\b/i,
+      /\bfetch\b[^.]{0,60}\b(each|every)\s+(session|turn|invocation|call|prompt|request|response)\b/i,
+    ],
+  },
+];
+
 // --- Kebab-case pattern ---
 const KEBAB_CASE_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -169,6 +198,7 @@ module.exports = {
   VALID_ISOLATION_VALUES,
   VALID_MEMORY_SCOPES,
   MODEL_TIER_TABLE,
+  CONTENT_ANTIPATTERNS,
   KEBAB_CASE_PATTERN,
   SKILL_NAME_PATTERN,
   SEMVER_PATTERN,

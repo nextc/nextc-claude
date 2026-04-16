@@ -2,6 +2,19 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-17
+
+### Added
+- `/validate` now scans rule bodies, agent bodies, and skill bodies for two content antipatterns (`scripts/schema.js` → `CONTENT_ANTIPATTERNS`):
+  - **C01 capability-restriction** — flags hardcoded claims like `CANNOT`, `does not support`, `cannot be overridden` that age poorly as Claude Code evolves
+  - **C02 repeated-fetch** — flags prose directing Claude to retrieve online docs on a per-session basis (e.g. `check current Claude Code docs`)
+- Scanner strips fenced code blocks and inline backticks before matching, and respects `<!-- validate:ignore -->` (line) and `<!-- validate:ignore-start --> ... <!-- validate:ignore-end -->` (block) markers for legitimate pattern documentation
+- Validator `VALID_EFFORTS` now includes `xhigh` (was missing — caused false-positive warnings on opus agents)
+
+### Changed
+- Rule `agents` renamed "Model Selection" → "Model + Effort Selection". Now requires BOTH `model:` AND `effort:` in every agent's frontmatter. Added effort tiers (`xhigh` / `high` / `medium`), effort floor rule (never `low`), sophistication-downgrade rule, and resolution-order notes that describe precedence without hardcoding current tool-schema limitations.
+- All 37 agents across the 5 plugins now declare `effort:`: 3 opus agents at `xhigh` (planner, architect, product-collision-analyst), 24 sonnet agents at `high`, 10 agents at `medium` (doc-keeper, flutter-builder, flutter/unity scaffolders, flutter/unity doc-seeders, flutter-l10n-agent, opensource-forker/sanitizer/packager). Previously all inherited session effort, which meant chore agents overspent on `xhigh` sessions and planning agents underspent on `medium` sessions.
+
 ## 2026-04-15
 
 ### Fixed
