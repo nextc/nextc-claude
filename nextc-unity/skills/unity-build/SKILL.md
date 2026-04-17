@@ -1,44 +1,58 @@
 ---
 name: unity-build
 description: >
-  Build Unity APK/IPA, update build log, and commit version bump. Use when the user wants
-  to build the app, make a release, or create a build for testing. Handles platform
-  selection, build mode, and artifact renaming. Targets macOS Unity 6.x.
+  Build Unity APK/IPA with pre-flight checks, version bump, iOS signing params,
+  post-build verification, buildlog, and commit. Use for app builds, releases,
+  or test builds. Targets macOS Unity 6.x.
 user-invocable: true
-allowed-tools: Bash Read Edit Glob Agent
+allowed-tools: Bash Read Edit Write Glob Grep Agent
 ---
 
 # /unity-build
 
-Interactive Unity build pipeline: gather parameters, spawn the unity-builder agent to
-invoke the Unity Editor in batch mode, rename artifacts, log, and commit.
+Interactive Unity build pipeline: gather params, pre-flight, invoke Unity in
+batch mode, archive + export for iOS, verify artifacts, log, commit. Companion
+to `/flutter-build` — same UX + buildlog format.
 
-Companion to `/flutter-build` — same UX, same buildlog format, adapted for Unity's
-editor-driven build pipeline and `ProjectSettings/ProjectSettings.asset`.
+> **Sandbox note.** Unity batch mode writes to `Library/`,
+> `~/Library/Unity/Licenses/`, and `Temp/` — typically outside Claude Code's
+> default sandbox. Run Unity + xcodebuild from the skill's **main thread** (not
+> sub-agents); the agent is for scaffolding + buildlog drafting only. Log lines
+> like `read only` / `licensing mutex` signal sandbox, not Unity config.
 
 ## Step 1: Read Current State
 
 Run in parallel:
+
 - Read `ProjectSettings/ProjectSettings.asset` — extract:
   - `productName:` → `{appname}` (used verbatim for artifact filenames — no transformation)
-  - `bundleVersion:` → `{current_version}` (the semver X.Y.Z)
+  - `bundleVersion:` → `{current_version}`
   - `AndroidBundleVersionCode:` → `{current_android_build}` (int)
   - `buildNumber:` nested map → `iPhone:` → `{current_ios_build}` (string; treat as int)
+  - `appleDeveloperTeamID:` → `{team_id}` (may be empty; required for iOS)
 - Read `ProjectSettings/ProjectVersion.txt` — extract `m_EditorVersion:` → `{editor_version}`
-- Confirm `/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity` exists
-- Check if `Assets/Editor/BuildScript.cs` exists (agent will generate it if missing)
-- Run `git log --oneline -5` — show recent commits for context
+- Confirm Unity editor binary at `/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity`
+- Detect Xcode major version (needed for iOS export method default):
+  - `xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1` → `{xcode_major}`
+  - If `xcodebuild` is not installed, `{xcode_major}` is empty — iOS unavailable
+- Check if `Assets/Editor/BuildScript.cs` exists (agent will scaffold if missing)
+- Run `git log --oneline -5` — for context display
+- Record `{skill_start_epoch}` via `date +%s` — used for post-build mtime verification
 
 Derive:
+
 - `next_android_build` = `current_android_build + 1`
 - `next_ios_build` = `current_ios_build + 1`
+- Default export method:
+  - `{xcode_major} >= 15` → `release-testing` (renamed from `ad-hoc` in Xcode 15+)
+  - `{xcode_major} <= 14` → `ad-hoc`
 
-Unity uses separate per-platform build numbers (Android int, iOS string). The skill keeps
-them in lockstep by default — user can override if needed.
+Unity uses separate per-platform build numbers (Android int, iOS string). The skill
+keeps them in lockstep by default — user can override.
 
 ## Step 2: Gather Parameters
 
-Present the current state and ask for build configuration in a single prompt:
+Show current state + build configuration prompt:
 
 ```
 App name       : {appname}
@@ -46,6 +60,8 @@ Version        : {current_version}
 Android build #: {current_android_build}
 iOS build #    : {current_ios_build}
 Unity editor   : {editor_version}
+Xcode          : {xcode_major} (iOS only)
+Team ID        : {team_id or "<not set>"} (iOS only)
 Recent commits :
   {last 5 commits}
 
@@ -56,217 +72,420 @@ Build configuration:
   4. Android build #: {next_android_build} (press enter to auto-increment)
   5. iOS build #: {next_ios_build} (press enter to auto-increment)
 
-Please provide your choices (e.g., "android, release" or just press enter for defaults).
+If iOS is in platforms, also:
+  6. iOS export method: {default_method} | app-store-connect | debugging | enterprise
+     (default: {default_method})
+  7. Strip Swift symbols: yes / no (default: yes)
+  8. Compile bitcode: yes / no (default: no)
+
+Please provide choices (e.g., "android, release" or press enter for defaults).
 ```
 
-Wait for user response. Parse choices — use defaults for anything unspecified.
+Parse response — use defaults for anything unspecified.
 
 ## Step 3: Confirm
 
-Show summary:
+Show summary (only include iOS rows if iOS is in platforms):
 
 ```
 Build plan:
-  App name   : {appname}
-  Platforms  : {platforms}
-  Mode       : {mode}
-  Version    : {version}
-  Android #  : {android_build}
-  iOS #      : {ios_build}
-  Unity      : {editor_version}
+  App name    : {appname}
+  Platforms   : {platforms}
+  Mode        : {mode}
+  Version     : {version}
+  Android #   : {android_build}
+  iOS #       : {ios_build}
+  Unity       : {editor_version}
+  Xcode       : {xcode_major}
+  Team ID     : {team_id}
+  Export      : {export_method}
+  Swift strip : {strip_swift_symbols}
+  Bitcode     : {compile_bitcode}
+
+Note: Unity batch mode may incidentally re-serialize scene/meta files when it
+opens the project. This skill commits only ProjectSettings.asset, BuildScript.cs
+(+.meta), and docs/buildlog.md — any other files Unity touches will be reverted
+to HEAD before the commit.
 
 Proceed?
 ```
 
-Wait for confirmation. If user says no or wants changes, go back to Step 2.
+Wait for confirmation. If user says no, loop to Step 2.
 
-## Step 4: Build
+### Guardrails before proceeding
 
-### Single platform (android or ios)
+- **Team ID required for iOS.** If iOS is in platforms and `{team_id}` is empty,
+  STOP: "iOS builds require a Team ID. Set `appleDeveloperTeamID: XXXXXXXXXX`
+  (the 10-char identifier from your Apple developer account) in
+  `ProjectSettings/ProjectSettings.asset` first."
+- **Xcode required for iOS.** If iOS is in platforms and `{xcode_major}` is
+  empty, STOP: "iOS builds require Xcode. Install Xcode from the App Store
+  and re-run `xcode-select --install`."
 
-Spawn one unity-builder agent in foreground with the full pipeline:
+## Step 4: Pre-Flight Checks
 
-```
-Agent(
-  subagent_type: "unity-builder",
-  model: "haiku",
-  description: "Build Unity {platform}",
-  run_in_background: false,
-  prompt: """
-Build the Unity app with the following configuration:
-- Platform: {platform}
-- Build mode: {mode}
-- Version: {version}
-- Android build: {android_build}
-- iOS build: {ios_build}
-- App name: {appname}  (use EXACTLY this string for artifact filenames — do not transform)
-- Editor version: {editor_version}
-- Project root: {absolute path to project}
+Run BEFORE any build work — each failure aborts:
 
-Target artifact names:
-- Android: {appname}_{version}_{android_build}.apk
-- iOS:     {appname}_{version}_{ios_build}.ipa
+1. **No Unity Editor already running.** Run:
 
-Follow your full process: validate, ensure BuildScript, bump version, build, archive+export
-iOS, rename artifacts, update buildlog, report, commit, and tag.
-"""
-)
-```
+   ```bash
+   pgrep -fl 'Unity\.app/Contents/MacOS/Unity' || true
+   ```
 
-### Both platforms (parallel)
+   If any PID is returned, abort: "The Unity Editor appears to be open on this
+   system. Batch mode will connect to the running editor's license client and
+   exit 0 without building (silent false success). Close the editor and re-run."
 
-For both platforms, the skill orchestrates shared steps and spawns two agents in parallel.
+2. **No stale lockfile.** If `Temp/UnityLockfile` exists, abort: "Lockfile at
+   `Temp/UnityLockfile` — a prior editor session didn't close cleanly. Close
+   the editor (or `rm Temp/UnityLockfile`) before re-running."
 
-**Step 4a: Pre-build validation (in skill)**
+3. **Git status.** Run `git status --porcelain`. If any uncommitted changes
+   exist, show the list and ask: "You have uncommitted changes. Commit them
+   first, or proceed (anything Unity re-serializes will be reset, but your
+   pre-existing changes remain)?" Do NOT proceed without confirmation.
 
-Run these checks before spawning agents:
-1. Confirm `ProjectSettings/ProjectSettings.asset` is parseable (grep the three version
-   fields listed in Step 1).
-2. Confirm `/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity`
-   exists. If not, STOP and ask the user to install that editor via Unity Hub.
-3. Run `git status` — if uncommitted changes, ask the user before proceeding.
-4. If `Assets/Editor/BuildScript.cs` is missing, spawn the agent once in a brief
-   bootstrap run (platform=none) to generate it, or let the skill generate it inline
-   using the template in the unity-builder agent's Phase 1.
+4. **Scaffold BuildScript.cs + .meta if missing.** If
+   `Assets/Editor/BuildScript.cs` does not exist, spawn the unity-builder agent
+   to generate both the `.cs` and a matching `.meta` (deterministic GUID). Stage
+   both for the Phase 10 commit.
 
-**Step 4b: Version bump (in skill)**
+   ```
+   Agent(
+     subagent_type: "unity-builder",
+     model: "haiku",
+     description: "Scaffold BuildScript.cs",
+     prompt: """
+       MODE: scaffold
+       Project root: {project_root}
+       Write Assets/Editor/BuildScript.cs and Assets/Editor/BuildScript.cs.meta
+       using your scaffold templates. Do not run any builds. Report the file
+       paths you wrote.
+     """
+   )
+   ```
 
-Edit `ProjectSettings/ProjectSettings.asset` in-place via the Edit tool:
-- Replace `bundleVersion: <old>` → `bundleVersion: {version}`
-- Replace `AndroidBundleVersionCode: <old>` → `AndroidBundleVersionCode: {android_build}`
-- Within the `buildNumber:` block, replace `iPhone: <old>` → `iPhone: {ios_build}`
+## Step 5: Version Bump
 
-This happens once, before agents are spawned, so both agents see the same bumped values.
+Edit `ProjectSettings/ProjectSettings.asset` in-place via the Edit tool
+(never `sed` — it's structured YAML):
 
-**Step 4c: Spawn two agents in parallel**
+- `bundleVersion: <old>` → `bundleVersion: {version}`
+- `AndroidBundleVersionCode: <old>` → `AndroidBundleVersionCode: {android_build}`
+  (only if Android is in platforms)
+- Inside `buildNumber:` block: `iPhone: <old>` → `iPhone: "{ios_build}"`
+  (only if iOS is in platforms; preserve existing quoting)
 
-Launch BOTH agents in a single message (parallel tool calls). Both run in background.
+## Step 6: Build (Unity + xcodebuild)
 
-CRITICAL: substitute `{appname}`, `{version}`, `{android_build}`, `{ios_build}` as
-concrete strings. Do NOT leave placeholder tokens — APK and IPA filenames must share
-the same `{appname}` stem.
+### Ordering
 
-```
-Agent(
-  subagent_type: "unity-builder",
-  model: "haiku",
-  name: "build-android",
-  description: "Build Unity APK",
-  run_in_background: true,
-  prompt: """
-Build the Unity app with the following configuration:
-- Platform: android
-- Build mode: {mode}
-- Version: {version}
-- Android build: {android_build}
-- App name: {appname}  (use EXACTLY this string for the APK filename — do not transform)
-- Editor version: {editor_version}
-- Project root: {absolute path to project}
+Unity batch mode cannot run concurrently on the same project — both Android
+and iOS lock `Library/` + `Temp/UnityLockfile`. `xcodebuild` does NOT touch
+`Library/` and may parallelize. For `both`: Unity iOS (exclusive) → parallel
+{ Unity Android, xcodebuild archive + export on the iOS project } → Phase 7.
+Single-platform: just the one Unity run, then (iOS) xcodebuild. Run
+`mkdir -p Builds/logs` first.
 
-Target artifact name: {appname}_{version}_{android_build}.apk
+### Android: Unity invocation
 
-PARTIAL MODE — the skill is orchestrating a parallel build:
-- SKIP Phase 1 (pre-build validation) — already done by skill
-- SKIP Phase 2 (version bump) — already done by skill
-- DO Phase 3 (build) — Android only
-- DO Phase 4 (artifact rename) — Android only, rename to the target artifact name above
-- SKIP Phase 5 (build log) — skill will handle
-- DO Phase 6 (build report) — report Android results
-- SKIP Phase 7 (git commit & tag) — skill will handle
-"""
-)
-
-Agent(
-  subagent_type: "unity-builder",
-  model: "haiku",
-  name: "build-ios",
-  description: "Build Unity IPA",
-  run_in_background: true,
-  prompt: """
-Build the Unity app with the following configuration:
-- Platform: ios
-- Build mode: {mode}
-- Version: {version}
-- iOS build: {ios_build}
-- App name: {appname}  (use EXACTLY this string for the IPA filename — do not transform)
-- Editor version: {editor_version}
-- Project root: {absolute path to project}
-
-Target artifact name: {appname}_{version}_{ios_build}.ipa
-
-PARTIAL MODE — the skill is orchestrating a parallel build:
-- SKIP Phase 1 (pre-build validation) — already done by skill
-- SKIP Phase 2 (version bump) — already done by skill
-- DO Phase 3 (build) — iOS only (Unity Xcode gen → xcodebuild archive → exportArchive)
-- DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
-- SKIP Phase 5 (build log) — skill will handle
-- DO Phase 6 (build report) — report iOS results
-- SKIP Phase 7 (git commit & tag) — skill will handle
-"""
-)
+```bash
+"/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -quit -nographics \
+  -projectPath "{project_root}" \
+  -buildTarget Android \
+  -executeMethod BuildScript.BuildAndroid \
+  -logFile "{project_root}/Builds/logs/android.log" \
+  -appname "{appname}" \
+  -buildVersion "{version}" \
+  -buildNumber "{android_build}" \
+  {developmentBuildFlag}
 ```
 
-iOS builds are SERIAL internally (Unity Xcode gen must complete before xcodebuild can
-archive), but the two platforms can proceed independently — that's what parallel gains.
+`{developmentBuildFlag}` is `-developmentBuild` in development mode, empty in release.
 
-**Step 4d: Post-build (in skill)**
+The scaffolded `BuildScript.cs` reads the `-appname / -buildVersion /
+-buildNumber` custom args and writes
+`Builds/Android/{appname}_{version}_{android_build}.apk` directly — no rename
+step needed for Android.
 
-After BOTH agents complete:
+### iOS: Unity invocation (Xcode project gen)
 
-1. **Build log** — Update `docs/buildlog.md` following the same format as the agent's
-   Phase 5. Include both platform results in a single entry.
-2. **Git commit** — Stage `ProjectSettings/ProjectSettings.asset`, `docs/buildlog.md`,
-   and `Assets/Editor/BuildScript.cs` (if newly created or edited). Commit with
-   `chore: bump version to {version} (android {android_build}, ios {ios_build})`.
-3. **Git tag** — Only if BOTH builds succeeded. Use the higher build number as the
-   canonical tag: `git tag build/{version}+{max(android_build, ios_build)}`.
-   If one platform failed, do NOT tag — report which failed.
-
-## Step 5: Report
-
-**Build report table:**
-
-```
-| Platform | Status  | Artifact                              | Path                  |
-|----------|---------|---------------------------------------|-----------------------|
-| Android  | success | {appname}_{version}_{android_build}.apk | Builds/Android/     |
-| iOS      | success | {appname}_{version}_{ios_build}.ipa     | Builds/iOS/ipa/     |
+```bash
+"/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -quit -nographics \
+  -projectPath "{project_root}" \
+  -buildTarget iOS \
+  -executeMethod BuildScript.BuildIOS \
+  -logFile "{project_root}/Builds/logs/ios-unity.log" \
+  {developmentBuildFlag}
 ```
 
-- **Path column shows the directory only** (clickable in file explorer)
-- **Artifact column shows the renamed filename**
-- Paths are relative to project root
-- If a platform fails, show `failed` with a one-line error summary instead of
-  artifact/path; direct the user to the Unity log at `Builds/logs/{platform}.log`
+Expected output: `Builds/iOS/Unity-iPhone.xcodeproj` (plus the rest of the Xcode
+project tree).
 
-**Additional info:**
-- Version committed: `{version}` (android build {android_build}, ios build {ios_build})
-- Tag created: `build/{version}+{max_build}` (only on fully-successful builds)
-- Remind user to `git push && git push --tags` when ready
+### iOS: ExportOptions.plist
+
+Write to `{project_root}/Builds/ExportOptions.plist` — **outside** `Builds/iOS/`
+so Unity's next build doesn't wipe it:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>{export_method}</string>
+  <key>teamID</key>
+  <string>{team_id}</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>stripSwiftSymbols</key>
+  <{strip_swift_symbols_bool}/>
+  <key>compileBitcode</key>
+  <{compile_bitcode_bool}/>
+</dict>
+</plist>
+```
+
+`{strip_swift_symbols_bool}` and `{compile_bitcode_bool}` are literal XML
+element names: `true` or `false` (self-closing, no value).
+
+### iOS: xcodebuild archive
+
+```bash
+cd "{project_root}/Builds/iOS"
+xcodebuild \
+  -project Unity-iPhone.xcodeproj \
+  -scheme Unity-iPhone \
+  -configuration {Release|Debug} \
+  -archivePath archive.xcarchive \
+  -destination "generic/platform=iOS" \
+  DEVELOPMENT_TEAM="{team_id}" \
+  -allowProvisioningUpdates \
+  archive 2>&1 | tee "{project_root}/Builds/logs/ios-archive.log"
+```
+
+- `Release` when mode=release, `Debug` when mode=development.
+- `DEVELOPMENT_TEAM` + `-allowProvisioningUpdates` keep signing non-interactive
+  on first-time archives.
+
+### iOS: xcodebuild exportArchive
+
+```bash
+xcodebuild -exportArchive \
+  -archivePath "{project_root}/Builds/iOS/archive.xcarchive" \
+  -exportPath "{project_root}/Builds/iOS/ipa" \
+  -exportOptionsPlist "{project_root}/Builds/ExportOptions.plist" \
+  -allowProvisioningUpdates \
+  2>&1 | tee "{project_root}/Builds/logs/ios-export.log"
+```
+
+Expected output: `Builds/iOS/ipa/*.ipa` (exactly one file, named after the Xcode
+scheme — the skill renames it in Phase 8).
+
+### Failure handling
+
+If any invocation exits non-zero:
+
+1. Tail the last ~50 lines of the relevant log.
+2. Grep the log for sandbox signals: `read only`, `licensing mutex`, `permission denied`.
+   If any match, surface: "This looks like a sandbox restriction — Unity/xcodebuild
+   needs write access to paths Claude Code's default sandbox blocks. Re-run with
+   sandbox disabled for this invocation."
+3. Otherwise, surface the tail as-is. Do NOT recommend Unity reinstalls or
+   license cache clears unless the log explicitly points there.
+4. Stop: do not continue to the next platform.
+
+## Step 7: Post-Build Verification
+
+Unity CLI exit 0 is necessary but not sufficient — a no-op run (editor already
+open, sandbox-blocked writes) also exits 0. For EACH platform built, assert all
+of the following:
+
+1. **File exists:** `[ -f "$ARTIFACT" ]`
+2. **Fresh mtime:** `[ "$(stat -f %m "$ARTIFACT")" -gt "{skill_start_epoch}" ]`
+3. **Reasonable size:** `[ "$(stat -f %z "$ARTIFACT")" -gt 10485760 ]` (> 10 MiB —
+   prevents passing on 0-byte placeholders)
+
+Where `$ARTIFACT` is:
+
+- Android: `Builds/Android/{appname}_{version}_{android_build}.apk`
+- iOS: `Builds/iOS/ipa/<scheme>.ipa` (pre-rename)
+
+If ANY check fails, treat as build failure even if exit code was 0. Surface the
+log tail and the check that failed.
+
+## Step 8: Artifact Rename (iOS only)
+
+Android is already named by `BuildScript.cs`. For iOS, `xcodebuild exportArchive`
+names the file after the scheme, so rename it in-place:
+
+```bash
+mv "{project_root}/Builds/iOS/ipa/"*.ipa \
+   "{project_root}/Builds/iOS/ipa/{appname}_{version}_{ios_build}.ipa"
+```
+
+Never `cp` — always `mv`, in the original output directory.
+
+## Step 9: Build Log
+
+Update `docs/buildlog.md` (create with `# Build Log` header if missing).
+
+Entry format, prepended below the header (newest first):
+
+```markdown
+## Build — {version} (android {android_build}, ios {ios_build}) ({YYYY-MM-DD HH:MM})
+
+- **Platforms:** {android, ios, or both}
+- **Mode:** {release or development}
+- **Unity:** {editor_version}
+- **Xcode:** {xcode_version} (iOS only)
+- **Signing method:** {export_method} (iOS only)
+- **Artifact sizes:** Android {N} MiB, iOS {N} MiB
+- **Status:** {success or failed}
+
+### What's new
+
+- {human-readable summary}
+- {another}
+```
+
+Drafting "What's new":
+
+1. Check for git tags matching `build/*`.
+2. **If at least one build tag exists:** diff `{last_build_tag}..HEAD` and curate
+   bullets — group related commits, omit chore/refactor/docs unless user-facing,
+   never dump raw subjects/hashes.
+3. **If no build tag exists (first-ever build):** switch to "Initial build" mode —
+   summarize the current project from top-level scenes + core scripts, NOT git
+   log. A generic "Initial build — current feature set" bullet is preferable to
+   dumping `git log -20`.
+4. For failed builds, replace changelog with a one-line error summary plus a
+   pointer to `Builds/logs/{platform}.log`.
+
+Delegate drafting to the unity-builder agent (it handles the git walk and curation).
+After it returns, append the entry and **lint the resulting file**:
+
+- `# Build Log` header present
+- Entries ordered newest-first
+- Current entry has all required fields (Platforms / Mode / Unity / Status /
+  What's new)
+
+Never delete or modify past entries.
+
+## Step 10: Commit + Tag
+
+### 10a. Reset Unity re-serialization noise
+
+Unity may have touched scenes/meta/settings that we don't want in this commit.
+Reset anything dirty that isn't in the commit whitelist:
+
+```bash
+git status --porcelain | awk '{print $2}' | while read -r f; do
+  case "$f" in
+    ProjectSettings/ProjectSettings.asset) ;;
+    docs/buildlog.md) ;;
+    Assets/Editor/BuildScript.cs) ;;
+    Assets/Editor/BuildScript.cs.meta) ;;
+    *) git checkout -- "$f" 2>/dev/null || true ;;
+  esac
+done
+```
+
+### 10b. Stage + commit
+
+```bash
+git add ProjectSettings/ProjectSettings.asset \
+        docs/buildlog.md \
+        Assets/Editor/BuildScript.cs \
+        Assets/Editor/BuildScript.cs.meta
+```
+
+Commit message:
+
+```
+chore: bump version to {version} (android {android_build}, ios {ios_build})
+```
+
+Drop the unused platform from the parenthetical on single-platform builds:
+
+```
+chore: bump version to {version} (android {android_build})
+chore: bump version to {version} (ios {ios_build})
+```
+
+### 10c. Tag (success only)
+
+```bash
+git tag build/{version}+{max(android_build, ios_build)}
+```
+
+Do NOT tag partially-failed builds. Do NOT push.
+
+## Step 11: Report
+
+Present a table plus diagnostics:
+
+```
+| Platform | Status  | Size    | Artifact                                    | Path              |
+|----------|---------|---------|---------------------------------------------|-------------------|
+| Android  | success | {N MiB} | {appname}_{version}_{android_build}.apk     | Builds/Android/   |
+| iOS      | success | {N MiB} | {appname}_{version}_{ios_build}.ipa         | Builds/iOS/ipa/   |
+```
+
+- Path column = directory only (clickable in file explorer)
+- Artifact column = renamed filename
+- Paths relative to project root
+- On failure: `failed` status, one-line error, and the log path
+
+Then append:
+
+```
+Signing       : {export_method} (Team {team_id})            ← iOS only
+Logs (absolute):
+  - Android:        {project_root}/Builds/logs/android.log
+  - iOS Unity:      {project_root}/Builds/logs/ios-unity.log
+  - iOS archive:    {project_root}/Builds/logs/ios-archive.log
+  - iOS export:     {project_root}/Builds/logs/ios-export.log
+Phase timings :
+  - Pre-flight:     {N}s
+  - Unity iOS:      {N}s
+  - Unity Android:  {N}s   (ran in parallel with xcodebuild)
+  - xcodebuild:     {N}s
+  - Verification:   {N}s
+Committed     : {version} (android {android_build}, ios {ios_build})
+Tagged        : build/{version}+{max_build}
+Reminder      : `git push && git push --tags` when ready
+```
+
+Omit iOS-specific rows when only Android was built, and vice versa.
 
 ## Fallback
 
-If the unity-builder agent is unavailable, execute build steps inline:
-1. Bump versions in `ProjectSettings/ProjectSettings.asset`
-2. Ensure `Assets/Editor/BuildScript.cs` exists (create from template if missing — see
-   the agent's Phase 1)
-3. Invoke Unity in batch mode per platform (see agent Phase 3)
-4. For iOS, run `xcodebuild archive` + `-exportArchive` on the generated Xcode project
-5. Rename artifacts in-place with `mv`
-6. Update `docs/buildlog.md` (curated "What's new", not raw git log)
-7. Commit + tag (tag only on full success)
+If the unity-builder agent is unavailable, inline its content tasks: use the
+scaffold templates in the agent definition for `BuildScript.cs` + `.meta`, and
+walk git log directly for "What's new". Build invocations are already
+main-thread by design.
 
 ## Rules
 
-- NEVER push to remote — only commit and tag locally
-- NEVER modify source code beyond version fields in `ProjectSettings.asset` and the
+- NEVER push to remote — commit and tag locally only
+- NEVER modify source beyond version fields in `ProjectSettings.asset` and the
   scaffolded `BuildScript.cs`
-- NEVER skip the build log — even on failed builds (mark status as "failed")
-- NEVER continue to the next platform if one fails in single-platform mode
-- NEVER tag failed builds — only successful builds get tags
-- NEVER dump raw `git log` into the buildlog — curate human-readable summaries
-- If a build is interactive (Unity Editor asks for input, signing prompts, etc.), STOP
-  and report — the agent cannot handle interactive prompts
-- Unity builds are slow (minutes, sometimes 10+ on a cold cache). When spawning agents,
-  always use `run_in_background: true` for the parallel path; the skill is notified on
-  completion
+- NEVER edit `ProjectSettings.asset` with `sed` — use the Edit tool
+- NEVER skip the build log — mark status "failed" on failures
+- NEVER continue to the next platform if one fails
+- NEVER tag partially-failed builds
+- NEVER dump raw `git log` — always curate
+- NEVER run Unity invocations in parallel on the same project
+- NEVER guess at Unity reinstalls or license cache clears — if a log says
+  `read only` / `licensing mutex` / `permission denied`, it's a sandbox signal
+- NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
+- Unity exit code 0 + a fresh, reasonably-sized artifact is the success bar,
+  not exit code alone
+- Unity builds are slow (5–20+ min on cold compile); don't set tight Bash
+  timeouts — prefer `run_in_background: true` with log tailing, or
+  `timeout: 1800000` (30 min) on Bash
+- Always use absolute paths when invoking the Unity binary
