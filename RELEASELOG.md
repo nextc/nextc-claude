@@ -1,5 +1,10 @@
 # Release Log
 
+## v1.4.1 (2026-04-17)
+
+- **New `nextc-unity` plugin.** `/unity-build` skill + `unity-builder` agent (haiku, medium) for Unity 6.x projects on macOS. Interactive pipeline reads `ProjectSettings/ProjectSettings.asset` (productName, bundleVersion, AndroidBundleVersionCode, nested buildNumber.iPhone), bumps per-platform build numbers, invokes Unity Editor in batch mode via a scaffolded `Assets/Editor/BuildScript.cs`, runs the two-stage iOS build (Unity Xcode gen → `xcodebuild archive` → `-exportArchive` with a default `ExportOptions.plist`), renames artifacts to `{appname}_{version}_{build}.apk|ipa`, appends to `docs/buildlog.md`, and commits with tag `build/{version}+{max_build}`. Mirrors `/flutter-build` UX (single/both platforms, partial mode for parallel orchestration, same buildlog format, same commit/tag scheme). Install with `claude plugin install nextc-unity@nextc-claude --scope local`.
+- `unity-builder` added to the agents rule model+effort table (haiku / medium).
+
 ## v1.4.0 (2026-04-17)
 
 - **Per-agent effort tiers.** Rule `agents` renamed "Model + Effort Selection" and now requires BOTH `model:` and `effort:` in every agent's frontmatter. New tiers (`xhigh` / `high` / `medium`) with a never-`low` floor and a sophistication-downgrade rule. Resolution order documented as precedence (per-invocation override → frontmatter → session `/effort` → model default) so future Agent() tool-schema changes are absorbed automatically.

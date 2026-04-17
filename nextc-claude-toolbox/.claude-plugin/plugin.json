@@ -1,6 +1,6 @@
 {
   "name": "nextc-claude-toolbox",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Utility toolkit for nextc-claude marketplace — validation, linting, and quality checks against Claude Code specs and repo conventions.",
   "author": {
     "name": "nextc"
