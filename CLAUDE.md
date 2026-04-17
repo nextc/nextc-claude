@@ -2,7 +2,7 @@
 
 # nextc-claude
 
-Claude Code marketplace — 7 plugins with custom agents, rules, and workflow skills.
+Claude Code marketplace — 8 plugins with custom agents, rules, and workflow skills.
 
 ```
 # Add marketplace + install global plugins
@@ -14,6 +14,7 @@ claude plugin install nextc-ecc@nextc-claude
 claude plugin install nextc-product@nextc-claude --scope local
 claude plugin install nextc-project-kickoff@nextc-claude --scope local
 claude plugin install nextc-flutter@nextc-claude --scope local
+claude plugin install nextc-unity@nextc-claude --scope local
 claude plugin install nextc-aso@nextc-claude --scope local
 claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 
@@ -28,11 +29,12 @@ claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 ## Structure
 
 ```
-.claude-plugin/marketplace.json   — Marketplace manifest (7 plugins)
+.claude-plugin/marketplace.json   — Marketplace manifest (8 plugins)
 nextc-core/                   — Development workflows (6 skills, 2 agents)
 nextc-product/                    — Product exploration (1 skill, 5 agents)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
+nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
 nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
 nextc-claude-toolbox/             — Utility toolkit (1 skill)
@@ -95,6 +97,14 @@ Agents: `flutter-kickoff-agent` orchestrator (sonnet), `flutter-scaffolder` (hai
 | flutter-l10n-status | `/flutter-l10n-status` | Coverage dashboard |
 
 Agents: `flutter-builder` (haiku), `flutter-l10n-agent` (sonnet)
+
+### nextc-unity
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| unity-build | `/unity-build` | Build Unity APK/IPA (macOS, Unity 6.x), bump version, log, commit |
+
+Agents: `unity-builder` (haiku)
 
 ### nextc-aso
 

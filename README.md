@@ -13,6 +13,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-product** | product-explore | Raw idea to validated proposal with market research |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
+| **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA) |
 | **nextc-aso** | aso-pipeline | App Store Optimization multi-agent pipeline |
 
 ## Recommended Installation
@@ -51,6 +52,12 @@ claude plugin install nextc-product@nextc-claude --scope local
 ```bash
 claude plugin install nextc-project-kickoff@nextc-claude --scope local
 claude plugin install nextc-flutter@nextc-claude --scope local
+```
+
+**Unity projects:**
+```bash
+claude plugin install nextc-project-kickoff@nextc-claude --scope local
+claude plugin install nextc-unity@nextc-claude --scope local
 ```
 
 **App Store Optimization:**
@@ -164,7 +171,7 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 
 ```
 nextc-claude/                         (marketplace root)
-├── .claude-plugin/marketplace.json   (lists 6 plugins)
+├── .claude-plugin/marketplace.json   (lists 8 plugins)
 ├── rules/nextc-claude/               (8 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
 ├── nextc-core/                       (6 skills, 2 agents)
@@ -172,6 +179,7 @@ nextc-claude/                         (marketplace root)
 ├── nextc-product/                    (1 skill, 5 agents)
 ├── nextc-project-kickoff/            (2 skills, 6 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
+├── nextc-unity/                      (1 skill, 1 agent)
 └── nextc-aso/                        (1 skill, 9 agents)
 ```
 

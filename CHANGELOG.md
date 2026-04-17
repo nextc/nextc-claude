@@ -5,6 +5,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-04-17
 
 ### Added
+- New plugin `nextc-unity` with `/unity-build` skill and `unity-builder` agent (haiku, medium). Interactive pipeline for Unity 6.x on macOS: reads `ProjectSettings/ProjectSettings.asset` for `productName`/`bundleVersion`/`AndroidBundleVersionCode`/`buildNumber.iPhone`, bumps per-platform build numbers, invokes Unity Editor in batch mode via a scaffolded `Assets/Editor/BuildScript.cs`, runs the two-stage iOS build (Unity Xcode gen → `xcodebuild archive` → `-exportArchive` with a default `ExportOptions.plist`), renames artifacts to `{appname}_{version}_{build}.apk|ipa`, appends to `docs/buildlog.md`, and commits with tag `build/{version}+{max_build}`. Mirrors `/flutter-build` UX (single/both platforms, partial mode for parallel orchestration, same buildlog format, same commit/tag scheme) with Unity-specific adaptations (separate Android int / iOS string build numbers, 30-min timeout guidance for slow batch builds, editor detection from `ProjectSettings/ProjectVersion.txt`).
 - `/validate` now scans rule bodies, agent bodies, and skill bodies for two content antipatterns (`scripts/schema.js` → `CONTENT_ANTIPATTERNS`):
   - **C01 capability-restriction** — flags hardcoded claims like `CANNOT`, `does not support`, `cannot be overridden` that age poorly as Claude Code evolves
   - **C02 repeated-fetch** — flags prose directing Claude to retrieve online docs on a per-session basis (e.g. `check current Claude Code docs`)

@@ -34,6 +34,12 @@
       "category": "flutter"
     },
     {
+      "name": "nextc-unity",
+      "source": "./nextc-unity",
+      "description": "Unity build — APK/IPA builds for Unity 6.x projects on macOS with version bump, buildlog, and commit.",
+      "category": "unity"
+    },
+    {
       "name": "nextc-aso",
       "source": "./nextc-aso",
       "description": "App Store Optimization pipeline — multi-agent system for keywords, metadata, creatives, and tracking.",

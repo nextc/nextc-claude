@@ -1,0 +1,10 @@
+{
+  "name": "nextc-unity",
+  "version": "1.4.0",
+  "description": "Unity build — APK/IPA builds for Unity 6.x projects on macOS with version bump, artifact rename, buildlog, and commit.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": ["unity", "build", "android", "ios", "apk", "ipa"]
+}

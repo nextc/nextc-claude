@@ -71,6 +71,7 @@ The `Agent()` tool schema is already visible in your system prompt each session 
 | `opensource-packager` | sonnet | medium |
 | `doc-keeper` | haiku | medium |
 | `flutter-builder` | haiku | medium |
+| `unity-builder` | haiku | medium |
 | `flutter-scaffolder` | haiku | medium |
 | `unity-scaffolder` | haiku | medium |
 
