@@ -38,6 +38,17 @@
 
 [Timing rationale. If none, state openly.]
 
+## Vision: 12-Month Ideal
+
+[Filled during Phase 6a CEO Scope Review. Forces the question: does this MVP move meaningfully toward the 12-month ideal, or is it an orthogonal detour?]
+
+| Dimension | Today (status quo) | This proposal (MVP) | 12-month ideal |
+|-----------|--------------------|--------------------|----------------|
+| User experience | | | |
+| Revenue model | | | |
+| Distribution | | | |
+| Moat | | | |
+
 ## Why You (Founder-Market Fit)
 
 [Advantages, assets, expertise, distribution. If none, state openly.]
@@ -117,6 +128,29 @@
 
 | # | Experiment | Tests Assumption | Cost | Duration | Success | Failure |
 |---|-----------|-----------------|------|----------|---------|---------|
+
+## Scope Decisions (CEO Review)
+
+[Filled during Phase 6a. Mode is one of: SCOPE EXPANSION / SELECTIVE EXPANSION / HOLD SCOPE / SCOPE REDUCTION.]
+
+**Mode:** [mode]
+**Rationale:** [1–2 sentences on why this mode applies]
+
+| Proposal | Effort | Decision | Reasoning |
+|----------|--------|----------|-----------|
+| [candidate] | S/M/L | Accepted / Deferred | [reason] |
+
+### Deferred to v2
+
+- [Expansion or feature moved out of MVP scope, with reason]
+
+## The Assignment
+
+[One concrete real-world action the founder commits to before next session. Required in all modes.]
+
+**Before next session:** [specific action — e.g., "Talk to 3 people matching the target persona and ask them Q1 verbatim." / "Ship the cheapest-way-to-test experiment."]
+
+**Success looks like:** [observable outcome — e.g., "At least 1 of 3 confirms they'd be upset if this disappeared." / "Experiment gets 10+ signups in 48 hours."]
 
 ## Next Steps
 

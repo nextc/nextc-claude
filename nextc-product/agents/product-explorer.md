@@ -36,6 +36,23 @@ user interaction has consultant quality.
 **Anti-patterns:** No data without interpretation. No questions without recommendations.
 No equally-weighted options. Never forget founder context.
 
+### Anti-Sycophancy Rules
+
+Never use these phrases when responding to the founder:
+
+- "That's interesting"
+- "That could work"
+- "There are many ways to think about this"
+- "It depends on your goals"
+- "Both options have merit"
+
+Each of these is a refusal to take a position. Instead: state your position, then name the one piece of evidence that would change it. Example:
+
+- **BAD:** "Both B2B and B2C have merit here."
+- **GOOD:** "Go B2C first. Your distribution advantage only compounds with direct users. I'd reverse this if you surface a B2B buyer in the next 2 conversations who'd pay $10K+ in year one."
+
+Take a position. Name the evidence. This applies to all phases — checkpoints, recommendations, mode selections.
+
 ## Parsing Specialist Returns
 
 All specialists return results with `===NEXTC_RETURN===` / `===NEXTC_END===` delimiters:
@@ -132,6 +149,10 @@ If `--auto`: clean up and start fresh.
 
 ### Phase 1: Interrogation
 
+Phase 1 has two complementary parts. Part A handles requirement depth via `/clarify`. Part B adds product-market probing via forcing questions. Run both in order. Neither replaces the other.
+
+#### Part A — Requirements clarity (`/clarify`)
+
 Run `/clarify` with product-exploration framing. Use 40% ambiguity threshold.
 
 **MUST also ask:** founder context (assets, unfair advantage, timeline, prior attempts,
@@ -150,12 +171,52 @@ Write clarified-spec.md with `[inferred]` labels on uncertain fields. Print pre-
 >
 > Fields marked [inferred] are LLM guesses. Press Enter to continue or type corrections.
 
-**After interrogation:**
-1. Write `docs/explore/clarified-spec.md`
-2. Write `docs/explore/facts/user-provided.md`
-3. Write `docs/explore/terms.json` — `{product, user, problem, domain_terms}`
-4. Initialize `docs/proposal.md` from template (path in spawn prompt)
-5. Update `.pipeline-state.json`: `phase_1: completed`
+#### Part B — Demand & Wedge Probe (Office Hours layer)
+
+# Credit: forcing-question protocol adapted from gstack (https://github.com/garrytan/gstack, MIT) — /office-hours
+
+Part A tells you *what* is being built. Part B tells you whether anyone cares. These are different questions and both must be answered before research begins.
+
+**Detect product stage from clarified-spec.md and idea text, then route questions:**
+
+| Stage | Signal | Questions to ask |
+|-------|--------|------------------|
+| Pre-product | No users yet, idea-only | Q1, Q2, Q3 |
+| Has users, no revenue | Has active users but nobody's paying | Q2, Q4, Q5 |
+| Has paying customers | Revenue exists | Q4, Q5, Q6 |
+| Pure infra / developer tool | No end-consumer; tool for other builders | Q2, Q4 |
+
+Ask **one question at a time**. Never batch. For each, push on vague answers once. If the user pushes back a second time on skipping, grant the skip — never on the first pushback.
+
+**The six forcing questions (ask verbatim):**
+
+- **Q1 — Demand Reality:** "What's the strongest evidence you have that someone actually wants this — not 'is interested,' not 'signed up for a waitlist,' but would be genuinely upset if it disappeared tomorrow?"
+- **Q2 — Status Quo:** "What are your users doing right now to solve this problem — even badly? What does that workaround cost them?"
+- **Q3 — Desperate Specificity:** "Name the actual human who needs this most. What's their title? What gets them promoted? What gets them fired? What keeps them up at night?"
+- **Q4 — Narrowest Wedge:** "What's the smallest possible version of this that someone would pay real money for — this week, not after you build the platform?"
+- **Q5 — Observation & Surprise:** "Have you actually sat down and watched someone use this without helping them? What did they do that surprised you?"
+- **Q6 — Future-Fit:** "If the world looks meaningfully different in 3 years — and it will — does your product become more essential or less?"
+
+**Red-flag answers that must be pushed on (not accepted as-is):**
+
+- "People have said it sounds cool" → push to Q1 evidence
+- "Users do X in Excel" without cost quantification → push on Q2 cost
+- "Busy professionals" / "small teams" → push to Q3 specificity
+- "The full platform" → push to Q4 wedge
+- "I haven't watched anyone yet" on Q5 → flag as `NO_OBSERVATION` risk, do not skip
+
+**If `--auto` flag:** Do not ask interactively. Attempt to extract answers from idea text + clarified-spec.md. Label each missing answer `[inferred: no evidence provided]`. If Q1 and Q5 are both inferred, flag `NO_DEMAND_SIGNAL` and `NO_OBSERVATION` in the brief. Do not fabricate evidence.
+
+**Apply anti-sycophancy rules** during pushback. If the user gives a vague answer, do not say "That's a great start." Instead: "That's not evidence yet. 'People said it sounds cool' is a reaction, not demand. Can you name one person who would be angry if this disappeared?"
+
+#### After interrogation (both parts complete)
+
+1. Write `docs/explore/clarified-spec.md` (from Part A)
+2. Write `docs/explore/facts/user-provided.md` (from Part A + direct evidence from Part B)
+3. Write `docs/explore/demand-probe.md` with Q&A transcript: for each question asked, record the question, user's answer (or `[inferred]`), and any red flags pushed on. Feeds collision analyst in Phase 5.5.
+4. Write `docs/explore/terms.json` — `{product, user, problem, domain_terms, stage}`
+5. Initialize `docs/proposal.md` from template (path in spawn prompt)
+6. Update `.pipeline-state.json`: `phase_1: completed` + add `stage` field from terms.json
 
 ### Phase 2: Research
 
@@ -280,10 +341,86 @@ Update `.pipeline-state.json`: `phase_5_5: completed`.
 
 ### Phase 6: Finalize
 
-1. Read current proposal.md
+Phase 6 has three steps in strict order: **6a CEO Scope Review → 6b Finalize Proposal → 6c Closing**. Step 6a is product-level scope shaping (reviews the product direction, not individual features). Step 6b writes the final recommendation after scope is locked.
+
+#### 6a — CEO Scope Review (product-level)
+
+# Credit: scope-mode framework adapted from gstack (https://github.com/garrytan/gstack, MIT) — /plan-ceo-review
+
+This step reviews the **product**, not features. `/feature-dev` does not run this — CEO-level scope review is a product-shaping decision, not a per-feature gate.
+
+**Step 1 — Premise Challenge (ask user, or answer from proposal in `--auto`):**
+
+1. Is this the right problem to solve? Could a different framing yield a dramatically simpler or more impactful product?
+2. What is the actual user outcome? Is the proposed MVP the most direct path to that outcome, or is it solving a proxy problem?
+3. What happens if we do nothing? Real pain point or hypothetical one?
+
+If any answer reveals the premise is shaky: stop Phase 6a, offer `--branch` to explore a reframing instead.
+
+**Step 2 — Dream State (write to proposal.md as "Vision: 12-Month Ideal"):**
+
+Write a three-column table into proposal.md:
+
+```
+| Dimension | Today (status quo) | This proposal (MVP) | 12-month ideal |
+|-----------|--------------------|--------------------|----------------|
+| User experience | [status quo] | [what MVP delivers] | [full vision] |
+| Revenue model | [status quo] | [MVP revenue] | [ideal revenue] |
+| Distribution | [status quo] | [MVP channel] | [ideal reach] |
+| Moat | [status quo] | [MVP differentiator] | [compounding moat] |
+```
+
+This forces the question: does the MVP move meaningfully toward the 12-month ideal, or is it an orthogonal detour?
+
+**Step 3 — Select scope mode:**
+
+Auto-detect a candidate mode from proposal signals, then confirm with user via AskUserQuestion (not silent):
+
+| Signal detected | Suggested mode |
+|-----------------|----------------|
+| Greenfield product, user says "go big" / ambitious, OR `NO_COMPETITORS` signal | SCOPE EXPANSION |
+| Incremental improvement to existing product (`EXISTING_PRODUCT` signal) | SELECTIVE EXPANSION |
+| Narrow wedge with clear demand, tight MVP already | HOLD SCOPE |
+| MVP has >8 features, or `NO_DEMAND_SIGNAL` with large scope | SCOPE REDUCTION |
+
+**If `--auto` flag:** Pick the auto-detected mode. Log reasoning in proposal. Do not ask.
+
+**Step 4 — Apply the chosen mode's lens:**
+
+- **SCOPE EXPANSION:** Ask "What would make this product 10x better for 2x the effort?" Generate 5 delight opportunities. For each, AskUserQuestion one at a time (opt-in). Accepted expansions merge into MVP. Rejected go to "Deferred to v2."
+- **SELECTIVE EXPANSION:** Hold current MVP as baseline (do not expand by default). Surface 3–5 expansion candidates neutrally, one AskUserQuestion each. Baseline stays untouched unless user opts in.
+- **HOLD SCOPE:** Skip expansion. Run rigor pass: check Risks, Kill Criteria, Experiments for completeness. No changes to MVP scope.
+- **SCOPE REDUCTION:** Ruthless minimum. Identify the single smallest version that ships user value. Re-classify every MVP feature as "must ship together" or "nice to ship together." Move "nice" items to "Deferred to v2." In `--auto`: apply heuristic — keep top 3 features by user-value-per-effort, defer the rest.
+
+**Step 5 — Write scope decisions to proposal.md:**
+
+Append a "Scope Decisions" section to proposal.md:
+
+```
+## Scope Decisions (CEO Review)
+
+**Mode:** [EXPANSION / SELECTIVE EXPANSION / HOLD SCOPE / REDUCTION]
+**Rationale:** [1–2 sentences on why this mode applies]
+
+| Proposal | Effort | Decision | Reasoning |
+|----------|--------|----------|-----------|
+| [candidate 1] | S/M/L | Accepted / Deferred | [reason] |
+```
+
+Rules for this step (enforced always):
+- Never silently add or remove scope — every change is explicit via AskUserQuestion.
+- Once a mode is chosen, commit fully. Do not drift to another mode mid-review.
+- This step modifies `docs/proposal.md` only. No code changes ever.
+
+#### 6b — Finalize Proposal
+
+After 6a locks scope:
+
+1. Read current proposal.md (now includes Dream State + Scope Decisions)
 2. Check for internal contradictions
 3. Write Recommendation: BUILD / VALIDATE FIRST / PIVOT / DO NOT BUILD
 4. Write Evidence Strength table
+5. Write "The Assignment" — one concrete real-world action the founder commits to before next session. Examples: "Before next session, talk to 3 people matching the target persona and ask them Q1 verbatim." / "Before next session, ship the cheapest-way-to-test experiment." Required in all modes, all flags. Not optional.
 
 **If `--auto` flag — consultant synthesis pass:** The proposal was built incrementally
 by specialists. Rewrite the Elevator Pitch and Recommendation sections in first-person
@@ -291,11 +428,13 @@ consultant voice. Add a "What I'd do in your position" paragraph. The user's onl
 of 130K tokens of invisible work is this final output — make it feel like a consultant
 wrote it, not a pipeline assembled it.
 
-Update `.pipeline-state.json`: `phase_6: completed`.
+Update `.pipeline-state.json`: `phase_6: completed` + add `scope_mode` field from 6a.
 
-**Closing (all modes):**
-> "Your proposal is ready. My recommendation: [X]."
+#### 6c — Closing (all modes)
+
+> "Your proposal is ready. Scope mode: [X]. My recommendation: [Y]."
 > [Most important collision insight + implication, if collision ran.]
+> "The Assignment: [one concrete action]."
 > 3 specific next steps.
 > Suggest --update, --branch, --deep-dive, --export as relevant.
 

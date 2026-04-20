@@ -102,10 +102,9 @@ Build plan:
   Swift strip : {strip_swift_symbols}
   Bitcode     : {compile_bitcode}
 
-Note: Unity batch mode may incidentally re-serialize scene/meta files when it
-opens the project. This skill commits only ProjectSettings.asset, BuildScript.cs
-(+.meta), and docs/buildlog.md — any other files Unity touches will be reverted
-to HEAD before the commit.
+Note: Unity may re-serialize scene/meta files when opening. Only
+ProjectSettings.asset, BuildScript.cs (+.meta), and docs/buildlog.md are
+committed; other changes are reverted.
 
 Proceed?
 ```
@@ -352,30 +351,53 @@ Entry format, prepended below the header (newest first):
 - {another}
 ```
 
-Drafting "What's new":
+**Delegate the entire draft + review procedure to the unity-builder agent in `whats-new` mode.** The agent owns: date/tag sanity checks, full commit range, `--stat` reading, vague-subject diff reading, organize/rewrite, user review gate (Approve / Edit / Cancel), and returns the approved entry to you. Do NOT draft inline.
 
-1. Check for git tags matching `build/*`.
-2. **If at least one build tag exists:** diff `{last_build_tag}..HEAD` and curate
-   bullets — group related commits, omit chore/refactor/docs unless user-facing,
-   never dump raw subjects/hashes.
-3. **If no build tag exists (first-ever build):** switch to "Initial build" mode —
-   summarize the current project from top-level scenes + core scripts, NOT git
-   log. A generic "Initial build — current feature set" bullet is preferable to
-   dumping `git log -20`.
-4. For failed builds, replace changelog with a one-line error summary plus a
-   pointer to `Builds/logs/{platform}.log`.
+Resolve the last tag first:
 
-Delegate drafting to the unity-builder agent (it handles the git walk and curation).
-After it returns, append the entry and **lint the resulting file**:
+```bash
+last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
+```
+
+Then spawn:
+
+```
+Agent(
+  subagent_type: "nextc-unity:unity-builder",
+  model: "haiku",
+  prompt: """
+  Mode: whats-new
+  Project root: {project_root}
+  Last build tag: {last_tag or empty}
+  Version: {version}
+  Android build: {android_build}        ← include when android in platforms
+  iOS build: {ios_build}                ← include when ios in platforms
+  Platforms: {android|ios|both}
+  Status: {success or failed}
+  Artifacts:
+    android: {size} — {path}            ← one line per built platform
+    ios: {size} — {path}
+  """
+)
+```
+
+The agent returns either:
+
+- `STATUS: APPROVED` with the entry text between `===BUILDLOG_ENTRY_START===` / `===BUILDLOG_ENTRY_END===` delimiters — append the text below the `# Build Log` header in `docs/buildlog.md` (newest-first). Do not re-draft, re-render, or re-lint the content itself; the agent already reviewed it.
+- `STATUS: CANCELLED` — do NOT write to `docs/buildlog.md`, do NOT proceed to Step 10 (commit) or tag. Report the cancellation to the user and stop.
+
+**After appending on APPROVED, run the structural lint:**
 
 - `# Build Log` header present
-- Entries ordered newest-first
-- Current entry has all required fields (Platforms / Mode / Unity / Status /
-  What's new)
+- Entries ordered newest-first (entry dates monotone decreasing top-to-bottom)
+- Every entry date ≤ today (catches future-dated bugs — `git checkout -- docs/buildlog.md` to revert if any fail, then abort)
+- Current entry has all required fields (Platforms / Mode / Unity / Status / What's new non-empty)
 
 Never delete or modify past entries.
 
 ## Step 10: Commit + Tag
+
+**Precondition:** Step 9 returned `STATUS: APPROVED` and the buildlog lint passed. If Step 9 returned `STATUS: CANCELLED` or the lint failed, skip Step 10 entirely — no commit, no tag.
 
 ### 10a. Reset Unity re-serialization noise
 
@@ -409,12 +431,7 @@ Commit message:
 chore: bump version to {version} (android {android_build}, ios {ios_build})
 ```
 
-Drop the unused platform from the parenthetical on single-platform builds:
-
-```
-chore: bump version to {version} (android {android_build})
-chore: bump version to {version} (ios {ios_build})
-```
+On single-platform builds, drop the unused side: `(android {android_build})` or `(ios {ios_build})`.
 
 ### 10c. Tag (success only)
 
@@ -444,17 +461,8 @@ Then append:
 
 ```
 Signing       : {export_method} (Team {team_id})            ← iOS only
-Logs (absolute):
-  - Android:        {project_root}/Builds/logs/android.log
-  - iOS Unity:      {project_root}/Builds/logs/ios-unity.log
-  - iOS archive:    {project_root}/Builds/logs/ios-archive.log
-  - iOS export:     {project_root}/Builds/logs/ios-export.log
-Phase timings :
-  - Pre-flight:     {N}s
-  - Unity iOS:      {N}s
-  - Unity Android:  {N}s   (ran in parallel with xcodebuild)
-  - xcodebuild:     {N}s
-  - Verification:   {N}s
+Logs          : {project_root}/Builds/logs/{android,ios-unity,ios-archive,ios-export}.log
+Phase timings : pre-flight {N}s / Unity iOS {N}s / Unity Android {N}s (parallel w/ xcodebuild) / xcodebuild {N}s / verify {N}s
 Committed     : {version} (android {android_build}, ios {ios_build})
 Tagged        : build/{version}+{max_build}
 Reminder      : `git push && git push --tags` when ready
@@ -464,10 +472,9 @@ Omit iOS-specific rows when only Android was built, and vice versa.
 
 ## Fallback
 
-If the unity-builder agent is unavailable, inline its content tasks: use the
-scaffold templates in the agent definition for `BuildScript.cs` + `.meta`, and
-walk git log directly for "What's new". Build invocations are already
-main-thread by design.
+If unity-builder is unavailable, inline its content tasks (scaffold templates
+for `BuildScript.cs`/`.meta`, walk git log directly). Build invocations are
+already main-thread.
 
 ## Rules
 

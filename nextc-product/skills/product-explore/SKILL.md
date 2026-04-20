@@ -1,9 +1,9 @@
 ---
 name: product-explore
 description: >
-  Product exploration — raw idea to validated proposal with market research, competitor
-  analysis, and collision insights. Supports --auto, --fast, --quick, --no-collision,
-  --update, --branch, --deep-dive, --export.
+  Product exploration — raw idea to validated proposal. Demand probe, research,
+  competitors, collisions, CEO scope review. Flags:
+  --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export.
 user-invocable: true
 argument-hint: [idea or flags: --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export]
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
@@ -14,6 +14,12 @@ allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
 Product exploration pipeline that turns raw ideas into validated proposals.
 Acts as a strategic consultant — interprets data, recommends actions, and
 proactively suggests next steps.
+
+Phase 1 combines `/clarify` (requirements depth) with a 6-question demand probe
+(product-market validation). Phase 6 runs a CEO-level scope review on the drafted
+proposal — EXPANSION / SELECTIVE EXPANSION / HOLD SCOPE / REDUCTION — before
+writing the final recommendation. Every session ends with "The Assignment," a
+concrete real-world action the founder commits to before next session.
 
 **Architecture:**
 - This skill: entry point, preflight checks, flag parsing, mode routing

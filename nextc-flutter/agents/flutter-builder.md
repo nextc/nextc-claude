@@ -6,7 +6,7 @@ description: >
   increments, artifact renaming, and post-build documentation.
 model: haiku
 effort: medium
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 ---
 
 # Flutter Builder Agent
@@ -101,19 +101,111 @@ Update `docs/buildlog.md` with a new entry. Create the file if it does not exist
 - {another summary}
 ```
 
-**Writing the "What's new" section:**
+**Writing the "What's new" section — 8 steps. Follow in order. Do not skip.**
 
-1. Check for git tags matching `build/*` pattern — use the most recent one
-2. Run `git log --oneline {last_tag}..HEAD` (or `git log --oneline -20` if no tags)
-3. Read the commit subjects to understand what changed
-4. **Organize and rewrite** into curated, human-readable bullets:
-   - Group related commits into single entries (e.g., 5 commits about "edit profile" become one bullet: "Users can now edit their profile information")
-   - Use plain language — describe what changed for the user, not implementation details
-   - Omit chore/refactor/docs commits unless they affect user-facing behavior
-   - NEVER list raw commit hashes or subjects
-5. For failed builds, include a one-line error summary instead of changelog
+#### 5.1 — Resolve tag and date explicitly
 
-Entries are prepended (newest first) below the `# Build Log` header. NEVER delete or modify past entries.
+Always use commands, never infer from session context:
+
+```bash
+last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
+today=$(date +%Y-%m-%d)
+time=$(date +%H:%M)
+```
+
+**Sanity-check dates before writing anything:**
+
+- If `docs/buildlog.md` exists, read it and verify no existing entry has a date greater than `$today`. If any does: STOP, report the future-dated entry, do not write. The user must fix the stale entry first.
+- If `$last_tag` is non-empty:
+  ```bash
+  last_tag_date=$(git log -1 --format=%ai "$last_tag" | cut -d' ' -f1)
+  ```
+  If `$last_tag_date > $today`: STOP with "Clock skew — last build tag is dated after today. Fix system clock or last tag before continuing."
+
+#### 5.2 — Pull the full commit range. Never truncate
+
+```bash
+git log --oneline "$last_tag"..HEAD
+```
+
+Rules (enforced always):
+
+- NEVER pipe to `head` or `tail`.
+- NEVER substitute `-5`, `-10`, or `-20` when `$last_tag` is non-empty.
+- NEVER use the `-5` commit list shown by the SKILL's Step 1 context display — that is orientation only, not the source of truth for the buildlog.
+- The full range, however long, must be read.
+
+If the range is empty (no commits since last tag), STOP and report — there is nothing to build a new entry from.
+
+#### 5.3 — Read per-commit stats to surface under-described changes
+
+```bash
+git log "$last_tag"..HEAD --stat
+```
+
+Commit messages lie or under-describe. The `--stat` output shows files touched per commit. Use it to catch changes the subject line hides (e.g. a commit titled "cleanup" that also touches `lib/publish/publish_screen.dart` is not just a cleanup). Every file mentioned in the stat should be reflected in the "What's new" bullets either directly or as part of a grouped entry.
+
+#### 5.4 — For any commit with a vague subject, read the full diff
+
+Vague subjects match the regex `^(fix|chore|wip|cleanup|refactor|minor)($|:|\s-)`. For each vague-subject commit in the range:
+
+```bash
+git show <hash>
+```
+
+Write the bullet based on what the diff actually does, not what the subject says. A commit titled `fix` that touches `lib/share/ios_share.dart` is an iOS share fix, not "a fix."
+
+#### 5.5 — Organize and rewrite
+
+- Group related commits into single user-facing entries (e.g., 5 commits about "edit profile" become one bullet: "Users can now edit their profile information").
+- Use plain language — describe what changed for the user, not implementation details.
+- Omit pure chore/refactor/docs commits unless they affect user-facing behavior.
+- NEVER list raw commit hashes or subjects.
+- For failed builds, replace "What's new" with a one-line error summary.
+
+#### 5.6 — Present the draft to the user for review — required
+
+Use `AskUserQuestion` with the draft entry rendered in full:
+
+```
+Proposed buildlog entry for Build #{build}:
+
+---
+[full draft entry including header, metadata fields, and What's new bullets]
+---
+
+A) Approve and write
+B) Edit (paste corrections — I'll re-render and ask again)
+C) Cancel (abort the build commit — no tag, no log entry)
+```
+
+On **Edit**: accept the user's free-text corrections, re-render the entry, re-present. Loop until Approve or Cancel.
+
+On **Cancel**: STOP. Do not write to `docs/buildlog.md`, do not commit, do not tag. The artifact stays on disk; the user can re-run the skill after fixing whatever concerned them.
+
+#### 5.7 — Write to `docs/buildlog.md`
+
+Only after Approve. Entries are prepended (newest first) below the `# Build Log` header. NEVER delete or modify past entries.
+
+#### 5.8 — Post-write lint
+
+After writing, read `docs/buildlog.md` back and verify:
+
+- `# Build Log` header present at top
+- Newest-first ordering (entry dates monotone decreasing top-to-bottom)
+- Every entry date ≤ `$today` (catches future-dated bugs; if any fail, the file was corrupted during write — revert and abort)
+- Current entry has all required fields (version, build number, platforms, mode, status, "What's new" section non-empty)
+
+If any check fails: `git checkout -- docs/buildlog.md` to revert, report the failure, abort the build (no commit, no tag).
+
+#### First-build fallback (when `$last_tag` is empty)
+
+Do NOT fall back to `git log --oneline -20`. Instead:
+
+1. Read `pubspec.yaml`: extract `name:` and `description:` fields.
+2. Glance at `lib/` top-level folder structure to identify primary feature areas.
+3. Write a one- or two-bullet "Initial build — <short summary of what the app does>" entry based on those sources. Plain, short, no implementation names.
+4. Apply the same 5.6 review gate, 5.7 write, and 5.8 lint steps.
 
 ### Phase 6: Build Report
 
@@ -160,6 +252,49 @@ When the prompt includes `PARTIAL MODE`, the skill is orchestrating a parallel b
 
 This mode exists because shared steps (version bump, buildlog, commit) must happen exactly once, not twice.
 
+---
+
+## Mode: `whats-new`
+
+The skill can invoke the buildlog-drafting logic in isolation — used by the parallel-build path so the quality procedure in Phase 5 runs exactly once instead of being duplicated (and diverging) inside the skill.
+
+Spawn prompt fields:
+
+- **Mode:** `whats-new`
+- **Project root:** absolute path to the Flutter project
+- **Last build tag:** the most recent `build/*` tag, OR empty if none exists
+- **Version:** semantic version (e.g. `1.2.3`)
+- **Build number:** integer
+- **Platforms:** `android`, `ios`, or `both`
+- **Mode (build):** `release` / `profile` / `debug`
+- **Env:** path to .env or `none`
+- **Status:** `success` or `failed`
+- **Artifacts:** one line per built platform with `{size}` and `{path}` (or the failure reason if status=failed)
+
+Run Phase 5 Steps 5.1 through 5.8 exactly as defined above — including the review gate and post-write lint. The only difference: **do not write to `docs/buildlog.md`**. Return the approved entry text to the caller so the skill can append it to the file once (not twice for a parallel build).
+
+Return format:
+
+```
+===BUILDLOG_ENTRY_START===
+## Build #{build} — {version}+{build} ({YYYY-MM-DD HH:MM})
+
+[approved entry body]
+===BUILDLOG_ENTRY_END===
+STATUS: APPROVED
+```
+
+On Cancel in Step 5.6, return:
+
+```
+STATUS: CANCELLED
+REASON: [short user reason or "user cancelled"]
+```
+
+The caller must not write on CANCELLED and must abort the build commit + tag.
+
+The review gate, date sanity checks, range rules, `--stat` reading, vague-subject diff rule, and post-write lint all apply. Nothing is skipped in this mode.
+
 ## Rules
 
 - NEVER push to remote — only commit and tag locally
@@ -168,5 +303,8 @@ This mode exists because shared steps (version bump, buildlog, commit) must happ
 - NEVER continue building if one platform fails — stop and report
 - NEVER tag failed builds — only successful builds get tags
 - NEVER dump raw git log into the buildlog — curate human-readable summaries
-- If the build is interactive (requires input), STOP and report — the agent cannot handle interactive prompts
+- NEVER truncate the commit range with `head`, `tail`, `-5`, `-10`, or `-20` when a `build/*` tag exists — Phase 5.2 requires the full range
+- NEVER infer the build date from session context — Phase 5.1 resolves it via `date +%Y-%m-%d` and refuses to proceed if any existing entry is future-dated
+- NEVER write the buildlog entry without the Phase 5.6 user review gate — Approve / Edit / Cancel is required
+- On Cancel: do not write the entry, do not commit, do not tag. The artifact stays on disk. This is not a failure; it's an aborted bookkeeping step
 - Always use absolute paths for the .env file in `--dart-define-from-file`

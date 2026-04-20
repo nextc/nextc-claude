@@ -1,6 +1,6 @@
 ---
 name: verification-loop
-description: "A comprehensive verification system for Claude Code sessions."
+description: "Build, typecheck, and lint verification loop. Use after code changes to confirm the build is green before handoff, commit, or PR."
 ---
 
 # Verification Loop Skill

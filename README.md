@@ -139,7 +139,7 @@ rm ~/.claude/rules/nextc-claude
 | Kickoff | nextc-project-kickoff | `/flutter-kickoff` or `/unity-kickoff` | Reads proposal, scaffolds production-grade project. |
 | Build features | nextc-core | `/feature-dev` | Full pipeline: plan, implement, review, cleanup, docs. |
 | Localize | nextc-flutter | `/flutter-l10n` | Multi-step l10n pipeline. |
-| Ship | nextc-flutter | `/flutter-build` | Build APK/IPA with logging. |
+| Ship | nextc-flutter | `/flutter-build` | Build APK/IPA with changelog generation (review gate), version bump, commit. |
 
 ### Development Pipeline
 

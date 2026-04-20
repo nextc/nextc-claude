@@ -1,6 +1,6 @@
 ---
 name: aside
-description: Answer a quick side question without interrupting or losing context from the current task. Resume work automatically after answering.
+description: Answer a quick side question without interrupting or losing context from the current task. Resume work automatically after answering. Use when the user interjects mid-task with "aside:", "quick q:", or similar.
 user-invocable: true
 ---
 

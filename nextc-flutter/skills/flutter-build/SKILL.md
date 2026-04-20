@@ -181,13 +181,35 @@ PARTIAL MODE — the skill is orchestrating a parallel build:
 
 After BOTH agents complete:
 
-1. **Build log** — Update `docs/buildlog.md` following the same format as the agent's Phase 5:
-   - Run `git log` to gather changes since last build tag
-   - Write curated "What's new" section
-   - Include both platform results in a single entry
-2. **Git commit** — Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`
-3. **Git tag** — Only if BOTH builds succeeded: `git tag build/{version}+{build}`
-   - If one platform failed, do NOT tag — report which failed
+1. **Build log** — Delegate to the flutter-builder agent in `whats-new` mode. Do NOT draft inline here; the agent owns the procedure (tag/date sanity checks, full commit range, `--stat` reading, vague-commit diff reading, user review gate, post-write lint). Resolve the last tag first via `git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null`, then spawn:
+
+   ```
+   Agent(
+     subagent_type: "nextc-flutter:flutter-builder",
+     model: "haiku",
+     prompt: """
+     Mode: whats-new
+     Project root: {cwd}
+     Last build tag: {resolved tag, or empty string}
+     Version: {version from pubspec.yaml}
+     Build number: {build}
+     Platforms: both
+     Mode (build): {release/profile/debug}
+     Env: {env file path or "none"}
+     Status: {success — or failed, if either platform failed}
+     Artifacts:
+       android: {size} — {path}
+       ios: {size} — {path}
+     """
+   )
+   ```
+
+   The agent returns either:
+   - `STATUS: APPROVED` with the entry text between `===BUILDLOG_ENTRY_START===` / `===BUILDLOG_ENTRY_END===` delimiters — append the text below the `# Build Log` header in `docs/buildlog.md` (newest-first). Do not re-draft, re-render, or re-lint; the agent already did.
+   - `STATUS: CANCELLED` — do NOT write to `docs/buildlog.md`, do NOT proceed to Step 2 (commit) or Step 3 (tag). Report the cancellation to the user and stop.
+
+2. **Git commit** — Only on `STATUS: APPROVED` from step 1. Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`.
+3. **Git tag** — Only if BOTH builds succeeded AND the buildlog was approved: `git tag build/{version}+{build}`. If either platform failed, do NOT tag — report which failed.
 
 ## Step 5: Report
 

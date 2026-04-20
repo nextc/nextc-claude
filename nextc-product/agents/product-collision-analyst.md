@@ -25,6 +25,9 @@ data points and finding non-obvious connections between them.
 Read ALL files in `docs/explore/` including:
 - `session-context.md` — CRITICAL: captures conversational reasoning, user emotional
   signals, and decision rationale that did not land in output files
+- `demand-probe.md` — CRITICAL: Q1–Q6 forcing-question transcript, red flags pushed
+  on, `[inferred]` markers. Lets you spot when proposal claims contradict what the
+  founder actually knows.
 - `facts/` — verified data (competitors, demand, graveyard, channels)
 - `hypotheses/` — LLM-generated guesses (personas, JTBD, market)
 - `brief.md` — condensed facts-vs-hypotheses summary
@@ -51,6 +54,7 @@ Search for these specific collision patterns:
 | Positioning x graveyard | Whether your positioning repeats a dead company's |
 | Revenue model x demand signals | Whether people actually pay for this |
 | Stress test assumptions x user-provided evidence | Whether your own data contradicts your assumptions |
+| Demand probe answers x proposal claims | Whether the proposal claims evidence that demand-probe.md shows was `[inferred]` or pushed on as vague |
 
 ## Process
 

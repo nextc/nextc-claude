@@ -8,7 +8,7 @@ description: >
   content-generation sub-tasks and serves as a fallback pipeline.
 model: haiku
 effort: medium
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 ---
 
 # Unity Builder Agent
@@ -183,26 +183,131 @@ Spawn prompt additionally contains:
 
 - **Project root:** absolute path
 - **Last build tag:** the most recent `build/*` tag, OR empty if none exists
+- **Version:** semantic version
+- **Android build / iOS build:** build numbers (one or both, matching platforms)
+- **Platforms:** `android`, `ios`, or `both`
+- **Status:** `success` or `failed`
+- **Artifacts:** one line per built platform with `{size}` and `{path}`
+  (or the failure reason if status=failed)
 
-Produce a Markdown bullet list to paste under `### What's new`:
+This mode owns the entire buildlog procedure — drafting, review, write, and lint — so the caller only needs to spawn this agent and handle the return value.
 
-1. If **Last build tag is non-empty:**
-   - Run `git -C {project_root} log --oneline {last_build_tag}..HEAD`
-   - Read the subjects, group related commits (e.g. 5 commits about a feature
-     → one bullet)
-   - Use plain user-language — describe the change, not the implementation
-   - Omit pure chore/refactor/docs unless they affect user-facing behavior
-   - NEVER paste raw hashes or subjects
+### Step 1 — Resolve date explicitly; sanity-check against existing buildlog and tag
 
-2. If **Last build tag is empty (first-ever build):**
-   - Do NOT dump `git log -20` as bullets.
-   - Instead, glance at top-level structure: `Assets/Scenes/`, primary scripts
-     under `Assets/Scripts/`, and `productName` / description fields in
-     `ProjectSettings.asset`.
-   - Write a one- or two-bullet "Initial build — <short summary of what the
-     app does>" entry. Plain, short, no implementation names.
+```bash
+today=$(date +%Y-%m-%d)
+time=$(date +%H:%M)
+```
 
-Return the bullets as plain Markdown.
+Then:
+
+- If `{project_root}/docs/buildlog.md` exists, read it and verify no existing entry has a date greater than `$today`. If any does: STOP, report the future-dated entry, do not write. The user must fix the stale entry first.
+- If `Last build tag` is non-empty:
+  ```bash
+  last_tag_date=$(git -C {project_root} log -1 --format=%ai "{last_build_tag}" | cut -d' ' -f1)
+  ```
+  If `$last_tag_date > $today`: STOP with "Clock skew — last build tag is dated after today. Fix system clock or last tag before continuing."
+
+### Step 2 — Pull the full commit range. Never truncate
+
+If `Last build tag` is non-empty:
+
+```bash
+git -C {project_root} log --oneline {last_build_tag}..HEAD
+```
+
+Rules (enforced always):
+
+- NEVER pipe to `head` or `tail`.
+- NEVER substitute `-5`, `-10`, or `-20` when `Last build tag` is non-empty.
+- The full range, however long, must be read.
+
+If the range is empty (no commits since last tag), STOP and report — there is nothing to build a new entry from.
+
+### Step 3 — Read per-commit stats to surface under-described changes
+
+```bash
+git -C {project_root} log {last_build_tag}..HEAD --stat
+```
+
+Commit messages lie or under-describe. The `--stat` output shows files touched per commit. Every file mentioned in the stat should be reflected in the "What's new" bullets either directly or as part of a grouped entry.
+
+### Step 4 — For any commit with a vague subject, read the full diff
+
+Vague subjects match `^(fix|chore|wip|cleanup|refactor|minor)($|:|\s-)`. For each vague-subject commit in the range:
+
+```bash
+git -C {project_root} show <hash>
+```
+
+Write the bullet based on what the diff actually does, not what the subject says.
+
+### Step 5 — Organize and rewrite
+
+- Read the subjects, group related commits (e.g. 5 commits about a feature → one bullet)
+- Use plain user-language — describe the change, not the implementation
+- Omit pure chore/refactor/docs unless they affect user-facing behavior
+- NEVER paste raw hashes or subjects
+- On `Status: failed`, replace "What's new" with a one-line error summary
+
+### Step 6 — Present the draft to the user for review — required
+
+Use `AskUserQuestion` with the draft entry rendered in full:
+
+```
+Proposed buildlog entry:
+
+---
+[full draft entry including header, metadata fields, and What's new bullets]
+---
+
+A) Approve
+B) Edit (paste corrections — I'll re-render and ask again)
+C) Cancel (abort the build commit — no tag, no log entry)
+```
+
+On **Edit**: accept the user's free-text corrections, re-render the entry, re-present. Loop until Approve or Cancel.
+
+### Step 7 — First-build fallback (when `Last build tag` is empty)
+
+Do NOT dump `git log -20` as bullets. Instead, glance at top-level structure: `Assets/Scenes/`, primary scripts under `Assets/Scripts/`, and `productName` / description fields in `ProjectSettings.asset`. Write a one- or two-bullet "Initial build — <short summary of what the app does>" entry. Plain, short, no implementation names. Apply the same Step 6 review gate.
+
+### Step 8 — Return the result to the caller
+
+**Do not write to `docs/buildlog.md`** in this mode. Return the approved entry text between delimiters so the caller (the `/unity-build` skill or the `full` fallback mode) can append it to the file. Return format:
+
+On Approve:
+
+```
+===BUILDLOG_ENTRY_START===
+## Build — {version} (android {android_build}, ios {ios_build}) ({today} {time})
+
+[approved entry body]
+===BUILDLOG_ENTRY_END===
+STATUS: APPROVED
+```
+
+On Cancel:
+
+```
+STATUS: CANCELLED
+REASON: [short user reason or "user cancelled"]
+```
+
+The caller must not write on CANCELLED and must abort the build commit + tag.
+
+### Step 9 — Post-write lint (caller runs this after appending)
+
+After the caller appends the entry to `docs/buildlog.md`, the caller reads the file back and verifies:
+
+- `# Build Log` header present at top
+- Newest-first ordering (entry dates monotone decreasing top-to-bottom)
+- Every entry date ≤ today (catches future-dated bugs)
+- Current entry has all required fields (version, build numbers, platforms, mode, status, "What's new" non-empty)
+
+If any check fails: `git -C {project_root} checkout -- docs/buildlog.md` to revert, report the failure, abort the build (no commit, no tag).
+
+This agent may also run the lint itself in `MODE: full` (since it owns the write in that mode — see Phase F6).
 
 ---
 
@@ -381,13 +486,18 @@ Append to `docs/buildlog.md` (create with `# Build Log` header if missing):
 - ...
 ```
 
-Draft "What's new" using the rules in `Mode: whats-new` above.
+Run Steps 1 through 7 from `Mode: whats-new` above — all of them, including the date sanity checks (Step 1), full commit range (Step 2), `--stat` reading (Step 3), vague-subject diff rule (Step 4), organize (Step 5), and the review gate (Step 6). No shortcuts — the same rigor applies here as in `whats-new` mode; the only difference is that in `MODE: full` you also own the write.
 
-After writing, lint:
+On Approve: append the entry below the `# Build Log` header, then lint:
 
 - `# Build Log` header present at top
-- Entries newest-first
+- Entries newest-first (entry dates monotone decreasing top-to-bottom)
+- Every entry date ≤ today (catches future-dated bugs — revert the file if any fail)
 - Current entry has all required fields
+
+If any lint check fails: `git checkout -- docs/buildlog.md` to revert, report, and abort the build (skip F7 and F8).
+
+On Cancel: do NOT write, do NOT proceed to F7 (commit) or beyond. Report the cancellation. The artifacts stay on disk; the user can re-run after fixing their concern.
 
 ### Phase F7: Commit-scope cleanup + commit + tag
 
@@ -441,6 +551,10 @@ signing info, absolute log paths, and phase timings. On failure, show
 - NEVER continue to the next platform if one fails
 - NEVER tag partially-failed builds
 - NEVER dump raw `git log` — always curate
+- NEVER truncate the commit range with `head`, `tail`, `-5`, `-10`, or `-20` when a `build/*` tag exists — Step 2 of `Mode: whats-new` requires the full range
+- NEVER infer the build date from session context — Step 1 resolves it via `date +%Y-%m-%d` and refuses to proceed if any existing entry is future-dated
+- NEVER write the buildlog entry without the Step 6 user review gate — Approve / Edit / Cancel is required
+- On Cancel: do not write the entry, do not commit, do not tag. The artifacts stay on disk. This is not a failure; it's an aborted bookkeeping step
 - NEVER run Unity invocations in parallel on the same project
   (`Library/` + `Temp/UnityLockfile` contention)
 - NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP

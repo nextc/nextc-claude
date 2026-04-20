@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-description: Simplifies and refines code for clarity, consistency, and maintainability while preserving behavior. Focus on recently modified code unless instructed otherwise.
+description: Simplifies and refines code for clarity, consistency, and maintainability while preserving behavior. Focus on recently modified code unless instructed otherwise. Use PROACTIVELY after implementation and before code review to reduce noise.
 model: sonnet
 effort: high
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]

@@ -70,7 +70,7 @@ Agents: `doc-keeper` (haiku), `ui-ux-developer` (sonnet)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| product-explore | `/product-explore` | Raw idea to validated proposal (supports --auto/--quick/--no-collision) |
+| product-explore | `/product-explore` | Raw idea to validated proposal. Phase 1 pairs `/clarify` with a 6-question demand probe; Phase 6 runs a CEO-level scope review (EXPANSION / SELECTIVE EXPANSION / HOLD / REDUCTION) and writes "The Assignment." Supports --auto/--quick/--no-collision. |
 
 Agents: `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet), `product-shaper` (sonnet), `product-stress-tester` (sonnet), `product-collision-analyst` (opus)
 
@@ -87,7 +87,7 @@ Agents: `flutter-kickoff-agent` orchestrator (sonnet), `flutter-scaffolder` (hai
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| flutter-build | `/flutter-build` | Build APK/IPA, log, commit version bump |
+| flutter-build | `/flutter-build` | Build APK/IPA, generate changelog (whats-new mode with review gate), commit version bump |
 | flutter-l10n | `/flutter-l10n` | Full l10n pipeline |
 | flutter-l10n-audit | `/flutter-l10n-audit` | Scan for hardcoded strings |
 | flutter-l10n-harmonize | `/flutter-l10n-harmonize` | Cross-string consistency |
@@ -102,7 +102,7 @@ Agents: `flutter-builder` (haiku), `flutter-l10n-agent` (sonnet)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| unity-build | `/unity-build` | Build Unity APK/IPA (macOS, Unity 6.x), bump version, log, commit |
+| unity-build | `/unity-build` | Build Unity APK/IPA (macOS, Unity 6.x), generate changelog (review gate), bump version, commit |
 
 Agents: `unity-builder` (haiku)
 
