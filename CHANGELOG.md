@@ -2,6 +2,16 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-23
+
+### Changed
+- Relocated log-ownership rules out of `rules/nextc-claude/git-workflow.md` to their rightful owners. `CHANGELOG.md` (technical, comprehensive, root) guidance — audience, Added/Changed/Fixed/Removed/Perf/Deprecated/Security grouping, and the `git log --stat` + `git show <hash>` completeness rule — moved into `nextc-core/agents/doc-keeper.md` as a new numbered step ahead of the pre-existing `docs/changelog.md` (user-facing) item. `doc-keeper` frontmatter description now lists `CHANGELOG.md` and "Creating New Files" includes it in the root-level structure. `docs/buildlog.md` guidance was already fully codified in `nextc-flutter/agents/flutter-builder.md` Phase 5 and `nextc-unity/agents/unity-builder.md` `Mode: whats-new`; added an explicit "Audience: end users" framing paragraph to both so the rule doesn't rely on the now-removed central doc. `git-workflow.md` "Changelog & Buildlog" section (36 lines of substantive duplication) replaced by a 3-line "Log Ownership" pointer block; the Pre-Commit Check step 3 reference updated to point at `doc-keeper` rather than the deleted anchor. Net effect: single source of truth per log, no drift risk between the rule file and the agents that actually do the work.
+
+## 2026-04-22
+
+### Changed
+- Workflow rule hardening pass: Git commit gate now requires background agents and background Bash tasks to settle before `git commit` (prevents partial-snapshot commits). New "Changelog & Buildlog" section codifies completeness rule — every change must land in some log (grouping OK, silent omission not) — with distinction between `CHANGELOG.md` (technical + comprehensive, audience: developers) and `docs/buildlog.md` (user-friendly + comprehensive, audience: end users). Added `git log --stat` and `git show <hash>` audit guidance. Both `/flutter-build` and `/unity-build` agents tightened: every commit in a build range must be represented (no "omit pure chore/refactor/docs"); refactors/perf/chore rewritten for end users (e.g. "Stability improvements" not "extracted utils module"). Never list file paths, class names, or method names in changelogs. CLAUDE.md "Changelog" section expanded with Perf/Deprecated/Security groups and explicit "every change lands in the log" rule.
+
 ## 2026-04-20
 
 ### Changed

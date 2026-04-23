@@ -181,9 +181,12 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 
 Update rules:
 
-1. Add entries under today's date heading (`## YYYY-MM-DD`), grouped by: Added, Changed, Fixed, Removed
-2. Write human-readable summaries — explain *what changed and why*, not commit messages
-3. If today's date section already exists, append to it
+1. Add entries under today's date heading (`## YYYY-MM-DD`), grouped by: Added, Changed, Fixed, Removed (and Perf / Deprecated / Security when they apply)
+2. Write human-readable summaries — explain *what changed and why*, not commit messages. Technical detail is expected: name the affected plugin, skill, agent, rule, hook, or file when it aids clarity.
+3. **Every change lands in the log** — features, fixes, refactors, perf, chore, docs, config, tooling. Nothing is "too minor" to mention; group related items but never silently omit a category.
+4. If today's date section already exists, append to it.
+
+See `nextc-core/agents/doc-keeper.md` for the full `CHANGELOG.md` completeness rule (including the `git log --stat` + `git show <hash>` audit procedure). The user-facing `docs/buildlog.md` is owned by `flutter-builder` and `unity-builder`, not this file.
 
 ## Release / Version Bump
 

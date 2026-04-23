@@ -192,6 +192,8 @@ Spawn prompt additionally contains:
 
 This mode owns the entire buildlog procedure — drafting, review, write, and lint — so the caller only needs to spawn this agent and handle the return value.
 
+**Audience:** end users of the built app (or stakeholders reading "What's new"). Plain language, no commit hashes / subjects / file paths / class or method names. Covers every change in the range — refactors, chore, perf, docs included (phrased for end users, e.g. "Stability improvements"). On failed builds, replace "What's new" with a one-line error summary. Entries are newest-first under a single `# Build Log` header; past entries are never edited.
+
 ### Step 1 — Resolve date explicitly; sanity-check against existing buildlog and tag
 
 ```bash
@@ -246,8 +248,8 @@ Write the bullet based on what the diff actually does, not what the subject says
 
 - Read the subjects, group related commits (e.g. 5 commits about a feature → one bullet)
 - Use plain user-language — describe the change, not the implementation
-- Omit pure chore/refactor/docs unless they affect user-facing behavior
-- NEVER paste raw hashes or subjects
+- **Every change in the commit range must be represented — nothing is silently omitted.** Refactors, perf work, chore, infra, tooling, and docs commits still land in the buildlog, but are phrased for end users — e.g. a shader refactor → "Visual quality and performance updates", a build-script chore → "Stability improvements". Do NOT drop them.
+- NEVER paste raw hashes, subjects, file paths, class names, or method names
 - On `Status: failed`, replace "What's new" with a one-line error summary
 
 ### Step 6 — Present the draft to the user for review — required

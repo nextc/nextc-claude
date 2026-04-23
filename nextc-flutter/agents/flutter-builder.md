@@ -85,6 +85,8 @@ CRITICAL: Rename in the **original build output directory** — never copy or mo
 
 Update `docs/buildlog.md` with a new entry. Create the file if it does not exist.
 
+**Audience:** end users of the built app (or stakeholders reading "What's new"). Plain language, no commit hashes / subjects / file paths / class or method names. Covers every change in the range — refactors, chore, perf, docs included (phrased for end users, e.g. "Stability improvements"). On failed builds, replace "What's new" with a one-line error summary. Entries are newest-first under a single `# Build Log` header; past entries are never edited.
+
 **Entry format:**
 
 ```markdown
@@ -159,8 +161,8 @@ Write the bullet based on what the diff actually does, not what the subject says
 
 - Group related commits into single user-facing entries (e.g., 5 commits about "edit profile" become one bullet: "Users can now edit their profile information").
 - Use plain language — describe what changed for the user, not implementation details.
-- Omit pure chore/refactor/docs commits unless they affect user-facing behavior.
-- NEVER list raw commit hashes or subjects.
+- **Every change in the commit range must be represented — nothing is silently omitted.** Refactors, perf work, chore, infra, tooling, and docs commits still land in the buildlog, but are phrased for end users — e.g. `chore: rewire analytics provider` → "Behind-the-scenes reliability updates", a perf commit → "Faster startup on older devices", a refactor with no user impact → one bundled bullet like "Stability and maintenance improvements". Do NOT drop them.
+- NEVER list raw commit hashes, subjects, file paths, class names, or method names.
 - For failed builds, replace "What's new" with a one-line error summary.
 
 #### 5.6 — Present the draft to the user for review — required
