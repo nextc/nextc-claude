@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization for Claude Code.",
-    "version": "1.4.3",
+    "version": "1.4.4",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [

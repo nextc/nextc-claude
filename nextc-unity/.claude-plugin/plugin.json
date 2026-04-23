@@ -1,6 +1,6 @@
 {
   "name": "nextc-unity",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Unity build — APK/IPA builds for Unity 6.x projects on macOS with pre-flight checks, post-build verification, iOS signing params, version bump, artifact rename, buildlog, and commit.",
   "author": {
     "name": "nextc"
