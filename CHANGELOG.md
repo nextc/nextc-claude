@@ -2,6 +2,14 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-28
+
+### Added
+- New CRITICAL rule `rules/nextc-claude/verify-before-claim.md` — closes the "I'm pretty sure" gap that was causing fabricated/stale API claims even when an authoritative MCP (Appwrite, Supabase, Context7) was already configured. Rule is explicitly distinct from `practices.md` "Research & Reuse" — that rule scopes new work ("do I need a library?"), this one polices factual assertions ("am I about to call an API or cite a schema/version?"). Defines five mandatory verification triggers (service-specific MCP available; writing/asserting a specific API call, schema, or config; citing a version/deprecation/breaking change; user names a service that needs code; inferring schema from filenames), and a single skip condition (every fact verifiable from local repo state alone). Lists verification order (service MCP → Context7 → local repo → web), self-check ("if I am wrong, does the code break?"), and enforcement points (Edit/Write must confirm verification, code-reviewer flags unverified API surface as CRITICAL). Registered in `CLAUDE.md` rules count (8 → 9) and in the "All projects" rule list. Auto-symlinked into `~/.claude/rules/nextc-claude/` via the existing `setup-rules.sh` (no script changes needed — it links the whole directory).
+
+### Changed
+- `rules/nextc-claude/practices.md` "Research & Reuse" tightened. Removed the loophole carveout *"Skip searching for routine feature work, bug fixes, or simple UI changes in a known stack"* — that exact wording was the autopilot path that let stale training data feel safe. Replaced with: *"Skip searching only when every fact and pattern you need can be verified from the local repo state alone."* Added a leading paragraph that explicitly cross-references the new `verify-before-claim.md` rule and clarifies the scope split (this rule = "do I need a new library?"; that rule = "am I about to assert a fact?"). Context7 search-order entry rephrased from *"Skip if not a library/API question"* to *"Use even when you think you know the answer; training data may be stale"* — matching the Context7 MCP server's own instructions.
+
 ## 2026-04-23
 
 ### Changed
