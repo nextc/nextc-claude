@@ -39,7 +39,28 @@ Verification is skippable only when **every fact you are about to use can be ver
 
 A "known stack" is **not** a skip condition. Stripe is a known stack, and Stripe ships breaking API versions. Supabase is a known stack, and `auth.users` shape has changed across versions. Familiarity is the trap, not the safety net.
 
+## Red-Flag Phrases in Your Own Draft
+
+Before sending any response, scan your draft for these phrases. Each one is a signal that you are about to ship inference as fact:
+
+- "should work", "should be fine", "this is standard"
+- "I'm pretty sure", "I believe", "if I remember correctly", "from what I recall"
+- "typically", "usually", "in most cases" (when describing a specific API or service, not a design pattern)
+- "as expected", "the obvious thing", "by default" (when you haven't opened the config that defines the default)
+
+When you spot one in your own draft, stop. Either verify in-session and replace the hedge with a confirmed statement, or tag the claim explicitly per the tag format below. **Never let one through unflagged.**
+
+## "I Don't Know" Is a Valid Answer
+
+When you cannot verify and the user is about to act on the answer, say "I don't know — would need to check X" instead of producing tagged-but-confident prose. Silence beats fluent uncertainty. Specifically:
+
+- If a tagged-but-uncertain answer would still mislead because the user is about to write code or make a decision against it, downgrade the answer to "I don't know" and name the specific lookup you would need
+- "I don't know" plus a concrete next step ("let me query Context7", "let me read the migration file") is always preferred over a confident-sounding paragraph that turns out to be wrong
+- Do not pad gaps with prose. Length is not a substitute for verification
+
 ## How to Verify (in order of preference)
+
+**Verification must be in-session.** A tool result in *this* conversation. Not a memory of having verified it before, not "I checked the docs last week," not "I'm pretty sure this is what they say." If the lookup is not in this session's tool history, it has not happened — verify now.
 
 1. **Service-specific MCP** — `mcp__appwrite-docs__*`, `mcp__supabase__*`, etc. Use first when the service has a dedicated MCP, because it can return live project data (the actual schema, the actual policies), not just generic docs.
 2. **Context7** — `mcp__plugin_context7_context7__resolve-library-id` → `mcp__plugin_context7_context7__query-docs`. Use for any library/framework/SDK/CLI/API question. The MCP-server instructions even say *"use even when you think you know the answer."*
@@ -52,6 +73,28 @@ A "known stack" is **not** a skip condition. Stripe is a known stack, and Stripe
 - **Visible signal:** when you query a service-specific MCP or Context7 for a substantive fact, that counts as a tool invocation worth surfacing in the `Skills/Agents/Rules` context block (per `agentic-awareness.md`). Add a `**MCP/Docs:**` line if it makes the verification audit-trail clearer.
 - **If verification contradicts memory:** trust verification, drop the memory-based claim, and (if a saved memory caused the drift) update or remove that memory per `auto memory` → "Memory and other forms of persistence."
 
+### Tag format for unverified claims
+
+When stating a fact you did not verify in-session, tag it visibly so the user can spot it without reading your reasoning. Use one of these:
+
+- `(unverified — from memory)` for low-stakes claims where memory is probably right but cost of being wrong is low
+- `(unverified — confirm before relying on this)` when the user is about to act on the claim
+- `(unverified — would need to check X)` when you also want to name the specific lookup that would resolve it
+
+The tag is part of the user-facing sentence, not a footnote. If a sentence is too important to tag (e.g. it's load-bearing for a decision), it is too important to leave unverified — go verify.
+
+## Correction Cascade
+
+When the user corrects a factual claim, treat the correction as evidence that an upstream assumption was wrong, not just the specific claim that got caught. One visible mistake usually means more invisible ones on the same chain of reasoning.
+
+Before continuing:
+
+1. Identify the chain of reasoning that produced the corrected claim — what other facts did you assert in the same response or session that came from the same memory or the same inference path?
+2. Re-audit each one. Verify or downgrade them, do not assume "only the caught one was wrong."
+3. If a saved memory contributed to the drift, update or remove it per `auto memory` rules.
+
+The cheap signal of one correction is often three or four more that the user did not bother to flag. Catch them yourself.
+
 ## The Self-Check (apply before every external claim or external API call you write)
 
 Ask yourself, **out loud in the response if helpful**:
@@ -63,6 +106,8 @@ If both answers are "yes" — verify. No shortcuts.
 ## Enforcement
 
 - Every Edit/Write that touches an external SDK call or service config: confirm verification ran in this session
-- Every factual claim about a library/API/version/deprecation in user-facing text: confirm verification ran or qualify the claim explicitly ("from memory, not verified — confirm before relying on this")
+- Every factual claim about a library/API/version/deprecation in user-facing text: confirm verification ran in-session, or tag the claim explicitly using the tag format above
+- Pre-send draft scan: before any response containing a factual claim, scan for the red-flag phrases. Each one must be either verified or tagged
+- After every user correction: run the correction cascade — re-audit other claims on the same reasoning chain, do not just patch the one that got caught
 - Code review (human or `code-reviewer` agent): flag unverified API surface as a CRITICAL issue, equivalent to a missing error log under `safety.md`
 - When you catch yourself thinking "I'm pretty sure": that is the cue to verify, not the cue to proceed

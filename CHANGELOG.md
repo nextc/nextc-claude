@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-04-30
+
+### Changed
+- `rules/nextc-claude/verify-before-claim.md` strengthened at the **draft-time** layer. The previous version targeted *"do I need to verify before claiming?"* but had no answer for *"what if I think I already did?"* Five new sections close that gap. (1) **Red-Flag Phrases in Your Own Draft** — names eight specific hedges that signal inference being shipped as fact ("should work", "should be fine", "I'm pretty sure", "I believe", "if I remember correctly", "from what I recall", "typically/usually" when describing a specific API, "as expected"/"by default" when the config wasn't opened); the pre-send draft scan is now mandatory. (2) **"I Don't Know" Is a Valid Answer** — explicitly blesses silence + a concrete next step ("would need to check X") over tagged-but-confident prose; length is not a substitute for verification. (3) **Verification must be in-session** added as a leading paragraph to "How to Verify" — a tool result in *this* conversation, not a memory of having verified before. (4) **Tag format for unverified claims** standardized into three forms (`(unverified — from memory)` / `(unverified — confirm before relying on this)` / `(unverified — would need to check X)`); the tag is part of the user-facing sentence, not a footnote, and "too important to tag" means "too important to leave unverified". (5) **Correction Cascade** — when the user corrects a factual claim, re-audit other claims on the same reasoning chain, not just the one that got caught (one visible mistake usually means three or four invisible ones). Enforcement section now lists the pre-send draft scan and the post-correction cascade as explicit steps. Rule grew 68 → 113 lines, still under the 200-line adherence threshold.
+
 ## 2026-04-28
 
 ### Added
