@@ -177,7 +177,7 @@ Do not add any explanation — return ONLY the JSON object.
 ```
 
 **API parameters:**
-- Model: `gpt-4o-mini` (default) or `gpt-4o` (via `--model` flag)
+- Model: `gpt-5-mini` (default) or `gpt-5` (via `--model` flag)
 - Temperature: 0.3 (consistent translations)
 - Response format: JSON object
 
@@ -213,7 +213,7 @@ Collect per-locale reports from all agents and present:
 ```
 ## Translation Report
 
-**Model:** gpt-4o-mini
+**Model:** gpt-5-mini
 **Locales translated:** 19 (4 parallel batches)
 **Keys per locale:** 12 new, 3 updated
 
@@ -248,7 +248,7 @@ python scripts/flutter_translate.py --all --dry-run
 python scripts/flutter_translate.py --locale=ja --force
 
 # Use a different model
-python scripts/flutter_translate.py --all --model=gpt-4o
+python scripts/flutter_translate.py --all --model=gpt-5
 
 # Provide API key (or use OPENAI_API_KEY env var)
 python scripts/flutter_translate.py --all --api-key=sk-...

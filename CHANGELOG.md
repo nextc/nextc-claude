@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-04
+
+### Changed
+- `nextc-flutter/skills/flutter-l10n-translate/SKILL.md` default OpenAI model bumped from `gpt-4o-mini` to `gpt-5-mini`, and the `--model` override example updated from `gpt-4o` to `gpt-5`. Also updated in the report-rendering example. The skill-spec drives the actual translation script generated into projects, so future `/flutter-l10n-translate` runs will default to gpt-5-mini.
+
 ## 2026-04-30
 
 ### Changed
