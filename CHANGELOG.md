@@ -2,6 +2,20 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-07
+
+### Changed
+- `.claude/settings.json` adds three read-only Bash permissions to the project allowlist (`grep *`, `gh search *`, `go vet *`) so common scoping/research commands stop prompting in this repo.
+
+## 2026-05-06
+
+### Added
+- New skill `nextc-product/skills/idea-explore/` (`/idea-explore`) and 9 supporting agents in `nextc-product/agents/`. Multi-framework idea exploration pipeline: spawns 8 strategic-framework analysts in parallel — `ie-jtbd` (Jobs-to-be-Done), `ie-ost` (Opportunity Solution Tree, Teresa Torres), `ie-morphological` (Zwicky Box / Morphological Analysis), `ie-assumption-reversal`, `ie-blue-ocean` (Strategy Canvas + ERRC), `ie-wardley` (Wardley Mapping), `ie-seven-powers` (Hamilton Helmer's 7 Powers), `ie-mom-test` (Rob Fitzpatrick / Steve Blank customer discovery) — then a synthesizer `ie-team-lead` that integrates the 8 outputs into a single convergence/divergence report and writes it to `docs/idea-explorations/<slug>.md`. The skill enforces single-message 8-Agent parallel invocation (sequential is explicitly called out as a failure mode). All analysts are pinned to `sonnet/high`; the synthesizer is `opus/xhigh` per the `agents.md` model+effort floor for multi-artifact synthesis. Each analyst restricts tools to `Read, Grep, Glob`; only `ie-team-lead` gets `Write/Edit/Bash` (so it can create the parent directory and write the report). The skill takes free-form input (`problem` required, `product` optional) and supports problem-only analysis — agents shift to opportunity-space framing when no product is provided. Output schema is rigid across analysts (TL;DR, framework-specific analysis, Insights, Critical Questions, Risks, Next Steps, Confidence) so the team-lead can synthesize without re-parsing prose. Sits alongside `/product-explore` in `nextc-product` — the two are complementary (proposal pipeline vs. multi-lens analysis), not redundant.
+- `rules/nextc-claude/agents.md` Model+Effort Assignments table updated with the 9 new agents (`ie-team-lead` under opus/xhigh; the 8 analysts under sonnet/high).
+
+### Changed
+- `CLAUDE.md` and `README.md` plugin tables updated for the new `nextc-product` count (`1 skill, 5 agents` → `2 skills, 14 agents`); `nextc-product` skill table now lists `idea-explore` alongside `product-explore` with framework + agent breakdown.
+
 ## 2026-05-04
 
 ### Changed

@@ -31,7 +31,7 @@ claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 ```
 .claude-plugin/marketplace.json   — Marketplace manifest (8 plugins)
 nextc-core/                   — Development workflows (6 skills, 2 agents)
-nextc-product/                    — Product exploration (1 skill, 5 agents)
+nextc-product/                    — Product exploration (2 skills, 14 agents)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-unity/                      — Unity build (1 skill, 1 agent)
@@ -71,8 +71,11 @@ Agents: `doc-keeper` (haiku), `ui-ux-developer` (sonnet)
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | product-explore | `/product-explore` | Raw idea to validated proposal. Phase 1 pairs `/clarify` with a 6-question demand probe; Phase 6 runs a CEO-level scope review (EXPANSION / SELECTIVE EXPANSION / HOLD / REDUCTION) and writes "The Assignment." Supports --auto/--quick/--no-collision. |
+| idea-explore | `/idea-explore` | Multi-framework idea exploration. Spawns 8 framework analysts in parallel (JTBD, Opportunity Solution Tree, Morphological Analysis, Assumption Reversal, Blue Ocean, Wardley Mapping, 7 Powers, Mom Test), then a synthesizer that writes a single convergence/divergence report to `docs/idea-explorations/<slug>.md`. Use for deep multi-lens analysis of a problem or product concept. |
 
-Agents: `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet), `product-shaper` (sonnet), `product-stress-tester` (sonnet), `product-collision-analyst` (opus)
+Agents (proposal pipeline): `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet), `product-shaper` (sonnet), `product-stress-tester` (sonnet), `product-collision-analyst` (opus)
+
+Agents (idea-explore frameworks): `ie-jtbd`, `ie-ost`, `ie-morphological`, `ie-assumption-reversal`, `ie-blue-ocean`, `ie-wardley`, `ie-seven-powers`, `ie-mom-test` (all sonnet/high). Synthesizer: `ie-team-lead` (opus/xhigh).
 
 ### nextc-project-kickoff
 

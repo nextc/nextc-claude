@@ -1,5 +1,12 @@
 {
   "enabledPlugins": {
     "nextc-claude-toolbox@nextc-claude": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(grep *)",
+      "Bash(gh search *)",
+      "Bash(go vet *)"
+    ]
   }
 }

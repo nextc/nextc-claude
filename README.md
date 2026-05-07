@@ -10,7 +10,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 |--------|--------|-------------|
 | **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
 | **nextc-ecc** | save-session, verification-loop, council, +13 more | Core agents + quality tools migrated from Everything Claude Code |
-| **nextc-product** | product-explore | Raw idea to validated proposal with market research |
+| **nextc-product** | product-explore, idea-explore | Idea/product analysis — proposal pipeline plus an 8-framework multi-lens explorer |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA) |
@@ -176,7 +176,7 @@ nextc-claude/                         (marketplace root)
 ├── setup-rules.sh
 ├── nextc-core/                       (6 skills, 2 agents)
 ├── nextc-ecc/                        (16 skills, 13 agents, 3 hooks)
-├── nextc-product/                    (1 skill, 5 agents)
+├── nextc-product/                    (2 skills, 14 agents)
 ├── nextc-project-kickoff/            (2 skills, 6 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
 ├── nextc-unity/                      (1 skill, 1 agent)
