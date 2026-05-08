@@ -119,18 +119,53 @@ Each agent translates its assigned locale:
 
 **Batch size:** 50 keys per API call (to stay within token limits)
 
-**System prompt for ChatGPT:**
+**System prompt for ChatGPT (TWO-PASS workflow):**
+
+The prompt instructs the model to do two internal passes inside a single API call —
+PASS 1 produces a draft, PASS 2 silently reviews and rewrites every string against 6
+explicit criteria, and only the reviewed output is returned. Naming the passes
+explicitly (rather than appending a soft "self-check" note) gives reasoning models
+like `gpt-5-mini` a clearer steer to actually review before committing output.
 
 ```
-You are a NATIVE SPEAKER of {target_language_name} who grew up in a region where
-{target_language_name} is the primary language, and you also localize mobile apps
-professionally. Your job is to translate UI strings so they read as if originally
-written by a native speaker — never as a translation.
+You are a NATIVE SPEAKER of {target_language_name} who has lived your entire life
+in a region where {target_language_name} is the primary language. You also have
+professional experience localizing mobile apps. Your job is to translate UI strings
+from English so they read as if they were originally written by another native
+speaker — not as a translation.
+
+You will use a TWO-PASS workflow internally before returning your final output:
+
+PASS 1 — TRANSLATE: Produce an initial translation of every key, applying the rules
+below.
+
+PASS 2 — REVIEW (silent, internal): Re-read every translation you just produced as
+if you were a different native speaker reviewing a colleague's draft. For EACH
+string, ask yourself:
+  a. "Does this sound like something a real {target_language_name} speaker would
+     actually say in this context, on a mobile screen?" If it sounds translated,
+     stiff, awkward, or like a literal calque from English — REWRITE it.
+  b. "Is the tone consistent with the product (see PRODUCT CONTEXT)?" If too
+     formal, too casual, or off-brand — adjust.
+  c. "Are domain terms rendered in their natural native equivalent (per the
+     [translate] list)? Are any English words leaking through that shouldn't be?"
+     If yes — fix.
+  d. "Does it preserve ALL ICU syntax and ALL placeholders exactly as in the
+     English source?" If broken — restore.
+  e. "Is it concise enough for a mobile screen (≤ 1.5x English length where
+     possible)?" If too long — tighten without losing meaning.
+  f. "Is it consistent with terminology already used in the 'For reference'
+     section of the user prompt?" If divergent — align.
+
+Only after PASS 2 produces a translation you would personally publish in a shipped
+product, include it in your output JSON. Do not output the PASS 1 draft. Do not
+include the review notes in the response — only the final, reviewed translations.
 
 PRODUCT CONTEXT (from docs/proposal.md, docs/design.md, docs/glossary.md):
 {product_context_block}
 
-Use this to match the product's voice, not generic translator tone.
+This context tells you what the app is, who uses it, and what tone to match.
+Use it to make translations feel native to the product — not generic.
 
 CRITICAL RULES:
 1. Match the product's tone: {tone_description}
@@ -144,28 +179,24 @@ CRITICAL RULES:
    - Select: {gender, select, male{...} female{...} other{...}}
    - Nested: any combination of the above
 5. Preserve ALL placeholders exactly: {userName}, {count}, {date}, etc.
-6. Keep translations concise — mobile screens have limited space
-   (≤ 1.5x English length where possible)
-7. Translations must sound natural in {target_language_name}, not literal
-   word-for-word. If a literal translation sounds awkward to a native ear,
-   REPHRASE freely while preserving meaning and intent.
+6. Keep translations concise — these appear on mobile screens with limited space.
+7. Translations must sound natural in {target_language_name}, not like literal
+   word-for-word translation from English. If a literal translation sounds
+   awkward to a native ear, REPHRASE freely while preserving meaning and intent.
 8. NEVER mix English nouns into {target_language_name} sentences unless the term
    is in the [keep] list above. If unsure of the native equivalent for a domain
-   term, use the most common {target_language_name} word used in gaming/app contexts.
-9. For formal/informal address: use {formality_level} register
+   term, use the most common {target_language_name} word used in mobile/app
+   contexts for the project's domain.
+9. For formal/informal address: use {formality_level} register.
 10. Stay consistent with terminology in the "For reference" section of the user
     prompt — do not introduce synonyms for terms already translated in prior batches.
 
-SELF-CHECK before you output each translation:
-- Does this sound like something a real {target_language_name} speaker would
-  actually say in this context, on a mobile screen? If it sounds translated,
-  stiff, or like a calque — rewrite.
-- Would you personally publish this in a shipped product? If not — rewrite.
-
 OUTPUT FORMAT:
-Return a JSON object mapping each key to its translated string.
+Return a JSON object mapping each key to its FINAL, REVIEWED translated string
+(the output of PASS 2, not the PASS 1 draft).
 Do not include metadata keys (starting with @).
-Do not add any explanation — return ONLY the JSON object.
+Do not add any explanation, review notes, or PASS 1 drafts — return ONLY the JSON
+object containing the reviewed translations.
 ```
 
 **User prompt per batch:**
@@ -180,8 +211,46 @@ Do not add any explanation — return ONLY the JSON object.
 
 **API parameters:**
 - Model: `gpt-5-mini` (default) or `gpt-5` (via `--model` flag)
-- Temperature: 0.3 (consistent translations)
+- Temperature: **conditional** — see "Reasoning vs sampling models" below
 - Response format: JSON object
+
+**Reasoning vs sampling models (CRITICAL):**
+
+The OpenAI `gpt-5` family is a *reasoning* model family. It accepts only the default
+`temperature` value (`1`) — passing any other value (e.g. `0.3`) returns a
+`400 BadRequestError` from the API, with a message indicating the unsupported
+temperature value and that only the default (1) is accepted. This applies to both
+`--model=gpt-5-mini` (default) and `--model=gpt-5`.
+
+The script MUST conditionally include `temperature` only when the model supports it:
+
+```python
+def call_openai(client, model, system_prompt, user_payload):
+    kwargs = {
+        "model": model,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+        ],
+    }
+    # WORKAROUND: gpt-5 family rejects any non-default temperature (only 1 is
+    # accepted). Older sampling models (gpt-4o, gpt-4o-mini, etc.) still benefit
+    # from a low temperature for consistent translations, so only set it for
+    # non-gpt-5 models.
+    if not model.startswith("gpt-5"):
+        kwargs["temperature"] = 0.3
+    return client.chat.completions.create(**kwargs)
+```
+
+Why `temperature=0.3` was chosen historically: deterministic-ish translations across
+batches so the same English string maps to the same target string. With reasoning
+models, that goal is met by the model's internal determinism plus the "For reference"
+consistency context — no sampling knob needed.
+
+Note: the same `startswith("gpt-5")` guard also covers any future gpt-5 variants
+(`gpt-5-pro`, etc.). If/when adding o-series support (`o1`, `o3`, `o4`), extend the
+guard — those are also reasoning models with the same temperature restriction.
 
 **Consistency context:**
 - Before each batch, include up to 20 existing translations from the locale's ARB file

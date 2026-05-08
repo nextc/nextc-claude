@@ -2,6 +2,14 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-09
+
+### Fixed
+- `nextc-flutter/skills/flutter-l10n-translate/SKILL.md` — Fixed OpenAI temperature handling for reasoning models. The spec previously hardcoded `temperature=0.3` in the generated `scripts/flutter_translate.py`, which causes the default `gpt-5-mini` model (and `gpt-5`) to fail with `400 BadRequestError: Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported.` The spec now requires the script to guard the parameter with `if not model.startswith("gpt-5"): kwargs["temperature"] = 0.3` — gpt-5 family omits temperature entirely; sampling models (`gpt-4o-mini`, etc.) keep `0.3` for consistent translations. Aligned with the validated implementations in the quest_day and open_journal projects. Existing scripts regenerate correctly on the next `/flutter-l10n translate` invocation (Step 1's spec verification triggers re-generation).
+
+### Changed
+- `nextc-flutter/skills/flutter-l10n-translate/SKILL.md` — The translation system prompt now uses a two-pass workflow. PASS 1 generates a draft translation for each string; PASS 2 silently re-reviews every string against 6 named criteria (native-sounding tone, glossary term consistency, ICU/placeholder integrity, mobile screen length fit, cross-batch consistency, no translator artifacts). This replaces the previous single-pass prompt ending with a soft "SELF-CHECK" reminder. Explicit two-pass naming steers reasoning models like gpt-5-mini to actually re-review before committing output rather than treating the check as a closing afterthought. Validated in production by the open_journal project. Existing scripts using the old single-pass prompt will continue to work but produce lower-quality translations; re-running `/flutter-l10n translate` regenerates per the updated spec.
+
 ## 2026-05-08
 
 ### Added
