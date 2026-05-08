@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.5.1 (2026-05-09)
+
+Patch fix to `nextc-flutter/skills/flutter-l10n-translate/SKILL.md` covering two reasoning-model regressions caught in production. (1) The generated `scripts/flutter_translate.py` previously hardcoded `temperature=0.3`, which causes the default `gpt-5-mini` (and `gpt-5`) to fail with `400 BadRequestError: Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported.` Spec now requires guarding the parameter with `if not model.startswith("gpt-5"): kwargs["temperature"] = 0.3` — gpt-5 family omits temperature entirely; sampling models (`gpt-4o-mini`, etc.) keep `0.3` for consistent translations. (2) The translation system prompt now uses an explicit two-pass workflow (PASS 1 generates a draft per string, PASS 2 silently re-reviews against 6 named criteria — native-sounding tone, glossary term consistency, ICU/placeholder integrity, mobile screen length fit, cross-batch consistency, no translator artifacts), replacing the previous single-pass prompt that ended with a soft "SELF-CHECK" reminder. Explicit two-pass naming steers reasoning models like gpt-5-mini to actually re-review before committing output. Both fixes validated in the open_journal project. Existing scripts auto-regenerate on the next `/flutter-l10n translate` invocation since Step 1's spec verification triggers re-generation.
+
 ## v1.5.0 (2026-05-09)
 
 Comprehensive 3-pass quality audit of every skill, agent, rule, and hook in the marketplace against Anthropic's May 2026 skill-creator best practices and the canonical Claude Code skills/agents/hooks specs at `code.claude.com`. Net result: tighter triggers, less imperative noise, ~1,300 lines moved out of always-loaded context into on-demand `references/`, and 4 redundant memory files pruned.
