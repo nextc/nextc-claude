@@ -6,6 +6,7 @@ description: >
   of the l10n pipeline. Incremental.
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
+paths: ["**/pubspec.yaml", "**/l10n/*.arb"]
 ---
 
 # Flutter L10n Translate — ChatGPT Translation Runner
@@ -35,12 +36,12 @@ Configured in `l10n.yaml`. The `en` locale is always the source — never transl
 Check if `scripts/flutter_translate.py` exists. If not, generate it.
 If it exists, verify it's up to date with the current spec.
 
-The script MUST:
+The script should:
 
 1. **Read `app_en.arb`** as the source of truth for all keys and English values
-2. **Read product context (MANDATORY)** — the script MUST build a product context
-   block by scanning for ALL available product documentation. Read each file that
-   exists and extract relevant context for translators:
+2. **Read product context** — the script builds a product context block by scanning
+   for all available product documentation. Read each file that exists and extract
+   relevant context for translators:
    - **`docs/proposal.md`** — product vision, problem statement, target users.
      Extract: app name, one-line description, core value proposition, target audience.
    - **`docs/product-guide.md`** — end-user documentation describing features and
@@ -61,10 +62,11 @@ The script MUST:
    it finds, not just a hardcoded list. New docs added to the project should
    automatically contribute context without requiring script changes.
    The product context block is injected into every translation prompt so the AI
-   understands WHAT the app is, WHO it's for, and WHAT tone to use. Without this
-   context, translations will be generic and miss domain-specific nuance.
-   **If zero product context files are found, STOP and warn the user** — do not
-   proceed with translations that lack product context.
+   understands what the app is, who it's for, and what tone to use. Without this
+   context, translations will be generic and miss domain-specific nuance. If zero
+   product context files are found, stop and warn the user before proceeding — the
+   quality difference between contextualized and uncontextualized translations is large
+   enough that running without context is effectively wasted API spend.
 3. **Read `docs/glossary.md`** to build term lists by tier:
    - `[keep]` terms → pass as "DO NOT translate" list
    - `[translate]` terms → pass as "MUST translate natively" list with hints
@@ -278,7 +280,7 @@ Incremental: only processes keys marked x-translated:false or missing.
 # - save_arb(path, data) -> None  (preserves key ordering)
 # - load_product_context() -> str  (reads proposal.md, design.md, glossary.md,
 #     tone.md, CLAUDE.md — builds a combined product context block for prompts.
-#     MUST return non-empty string or raise error.)
+#     Raises an error if no context files are found — see product context rules above.)
 # - load_glossary(path) -> list[str]
 # - find_untranslated_keys(en_arb, locale_arb) -> dict
 # - translate_batch(keys, target_locale, glossary, product_context, model) -> dict
@@ -303,8 +305,9 @@ requiring `python-dotenv` as a dependency. Example `.env` line:
 OPENAI_API_KEY=sk-proj-abc123...
 ```
 
-The script MUST NOT log or print the API key value — only confirm that a key was found
-and its source (e.g., "Using API key from .env file").
+The script must never log or print the API key value — only confirm that a key was found
+and its source (e.g., "Using API key from .env file"). API keys in logs create a permanent
+credential exposure risk that outlasts the run.
 
 ### Error Handling
 
@@ -332,10 +335,10 @@ Before writing any translation:
 3. **Length check:** Warn if translation is >2x the English length (mobile UI concern)
 4. **Glossary check:** No-translate terms must appear unchanged in translation
 
-**CRITICAL — ICU Placeholder Validation Pitfalls:**
+**ICU Placeholder Validation Pitfalls:**
 
-The placeholder validator MUST only match ASCII identifiers (`[a-zA-Z_][a-zA-Z0-9_]*`)
-as placeholder names. Common bugs:
+The placeholder validator must only match ASCII identifiers (`[a-zA-Z_][a-zA-Z0-9_]*`)
+as placeholder names — this is a load-bearing constraint, not a style preference. Common bugs:
 
 - `\w+` in regex matches Unicode characters — Japanese, Chinese, Arabic text inside
   ICU plural braces will be falsely flagged as "placeholders." Use `[a-zA-Z_]` instead.
@@ -348,7 +351,7 @@ as placeholder names. Common bugs:
 
 ### Script Runtime Notes
 
-- Always run with `PYTHONUNBUFFERED=1` or `python3 -u` to see progress in real-time.
+- Run with `PYTHONUNBUFFERED=1` or `python3 -u` to see progress in real-time.
   Without this, output is buffered and invisible during long background runs.
 - The script should use `print(..., flush=True)` for all progress output.
 

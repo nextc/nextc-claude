@@ -1,6 +1,9 @@
 ---
 name: safety-guard
-description: Use this skill to prevent destructive operations when working on production systems or running agents autonomously.
+description: Prevent destructive operations on production systems and during autonomous agent runs. Sets ask/deny rules around `rm`, `git reset/clean`, force-push, drops, and infra changes.
+when_to_use: |
+  Use when working on production, running agents in full-auto, doing migrations or deploys, or restricting edits to a specific directory. Also when user says "production mode", "lock this down", "don't break anything", "run this safely", "guard rails", or "I'm scared of this script".
+allowed-tools: Read Edit Write Bash
 ---
 
 # Safety Guard — Prevent Destructive Operations

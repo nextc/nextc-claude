@@ -1,0 +1,78 @@
+{
+  "skill_name": "cleanup",
+  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "we just shipped the saved-searches feature — clean up the dead code and any duplicate helpers from the iteration",
+      "expected_output": "Triggers cleanup — post-feature cleanup, deletion-first"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "/cleanup the auth module, I think we left a few unused exports and there's a deprecated useAuthState we replaced with useSession",
+      "expected_output": "Direct invocation, scoped"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "this PR has gotten bloated, can you simplify the changes — drop anything not actually needed for the bug fix",
+      "expected_output": "Triggers cleanup — reduce scope, remove cruft"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "remove the cruft in lib/legacy-helpers/, we migrated all callers off it last sprint",
+      "expected_output": "Triggers cleanup — explicit dead-code removal"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "looking at this code, there's way too much abstraction. simplify it — three layers of factories for one config object",
+      "expected_output": "Triggers cleanup — over-abstraction simplification"
+    },
+    {
+      "id": 6,
+      "should_trigger": true,
+      "query": "we have like 4 different formatDate helpers across different files. consolidate them please",
+      "expected_output": "Triggers cleanup — duplicate consolidation"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "build a new admin dashboard with user search, role management, and audit log",
+      "expected_output": "Should NOT trigger — feature-dev territory"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "the tests in src/lib/cart.test.ts are failing after my changes",
+      "expected_output": "Should NOT trigger — bug-fix territory, broken behavior"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "I want to refactor the entire data layer to use repositories instead of raw queries",
+      "expected_output": "Should NOT trigger — architectural refactor, needs planner not cleanup"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "rename getUserById to fetchUserById everywhere",
+      "expected_output": "Should NOT trigger — pure rename, not deletion-first cleanup"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "format all the files in this repo with prettier",
+      "expected_output": "Should NOT trigger — formatting task, no code reduction"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "audit my plugin install for token bloat",
+      "expected_output": "Should NOT trigger — context-budget territory"
+    }
+  ]
+}

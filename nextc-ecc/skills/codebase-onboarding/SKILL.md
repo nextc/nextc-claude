@@ -1,6 +1,9 @@
 ---
 name: codebase-onboarding
-description: Analyze an unfamiliar codebase and generate a structured onboarding guide with architecture map, key entry points, conventions, and a starter CLAUDE.md. Use when joining a new project or setting up Claude Code for the first time in a repo.
+description: Analyze an unfamiliar codebase and produce a structured onboarding guide — architecture map, key entry points, conventions, starter CLAUDE.md.
+when_to_use: |
+  Use the first time you open a repo, when joining a new team, or when bootstrapping Claude Code in an unfamiliar codebase. Also when user says "I'm new here", "help me understand this repo", "where do I start", "what does this project do", "generate a CLAUDE.md", "onboard me", or "tour the codebase".
+allowed-tools: Agent Read Grep Glob Bash
 ---
 
 # Codebase Onboarding

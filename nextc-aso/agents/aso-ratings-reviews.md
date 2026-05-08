@@ -1,9 +1,9 @@
 ---
 name: aso-ratings-reviews
 description: >
-  Phase 6 specialist: rating prompt strategy, structured review decomposition,
+  Phase 6 ASO specialist — rating prompt strategy, structured review decomposition,
   response templates, reputation plan. Invokes rating-prompt-strategy, review-management,
-  crash-analytics.
+  crash-analytics. Spawned by aso-director — not invoked directly.
 model: sonnet
 effort: high
 tools:

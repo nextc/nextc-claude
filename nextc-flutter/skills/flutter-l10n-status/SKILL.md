@@ -6,6 +6,7 @@ description: >
   percentages.
 user-invocable: true
 allowed-tools: Read Glob Bash Grep
+paths: ["**/pubspec.yaml", "**/l10n/*.arb"]
 ---
 
 # Flutter L10n Status — Coverage Dashboard

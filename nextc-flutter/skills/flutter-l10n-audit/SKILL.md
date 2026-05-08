@@ -6,6 +6,7 @@ description: >
   of the l10n pipeline.
 user-invocable: true
 allowed-tools: Read Grep Glob Bash Write Edit
+paths: ["**/pubspec.yaml", "**/lib/**/*.dart"]
 ---
 
 # Flutter L10n Audit — Text Auditor

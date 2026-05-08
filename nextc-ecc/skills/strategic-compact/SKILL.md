@@ -1,6 +1,9 @@
 ---
 name: strategic-compact
-description: Suggests manual context compaction at logical intervals to preserve context through task phases rather than arbitrary auto-compaction.
+description: Suggest manual `/compact` at logical task boundaries instead of waiting for arbitrary auto-compaction.
+when_to_use: |
+  Use when context approaches limits, between major task phases, after a milestone, or when switching between unrelated tasks. Also when user says "compact", "fresh start", "clean context", "wrap this section", "starting something new", or "context is getting heavy".
+allowed-tools: Read Bash
 ---
 
 # Strategic Compact Skill

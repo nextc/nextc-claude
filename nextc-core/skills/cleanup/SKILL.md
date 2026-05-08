@@ -44,7 +44,7 @@ consolidate duplicates, flatten needless abstractions — one pass at a time.
    - If specific files/paths given → scope to those files only
    - If feature area named → find related files via Explore agent (model: haiku)
    - If no scope given → scope to files changed in current git session (`git diff --name-only HEAD~10`)
-   - NEVER silently expand scope beyond what was requested
+   - Silent scope expansion is the primary way cleanup diffs become unreviable — keep scope exactly as requested
 
 2. **Read all files in scope** — understand current state before touching anything
 
@@ -136,10 +136,7 @@ Run passes in priority order. Each pass is self-contained — verify after each 
 - Reorder parameters for consistency with similar functions
 - **Verification:** `flutter analyze` — no new errors
 
-**After EACH pass:**
-- Run the project's analyzer/linter
-- If the check fails, fix the issue or revert the risky change
-- Do NOT proceed to the next pass until the current pass is green
+**After EACH pass:** run the project's analyzer/linter. The per-pass verification gate exists because cleanup changes compound — an unnoticed reference break in Pass 1 can look like a Pass 3 bug, making it much harder to isolate and revert. If the check fails, fix the issue or revert the risky change before continuing.
 
 ## Phase 3: Report
 
@@ -200,18 +197,17 @@ If invoked with specific file paths:
 - Same pass-by-pass workflow, just narrower scope
 - Useful after a focused feature session
 
-## Rules
+## Principles
 
-- NEVER change behavior unless the user explicitly asks for it
-- NEVER expand scope beyond what was requested or detected
-- NEVER bundle unrelated changes in the same pass
-- NEVER delete code that has active references (check with Grep before removing)
-- ALWAYS run the analyzer/linter after each pass — do not proceed if red
-- ALWAYS report what was done with file:line specificity
-- ALWAYS present the classification before starting cleanup (user can adjust scope)
-- If a cleanup introduces a new error, revert that specific change — don't force it through
-- Commented-out code goes to git history, not to a "just in case" comment block
-- Empty catch blocks found during cleanup: add debug logging per the error-handling rule, do NOT silently remove them
+Behavior preservation and scope discipline are already codified in the Core Principles above — they apply throughout every pass, not just as a checklist at the end.
+
+Three constraints that prevent silent breakage:
+
+- Before removing any code, verify it has no active references (Grep). Dead-looking code with live call sites is the most common cleanup regression.
+- Run the analyzer/linter after each pass and don't continue if it's red. The per-pass gate is what makes each change independently reversible.
+- Present the classification report before making any changes. The user may know about cross-module dependencies or intentional patterns that the classification can't infer.
+
+A few more that aren't obvious from the pass structure: if a cleanup introduces a new error, revert that specific change — don't force it through by adding compensating edits. Commented-out code belongs in git history, not preserved in a "just in case" block. Empty catch blocks found during cleanup should get debug logging added per the error-handling rule, not silently removed — an empty catch almost always means something was swallowed intentionally, and removing it without logging loses that signal entirely.
 
 ## Slop Smell Reference
 

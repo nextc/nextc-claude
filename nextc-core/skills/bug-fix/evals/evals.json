@@ -1,0 +1,78 @@
+{
+  "skill_name": "bug-fix",
+  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "the login button on /signin doesn't do anything when I click it on safari mobile, works fine on chrome desktop. console shows no errors",
+      "expected_output": "Triggers bug-fix — symptom + reproduction context, root cause unclear"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "users are reporting that their saved drafts disappear after refresh sometimes. I can't reproduce locally. supabase realtime is involved",
+      "expected_output": "Triggers bug-fix — intermittent, user reports, ambiguous root cause"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "the analytics chart on the dashboard shows wrong totals — it's off by exactly 1 day for some users. timezone issue maybe?",
+      "expected_output": "Triggers bug-fix — data correctness bug, hypothesis hinted but unconfirmed"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "/bug-fix the stripe webhook keeps logging 'unknown event type' every 30 mins for some users",
+      "expected_output": "Direct invocation"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "something is broken — the export-to-csv button hangs and never finishes. it worked last week",
+      "expected_output": "Triggers bug-fix — regression, vague root cause"
+    },
+    {
+      "id": 6,
+      "should_trigger": true,
+      "query": "the redux state for cart items is mutating somewhere — I can see in devtools that the previous state changes after each action. should be immutable",
+      "expected_output": "Triggers bug-fix — state mutation bug needs tracing"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "the typecheck error says 'Property foo does not exist on type Bar' in src/components/Cart.tsx line 42",
+      "expected_output": "Should NOT trigger — known type error, build-error-resolver territory, root cause not ambiguous"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "build a new password reset flow",
+      "expected_output": "Should NOT trigger — feature-dev territory, no bug"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "I want to add error logging everywhere we currently swallow exceptions",
+      "expected_output": "Should NOT trigger — preventive refactor, not a specific broken behavior"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "explain why we're using zod instead of yup for validation",
+      "expected_output": "Should NOT trigger — codebase-onboarding/explanation, nothing is broken"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "lint warnings in src/lib/, can you fix them",
+      "expected_output": "Should NOT trigger — verification-loop / cleanup territory"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "the test suite has been flaky for weeks, what's the right way to debug flaky tests in general",
+      "expected_output": "Should NOT trigger — meta question, not investigating a specific bug"
+    }
+  ]
+}

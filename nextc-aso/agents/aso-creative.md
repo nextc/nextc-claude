@@ -1,9 +1,10 @@
 ---
 name: aso-creative
 description: >
-  Phase 4 specialist: screenshot strategy, icon direction, video storyboard, CPP
+  Phase 4 ASO specialist — screenshot strategy, icon direction, video storyboard, CPP
   strategy, A/B test design. Invokes screenshot-optimization, app-icon-optimization,
-  ab-test-store-listing, in-app-events, app-clips.
+  ab-test-store-listing, in-app-events, app-clips. Spawned by aso-director — not
+  invoked directly.
 model: sonnet
 effort: high
 tools:

@@ -2,38 +2,34 @@
 /**
  * Strategic Compact Suggester
  *
- * Cross-platform (Windows, macOS, Linux)
- *
- * Runs on PreToolUse or periodically to suggest manual compaction at logical intervals
- *
- * Why manual over auto-compact:
- * - Auto-compact happens at arbitrary points, often mid-task
- * - Strategic compacting preserves context through logical phases
- * - Compact after exploration, before execution
- * - Compact after completing a milestone, before starting next
+ * PreToolUse hook on Edit|Write. Counts tool calls per session and prints a
+ * suggestion to stderr after a threshold so the user can decide whether to
+ * /compact at a logical phase boundary (auto-compact fires at arbitrary points).
  */
+
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-function getTempDir() { return os.tmpdir(); }
+const MAX_STDIN = 1024 * 1024;
+let raw = '';
+let truncated = /^(1|true|yes)$/i.test(String(process.env.ECC_HOOK_INPUT_TRUNCATED || ''));
+
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
   return dirPath;
 }
+
 function writeFile(filePath, content) {
   ensureDir(path.dirname(filePath));
   fs.writeFileSync(filePath, content, 'utf8');
 }
-function log(message) { console.error(message); }
 
-async function main() {
-  // Track tool call count (increment in a temp file)
-  // Use a session-specific counter file based on session ID from environment
-  // or parent PID as fallback
+function run() {
   const sessionId = (process.env.CLAUDE_SESSION_ID || 'default').replace(/[^a-zA-Z0-9_-]/g, '') || 'default';
-  const counterFile = path.join(getTempDir(), `claude-tool-count-${sessionId}`);
+  const counterFile = path.join(os.tmpdir(), `claude-tool-count-${sessionId}`);
   const rawThreshold = parseInt(process.env.COMPACT_THRESHOLD || '50', 10);
   const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0 && rawThreshold <= 10000
     ? rawThreshold
@@ -41,9 +37,9 @@ async function main() {
 
   let count = 1;
 
-  // Read existing count or start at 1
-  // Use fd-based read+write to reduce (but not eliminate) race window
-  // between concurrent hook invocations
+  // ORDER: read existing count + write new count under one fd to keep the
+  // race window short. The race is accepted as benign — at worst the
+  // suggestion fires one tool-call late under heavy parallelism.
   try {
     const fd = fs.openSync(counterFile, 'a+');
     try {
@@ -51,37 +47,61 @@ async function main() {
       const bytesRead = fs.readSync(fd, buf, 0, 64, 0);
       if (bytesRead > 0) {
         const parsed = parseInt(buf.toString('utf8', 0, bytesRead).trim(), 10);
-        // Clamp to reasonable range — corrupted files could contain huge values
-        // that pass Number.isFinite() (e.g., parseInt('9'.repeat(30)) => 1e+29)
         count = (Number.isFinite(parsed) && parsed > 0 && parsed <= 1000000)
           ? parsed + 1
           : 1;
       }
-      // Truncate and write new value
       fs.ftruncateSync(fd, 0);
       fs.writeSync(fd, String(count), 0);
     } finally {
       fs.closeSync(fd);
     }
   } catch {
-    // Fallback: just use writeFile if fd operations fail
     writeFile(counterFile, String(count));
   }
 
-  // Suggest compact after threshold tool calls
+  let message = '';
   if (count === threshold) {
-    log(`[StrategicCompact] ${threshold} tool calls reached - consider /compact if transitioning phases`);
+    message = `[StrategicCompact] ${threshold} tool calls reached - consider /compact if transitioning phases`;
+  } else if (count > threshold && (count - threshold) % 25 === 0) {
+    message = `[StrategicCompact] ${count} tool calls - good checkpoint for /compact if context is stale`;
   }
 
-  // Suggest at regular intervals after threshold (every 25 calls from threshold)
-  if (count > threshold && (count - threshold) % 25 === 0) {
-    log(`[StrategicCompact] ${count} tool calls - good checkpoint for /compact if context is stale`);
-  }
-
-  process.exit(0);
+  return { exitCode: 0, stderr: message || undefined };
 }
 
-main().catch(err => {
-  console.error('[StrategicCompact] Error:', err.message);
-  process.exit(0);
+module.exports = { run };
+
+// ORDER: subscribe to stdin BEFORE async work — Node will buffer chunks until
+// the 'end' handler fires, and the hook contract requires us to echo raw
+// stdin back on stdout so downstream PreToolUse hooks (and the tool itself)
+// see the original input.
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => {
+  if (raw.length < MAX_STDIN) {
+    const remaining = MAX_STDIN - raw.length;
+    raw += chunk.substring(0, remaining);
+    if (chunk.length > remaining) truncated = true;
+  } else {
+    truncated = true;
+  }
+});
+
+process.stdin.on('end', () => {
+  let result;
+  try {
+    result = run();
+  } catch (err) {
+    console.error('[StrategicCompact] Error:', err.message);
+    result = { exitCode: 0 };
+  }
+
+  if (result.stderr) {
+    process.stderr.write(result.stderr + '\n');
+  }
+
+  // EXTERNAL: hook chain expects this stdout passthrough — without it the
+  // next PreToolUse hook (or the tool itself) sees empty input.
+  process.stdout.write(raw);
+  process.exit(result.exitCode || 0);
 });

@@ -1,7 +1,11 @@
 ---
 name: save-session
-description: Save current session state to a dated file in ~/.claude/session-data/ so work can be resumed in a future session with full context.
+description: Capture current session state — what was built, tried, failed, and is left — to a dated file so the next session can pick up exactly where this one ended.
+when_to_use: |
+  Use at end of work session before closing, before hitting context limits, or after solving something worth remembering. Also when user says "save state", "wrap up", "pick this up tomorrow", "session handoff", "before I close", or "snapshot where we are".
 user-invocable: true
+disable-model-invocation: true
+allowed-tools: Read Write Glob Bash
 ---
 
 # Save Session Command

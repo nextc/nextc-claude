@@ -1,7 +1,10 @@
 ---
 name: learn-eval
-description: "Extract reusable patterns from the session, self-evaluate quality before saving, and determine the right save location (Global vs Project)."
+description: Extract reusable patterns from the current session, self-evaluate quality, and place the result in the right scope (Global vs Project).
+when_to_use: |
+  Use after a session that surfaced a reusable pattern worth keeping. Also when user says "remember this", "save this learning", "extract the pattern", "turn this into a skill", "we should reuse this", or "let's not relearn this next time".
 user-invocable: true
+allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
 # /learn-eval - Extract, Evaluate, then Save

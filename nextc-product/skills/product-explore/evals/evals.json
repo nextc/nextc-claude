@@ -1,0 +1,78 @@
+{
+  "skill_name": "product-explore",
+  "_note": "Trigger eval queries for skill-creator run_loop. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "I have an idea — a Mahjong-like game for retired folks who want to keep their minds sharp but the existing apps are too noisy and full of ads. is this worth building",
+      "expected_output": "Triggers product-explore — raw idea + validation ask"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "/product-explore a SaaS that helps small construction firms track client invoices via SMS",
+      "expected_output": "Direct invocation"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "before I write a single line of code I want to validate this product concept — should I build a tool for managing freelance contractor agreements?",
+      "expected_output": "Triggers product-explore — explicit pre-build validation"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "validate this product idea: a journaling app for people in therapy that auto-organizes entries by emotional theme",
+      "expected_output": "Triggers product-explore — explicit validation request"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "competitor scan and demand probe for a new shopping list app — what's already out there and is anyone actually paying for these?",
+      "expected_output": "Triggers product-explore — competitor scan is a Phase explicit feature"
+    },
+    {
+      "id": 6,
+      "should_trigger": true,
+      "query": "is this idea real — a toolkit for indie game devs to manage their solo-launch checklists",
+      "expected_output": "Triggers product-explore — 'is this real' is the validation ask"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "explore this idea using multiple frameworks — JTBD, blue ocean, etc",
+      "expected_output": "Should NOT trigger — idea-explore territory (8 frameworks), not proposal pipeline"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "I have a written proposal in docs/proposal.md — start scaffolding the Flutter project",
+      "expected_output": "Should NOT trigger — proposal exists, flutter-kickoff territory"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "implement the saved-search feature per the spec",
+      "expected_output": "Should NOT trigger — feature-dev territory, no validation needed"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "what user personas should we target for the existing dashboard",
+      "expected_output": "Should NOT trigger — pm-skills user-personas territory, single dimension"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "should I use redux or zustand",
+      "expected_output": "Should NOT trigger — technical decision, council territory"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "audit my Claude Code setup",
+      "expected_output": "Should NOT trigger — workspace-surface-audit territory"
+    }
+  ]
+}

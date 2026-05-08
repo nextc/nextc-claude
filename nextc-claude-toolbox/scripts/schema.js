@@ -1,7 +1,7 @@
 /**
  * Bundled Claude Code specs for validation.
  * Source: https://code.claude.com/docs/en/skills, /sub-agents, /hooks, /plugins-reference
- * Last synced: 2026-04-09
+ * Last synced: 2026-05-08
  */
 
 'use strict';
@@ -10,7 +10,9 @@
 const VALID_SKILL_FIELDS = new Set([
   'name',
   'description',
+  'when_to_use',
   'argument-hint',
+  'arguments',
   'disable-model-invocation',
   'user-invocable',
   'allowed-tools',

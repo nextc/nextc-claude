@@ -6,6 +6,7 @@ description: >
   verbs, and dead keys.
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
+paths: ["**/pubspec.yaml", "**/l10n/*.arb"]
 ---
 
 # Flutter L10n Verify — Post-Translation Quality Gate

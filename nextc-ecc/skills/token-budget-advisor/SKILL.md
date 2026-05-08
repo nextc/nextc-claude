@@ -1,9 +1,9 @@
 ---
 name: token-budget-advisor
-description: >-
-  Offers the user a choice about response depth before answering. TRIGGER when: user wants to
-  control response length, token budget, or answer depth (e.g. "short version", "detailed
-  answer", "token budget"). DO NOT TRIGGER for auth/session tokens.
+description: Offer the user a choice about response depth before answering — short / standard / detailed / exhaustive.
+when_to_use: |
+  Use when user wants to control response length or answer depth. Triggers: "short version", "tl;dr", "detailed answer", "exhaustive", "brief", "quick answer", "token budget", or "depth check". DO NOT trigger for auth/session/API tokens — that's a different "token".
+allowed-tools: AskUserQuestion
 ---
 
 # Token Budget Advisor (TBA)

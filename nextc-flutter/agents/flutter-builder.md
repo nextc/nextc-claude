@@ -300,13 +300,10 @@ The review gate, date sanity checks, range rules, `--stat` reading, vague-subjec
 ## Rules
 
 - NEVER push to remote — only commit and tag locally
-- NEVER modify source code beyond the version line in pubspec.yaml
-- NEVER skip the build log update — even on failed builds (mark status as "failed")
-- NEVER continue building if one platform fails — stop and report
-- NEVER tag failed builds — only successful builds get tags
-- NEVER dump raw git log into the buildlog — curate human-readable summaries
-- NEVER truncate the commit range with `head`, `tail`, `-5`, `-10`, or `-20` when a `build/*` tag exists — Phase 5.2 requires the full range
-- NEVER infer the build date from session context — Phase 5.1 resolves it via `date +%Y-%m-%d` and refuses to proceed if any existing entry is future-dated
-- NEVER write the buildlog entry without the Phase 5.6 user review gate — Approve / Edit / Cancel is required
+- NEVER modify source code beyond the version line in `pubspec.yaml`
+- NEVER continue building if one platform fails — partial artifacts mislead callers
+- NEVER tag failed builds — tags are public markers of good builds only
+- Always update the build log, even on failure (mark status as "failed") — skipping it breaks the tag-range history used by the next build
+- The Phase 5.6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — Phase 5 describes the full procedure
 - On Cancel: do not write the entry, do not commit, do not tag. The artifact stays on disk. This is not a failure; it's an aborted bookkeeping step
-- Always use absolute paths for the .env file in `--dart-define-from-file`
+- Always use absolute paths for the `.env` file in `--dart-define-from-file`

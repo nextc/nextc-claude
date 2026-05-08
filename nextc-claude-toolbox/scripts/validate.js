@@ -41,7 +41,7 @@ const { formatTable, formatSummary, formatJSON } = require('./reporters');
 const VALID_SCOPES = new Set(['all', 'skills', 'agents', 'hooks', 'manifests', 'rules']);
 
 function parseArgs(argv) {
-  const args = { root: '.', plugin: null, check: 'all', json: false, rulesDir: null };
+  const args = { root: '.', plugin: null, check: 'all', json: false, rulesDir: null, audit: false };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--root': args.root = argv[++i]; break;
@@ -49,6 +49,7 @@ function parseArgs(argv) {
       case '--check': args.check = argv[++i]; break;
       case '--json': args.json = true; break;
       case '--rules-dir': args.rulesDir = argv[++i]; break;
+      case '--audit': args.audit = true; break;
     }
   }
   if (!VALID_SCOPES.has(args.check)) {
@@ -224,7 +225,18 @@ function discoverPlugins(rootDir) {
 
 // ─── Validators ────────────────────────────────────────────────────
 
-function validateSkills(pluginName, pluginDir) {
+// Skills with high enough invocation traffic that an evals/evals.json file
+// is recommended for description-optimization via skill-creator's run_loop.
+const HIGH_TRAFFIC_SKILLS = new Set([
+  'feature-dev', 'bug-fix', 'cleanup', 'clarify',
+  'team-feature-dev', 'product-explore',
+]);
+
+// Audit-mode threshold: warn when MUST/ALWAYS/NEVER count exceeds this.
+const IMPERATIVE_DENSITY_LIMIT = 5;
+
+function validateSkills(pluginName, pluginDir, options = {}) {
+  const audit = !!options.audit;
   const results = [];
   const skillsDir = path.join(pluginDir, 'skills');
   if (!fs.existsSync(skillsDir)) return results;
@@ -295,6 +307,45 @@ function validateSkills(pluginName, pluginDir) {
 
     // S08 (C01 / C02): Content antipatterns in skill body
     results.push(...scanContentAntipatterns(content, pluginName, 'skill', dir.name));
+
+    // ─── Audit-mode checks (gated by --audit flag) ───────────────
+    if (audit) {
+      // S09: when_to_use coverage — recommended for triggering accuracy
+      if (!fm.when_to_use && fm.description) {
+        const desc = typeof fm.description === 'string' ? fm.description : '';
+        const hasInlineTriggers = /\b(use\s+(when|after|before|to|for)|triggers?:|when user says|invoke when|use this skill)\b/i.test(desc);
+        if (!hasInlineTriggers) {
+          results.push(warn(pluginName, 'skill', dir.name, 'S09',
+            'No when_to_use field and no inline trigger phrases in description (combat undertriggering per skill-creator best practice)'));
+        }
+      }
+
+      // S10: MUST/ALWAYS/NEVER density in skill body
+      const body = stripFrontmatter(content);
+      const imperatives = (body.match(/\b(MUST|ALWAYS|NEVER)\b/g) || []).length;
+      if (imperatives > IMPERATIVE_DENSITY_LIMIT) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S10',
+          `${imperatives} MUST/ALWAYS/NEVER occurrences (target: ≤${IMPERATIVE_DENSITY_LIMIT}). Reframe stylistic imperatives as prose with explained "why".`));
+      }
+
+      // S11: evals/evals.json existence for high-traffic skills
+      if (HIGH_TRAFFIC_SKILLS.has(dir.name)) {
+        const evalsPath = path.join(skillsDir, dir.name, 'evals', 'evals.json');
+        if (!fs.existsSync(evalsPath)) {
+          results.push(warn(pluginName, 'skill', dir.name, 'S11',
+            'High-traffic skill missing evals/evals.json (recommended for skill-creator run_loop description optimization)'));
+        }
+      }
+
+      // S12: when_to_use + description combined size cap (1536 chars per canonical Anthropic spec)
+      const desc = typeof fm.description === 'string' ? fm.description : '';
+      const wtu = typeof fm.when_to_use === 'string' ? fm.when_to_use : '';
+      const combined = desc.length + wtu.length;
+      if (combined > 1536) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S12',
+          `description + when_to_use combined is ${combined} chars (canonical truncation cap: 1536). Trim or move detail to body.`));
+      }
+    }
   }
 
   return results;
@@ -653,7 +704,7 @@ function main() {
     if (!fs.existsSync(plugin.source)) continue;
 
     if (scope === 'all' || scope === 'skills') {
-      allResults.push(...validateSkills(plugin.name, plugin.source));
+      allResults.push(...validateSkills(plugin.name, plugin.source, { audit: args.audit }));
     }
     if (scope === 'all' || scope === 'agents') {
       allResults.push(...validateAgents(plugin.name, plugin.source));

@@ -1,0 +1,78 @@
+{
+  "skill_name": "feature-dev",
+  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --model claude-opus-4-7 --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "ok so I need to add a saved-search feature to the dashboard, users should be able to name a query and pin it to their sidebar so they can rerun it later. spec is in docs/spec/saved-searches.md",
+      "expected_output": "Triggers feature-dev pipeline (plan → implement → review → cleanup → docs)"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "build the OAuth login flow we discussed yesterday. supabase auth, google + apple, and the post-signup onboarding screen",
+      "expected_output": "Triggers feature-dev — multi-file UI+backend feature"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "implement the rate limiting middleware. spec is at docs/spec/rate-limit.md, should be redis-backed and per-user-id",
+      "expected_output": "Triggers feature-dev — has spec, multi-file backend feature"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "add a new feature: when a user finishes a quiz, show them their streak and offer to share to twitter. tracking event 'quiz_completed' should fire",
+      "expected_output": "Triggers feature-dev — UI + analytics + service integration"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "/feature-dev export-to-csv on the reports page. should download a UTF-8 CSV with all visible rows",
+      "expected_output": "Direct invocation"
+    },
+    {
+      "id": 6,
+      "should_trigger": true,
+      "query": "we need to ship the team invites flow. invite by email, role picker (admin/member), pending state in the UI. start with the data model in lib/db/invites.ts",
+      "expected_output": "Triggers feature-dev — full-stack feature with named entry point"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "the CI is red on main, can you look at why the typecheck is failing in apps/web/components/SearchBar.tsx",
+      "expected_output": "Should NOT trigger — bug-fix territory, build error not a feature"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "can you rename the variable userToken to authToken across the auth module",
+      "expected_output": "Should NOT trigger — refactor/rename, not a new feature"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "explain how the existing checkout flow works, I'm new to this repo",
+      "expected_output": "Should NOT trigger — codebase-onboarding territory"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "the saved-searches feature is mostly done, can you clean up the dead code and remove the duplicated helpers in lib/searches/",
+      "expected_output": "Should NOT trigger — cleanup territory"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "I want to think through whether we should build saved searches at all — what are the tradeoffs?",
+      "expected_output": "Should NOT trigger — clarify/council territory, no decision yet"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "review my last commit before I push",
+      "expected_output": "Should NOT trigger — code-reviewer agent territory"
+    }
+  ]
+}

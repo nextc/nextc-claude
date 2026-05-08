@@ -1,8 +1,9 @@
 ---
 name: aso-metadata
 description: >
-  Phase 3 specialist: metadata optimization, compliance validation, promotional text,
-  What's New templates. Invokes metadata-optimization, android-aso, app-launch, app-store-featured.
+  Phase 3 ASO specialist — metadata optimization, compliance validation, promotional text,
+  What's New templates. Invokes metadata-optimization, android-aso, app-launch,
+  app-store-featured. Spawned by aso-director — not invoked directly.
 model: sonnet
 effort: high
 tools:

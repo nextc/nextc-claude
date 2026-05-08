@@ -6,6 +6,7 @@ description: >
   Incremental — only new/changed keys.
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
+paths: ["**/pubspec.yaml", "**/lib/**/*.dart", "**/l10n/*.arb"]
 ---
 
 # Flutter L10n Extract — String Collector

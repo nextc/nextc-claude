@@ -1,6 +1,10 @@
 ---
 name: opensource-pipeline
-description: "Open-source pipeline: fork, sanitize, and package private projects for safe public release. Chains 3 agents (forker, sanitizer, packager). Triggers: '/opensource', 'open source this', 'make this public', 'prepare for open source'."
+description: Open-source release pipeline — fork, sanitize, and package private projects for safe public release. Chains forker, sanitizer, packager agents.
+when_to_use: |
+  Use when preparing a private repo for public release. Triggers: "/opensource", "open source this", "make this public", "prepare for open source", "release publicly", "strip secrets before pushing", "ship this to GitHub publicly".
+disable-model-invocation: true
+allowed-tools: Agent Read Write Edit Glob Grep Bash
 ---
 
 # Open-Source Pipeline Skill

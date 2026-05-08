@@ -1,9 +1,10 @@
 ---
 name: aso-tracking
 description: >
-  Phase 7 specialist: KPI definitions with data tier requirements, attribution
-  framework, A/B test plans with platform constraints, re-run cadence.
-  Invokes app-analytics, asc-metrics, ab-test-store-listing.
+  Phase 7 ASO specialist — KPI definitions with data tier requirements, attribution
+  framework, A/B test plans with platform constraints, re-run cadence. Invokes
+  app-analytics, asc-metrics, ab-test-store-listing. Spawned by aso-director — not
+  invoked directly.
 model: sonnet
 effort: high
 tools:

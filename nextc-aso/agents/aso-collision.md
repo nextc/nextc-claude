@@ -1,9 +1,9 @@
 ---
 name: aso-collision
 description: >
-  Phase 8 specialist: cross-phase synthesis, non-obvious connection detection,
-  re-run recommendations. Reads all phase outputs and handoffs to find insights
-  no single phase produced alone.
+  Phase 8 ASO specialist — cross-phase synthesis, non-obvious connection detection,
+  re-run recommendations. Reads all phase outputs and handoffs to find insights no
+  single phase produced alone. Spawned by aso-director — not invoked directly.
 model: sonnet
 effort: high
 tools:

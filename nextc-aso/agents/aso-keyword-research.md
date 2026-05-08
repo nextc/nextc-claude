@@ -1,8 +1,9 @@
 ---
 name: aso-keyword-research
 description: >
-  Phase 2 specialist: keyword discovery, scoring, multi-locale synthesis, seasonal
-  calendar. Invokes keyword-research and seasonal-aso skills.
+  Phase 2 ASO specialist — keyword discovery, scoring, multi-locale synthesis, seasonal
+  calendar. Invokes keyword-research and seasonal-aso skills. Spawned by aso-director —
+  not invoked directly.
 model: sonnet
 effort: high
 tools:

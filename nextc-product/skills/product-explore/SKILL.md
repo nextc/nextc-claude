@@ -1,11 +1,10 @@
 ---
 name: product-explore
-description: >
-  Product exploration — raw idea to validated proposal. Demand probe, research,
-  competitors, collisions, CEO scope review. Flags:
-  --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export.
+description: Turn a raw product idea into a validated proposal — demand probe, research, competitor scan, collision analysis, CEO-level scope review.
+when_to_use: |
+  Use when going from rough idea to written proposal. Also when user says "should I build this", "validate this idea", "is this a real product", "explore this product idea", "competitor scan", "scope this", or supplies a half-baked concept they want pressure-tested.
 user-invocable: true
-argument-hint: [idea or flags: --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export]
+argument-hint: "[idea or flags: --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export]"
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
 ---
 

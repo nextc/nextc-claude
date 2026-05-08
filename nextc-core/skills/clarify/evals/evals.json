@@ -1,0 +1,78 @@
+{
+  "skill_name": "clarify",
+  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "I want to build something where users can share their workout playlists with friends but only friends not everyone, and friends should be able to like the playlists and maybe comment idk",
+      "expected_output": "Triggers clarify — vague scope, needs Socratic interview"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "/clarify I'm thinking about adding a notification system but not sure what triggers what",
+      "expected_output": "Direct invocation, ambiguous spec"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "we need 'better search' on the explore page. that's all I have so far, can you help me figure out what that means concretely",
+      "expected_output": "Triggers clarify — explicit ask to refine vague requirement"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "help me think through the requirements for a referral program. should I gate the reward on signup or on first purchase, do we cap rewards, etc",
+      "expected_output": "Triggers clarify — open product questions, needs structured interview"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "my PM gave me this one-liner: 'add team workspaces'. before I write code, what are the things I need to nail down?",
+      "expected_output": "Triggers clarify — explicit pre-implementation requirement gathering"
+    },
+    {
+      "id": 6,
+      "should_trigger": true,
+      "query": "I want to add 'AI features' to my product, not sure where to start",
+      "expected_output": "Triggers clarify — fully unclear, needs scope definition"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "implement the saved-searches feature per docs/spec/saved-searches.md",
+      "expected_output": "Should NOT trigger — spec exists, feature-dev territory"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "the search bar is broken, clicking it doesn't open the dropdown",
+      "expected_output": "Should NOT trigger — concrete bug, bug-fix territory"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "explain how the auth system works in this codebase",
+      "expected_output": "Should NOT trigger — codebase-onboarding territory, not requirement gathering"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "should I use redux or zustand for this project",
+      "expected_output": "Should NOT trigger — technical decision, council territory not Socratic interview"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "can you turn this 5-question requirement spec I wrote into a docs/spec/ file",
+      "expected_output": "Should NOT trigger — already concrete, just needs formatting"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "validate this product idea — is it worth building",
+      "expected_output": "Should NOT trigger — product-explore territory, not requirement gathering for known idea"
+    }
+  ]
+}

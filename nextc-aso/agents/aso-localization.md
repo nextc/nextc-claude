@@ -1,8 +1,9 @@
 ---
 name: aso-localization
 description: >
-  Phase 5 specialist: market prioritization, transcreation, CJK keyword repacking,
-  confidence scoring, compliance per locale. Invokes localization skill.
+  Phase 5 ASO specialist — market prioritization, transcreation, CJK keyword repacking,
+  confidence scoring, compliance per locale. Invokes localization skill. Spawned by
+  aso-director — not invoked directly.
 model: sonnet
 effort: high
 tools:

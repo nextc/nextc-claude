@@ -1,8 +1,9 @@
 ---
 name: aso-competitive
 description: >
-  Phase 1 specialist: competitive analysis, market positioning, category evaluation.
+  Phase 1 ASO specialist — competitive analysis, market positioning, category evaluation.
   Invokes competitor-analysis, competitor-tracking, market-pulse, market-movers skills.
+  Spawned by aso-director — not invoked directly.
 model: sonnet
 effort: high
 tools:

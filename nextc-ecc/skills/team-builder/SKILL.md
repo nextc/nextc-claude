@@ -1,6 +1,9 @@
 ---
 name: team-builder
-description: Interactive agent picker for composing and dispatching parallel teams. Use when a task needs 2+ specialists working concurrently (parallel feature sprint, full-stack pipeline, investigation with cross-checking).
+description: Interactive agent picker for composing and dispatching parallel teams. Browse available agents across domains, pick a roster, dispatch in parallel.
+when_to_use: |
+  Use when a task needs 2+ specialists working concurrently (parallel feature sprint, full-stack pipeline, investigation with cross-checking). Also when user says "spin up a team", "parallel agents", "who can help on this", "compose a team", "ad-hoc team", or "multiple specialists".
+allowed-tools: Agent AskUserQuestion Read Glob Grep TeamCreate TeamDelete SendMessage TaskCreate TaskUpdate TaskList
 ---
 
 # Team Builder

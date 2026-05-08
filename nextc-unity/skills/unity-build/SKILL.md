@@ -1,11 +1,12 @@
 ---
 name: unity-build
-description: >
-  Build Unity APK/IPA with pre-flight checks, version bump, iOS signing params,
-  post-build verification, buildlog, and commit. Use for app builds, releases,
-  or test builds. Targets macOS Unity 6.x.
+description: Build Unity APK/IPA on macOS with Unity 6.x — pre-flight checks, version bump, iOS signing params, post-build verification, buildlog, and commit.
+when_to_use: |
+  Use when building a Unity game, cutting a release, or producing a test build. Triggers: "build the game", "Unity build", "ship Unity build", "make a release", "test build", "/unity-build".
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Bash Read Edit Write Glob Grep Agent
+paths: ["**/Assets/**", "**/ProjectSettings/ProjectVersion.txt", "**/Packages/manifest.json"]
 ---
 
 # /unity-build

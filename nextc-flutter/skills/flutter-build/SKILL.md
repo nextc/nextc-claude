@@ -1,11 +1,12 @@
 ---
 name: flutter-build
-description: >
-  Build Flutter APK/IPA, update build log, and commit version bump. Use when the user wants
-  to build the app, make a release, or create a build for testing. Handles platform selection,
-  build mode, and artifact renaming.
+description: Build Flutter APK/IPA, generate changelog, update buildlog, and commit version bump. Handles platform selection, build mode, and artifact renaming.
+when_to_use: |
+  Use when building the app, cutting a release, or producing a test build. Triggers: "build the app", "make a release", "ship it", "build APK", "build IPA", "release build", "test build", "/flutter-build".
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Bash Read Glob Agent
+paths: ["**/pubspec.yaml"]
 ---
 
 # /flutter-build

@@ -198,7 +198,7 @@ When the user asks to "release", "bump version", or "cut a release":
 1. **Bump version** in ALL plugin files and marketplace manifest:
    - `.claude-plugin/marketplace.json` → `metadata.version`
    - Every `*/. claude-plugin/plugin.json` → `version`
-   - Use semver: patch for fixes, minor for features, major for breaking changes
+   - **Default to patch bumps** (e.g. `1.4.1 → 1.4.2`) for ALL changes — including features and refactors. Minor/major bumps are release-level signals the user calls explicitly ("bump to 1.5.0", "minor bump"). Don't choose minor/major based on your own scope assessment.
 2. **Update `RELEASELOG.md`** (create if missing) with a release entry:
    ```
    ## vX.Y.Z (YYYY-MM-DD)

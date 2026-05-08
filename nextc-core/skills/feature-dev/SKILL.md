@@ -131,8 +131,8 @@ Spawn an **architect** agent (use `nextc-ecc:architect`):
   - Architectural soundness — does it fit the existing patterns?
   - Missed dependencies — what could break?
   - Simpler alternatives — is there a less complex approach?
-- Must provide at least one **alternative approach** considered and why it was rejected
-- Must flag **risks** (data migration, breaking changes, performance concerns)
+- The review should include at least one **alternative approach** considered and why it was rejected — a plan with no alternatives considered is a plan that hasn't been stress-tested
+- Flag **risks** (data migration, breaking changes, performance concerns)
 
 ### Step 2c: Reconcile
 
@@ -303,7 +303,7 @@ After each step:
 
 After all implementation steps complete:
 
-1. **Run analyzer** — `flutter analyze` or project equivalent. Must be zero errors.
+1. **Run analyzer** — `flutter analyze` or project equivalent. Zero errors before proceeding — accumulated errors compound quickly once you move past this phase.
 2. **Build check** — verify the project builds successfully
 3. **Acceptance criteria** — walk through each criterion from the plan:
    - Can it be verified by reading the code? → verify by reading
@@ -424,15 +424,15 @@ Spawn **doc-keeper** agent in the background to update:
 
 ## Rules
 
-- NEVER skip the vagueness check — catching vague requests early saves hours of rework
-- NEVER skip the architecture review — single-pass planning misses structural issues
-- NEVER implement UI before the data layer — widgets need providers to bind to
-- NEVER expand scope mid-implementation — if you discover new work, note it, finish the current plan first
-- ALWAYS present the plan for user approval before coding
-- ALWAYS run the analyzer after each logical implementation group
-- ALWAYS spawn doc-keeper at the end — documentation is not optional
-- ALWAYS clean up after implementation — AI-generated code accumulates slop
-- If the user says "faster" or "skip reviews" — skip Phase 6 (review) and Phase 7 (cleanup), but NEVER skip Phase 5 (verify)
+- NEVER skip the vagueness check — a vague request that reaches implementation is hours of rework when the user finally says "that's not what I meant"
+- NEVER skip the architecture review — single-pass planning reliably misses structural issues that become expensive to undo mid-implementation
+- NEVER implement UI before the data layer — widgets need providers and repositories to bind to; building UI first means rebuilding it when the data shape changes
+- When you discover new work mid-implementation, note it and finish the current plan first rather than expanding scope in-flight. Mid-stream scope expansion produces a half-finished feature and a half-started one.
+- Present the plan for user approval before coding — the plan gate exists so the user can redirect before time is spent on the wrong approach
+- Run the analyzer after each logical implementation group, not just at the end — catching errors early prevents them from cascading
+- Spawn doc-keeper at the end to update docs — skipping it means the next session starts with stale context
+- Run cleanup after implementation — AI-generated code accumulates slop; the `/cleanup` pass keeps the codebase maintainable
+- If the user says "faster" or "skip reviews" — skip Phase 6 (review) and Phase 7 (cleanup), but NEVER skip Phase 5 (verify) — shipping unverified code is worse than shipping unreviewed code
 - If a phase fails 3 times on the same issue, stop and present the problem to the user
 - Respect the project's `no-auto-testing` rule — verify via analyzer and manual acceptance criteria, not by writing tests
 

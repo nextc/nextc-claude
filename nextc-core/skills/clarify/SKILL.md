@@ -79,11 +79,7 @@ Identify the dimension with the LOWEST clarity score. Generate ONE question that
 | Success Criteria | "How do we know it works?" | "If I showed you the finished product, what would make you say 'yes, that's it'?" |
 | Context Clarity (brownfield) | "How does this fit?" | "I found JWT auth in `src/auth/`. Should this feature extend that or diverge?" |
 
-**Critical rules:**
-- Ask ONE question at a time — never batch multiple questions
-- For brownfield: gather codebase facts via Explore agent BEFORE asking the user about them. Cite file paths and patterns you found. Never ask the user what the code already reveals.
-- Questions should expose ASSUMPTIONS, not gather feature lists
-- State which dimension you're targeting and why before each question
+One question per round is the heartbeat of Socratic dialogue — the user needs space to think, and you need to hear the answer before choosing the next dimension to probe. Batching questions short-circuits both. For brownfield interviews, explore the codebase before asking the user anything about it: users feel interviewed, not interrogated, when you cite what you found rather than asking what they already built. Questions should expose assumptions the user hasn't noticed, not collect a feature wish list. State which dimension you're targeting and why — transparency about the scoring gives the user agency over the process.
 
 ### Step 2b: Ask the Question
 
@@ -228,17 +224,15 @@ If user chooses "Implement now":
 - Follow the development workflow: plan → implement → review → commit
 - Reference the spec's acceptance criteria for verification
 
-## Rules
+## Principles
 
-- NEVER skip Phase 1 initialization — always detect brownfield/greenfield
-- NEVER batch questions — one question per round, always
-- NEVER ask the user about codebase facts you can discover yourself
-- ALWAYS show ambiguity scores after every round
-- ALWAYS state which dimension you're targeting and why
-- ALWAYS cite repo evidence in brownfield confirmation questions
-- ALWAYS write the spec to `docs/spec/` — this is the permanent artifact
-- If the user says "stop" or "cancel" — stop immediately, save whatever spec you have
-- If ambiguity stalls (same score +/-5% for 3 rounds) — activate Ontologist mode early
+The interview loop depends on knowing whether you're in brownfield or greenfield territory from the start — that shapes question style, scoring weights, and what evidence you cite. Skipping Phase 1 initialization means you'll ask users about their own codebase when you could look it up yourself, which wastes their time and undermines trust.
+
+Writing the spec to `docs/spec/` is the permanent artifact of this process. Save it even on early exit or cancellation — a partial spec with 60% ambiguity is still useful, and the interview transcript inside it documents what was learned.
+
+If the user says "stop" or "cancel", stop immediately and save whatever spec you have.
+
+If ambiguity stalls (same score ±5% for 3 consecutive rounds), activate Ontologist mode early — the current framing may be blocking progress.
 
 ## Ambiguity Score Reference
 

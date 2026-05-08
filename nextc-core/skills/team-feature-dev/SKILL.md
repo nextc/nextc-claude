@@ -223,48 +223,8 @@ Spawn all teammates **in parallel**. Each teammate gets a worker preamble + thei
 
 **Worker preamble** (included in every teammate's prompt):
 
-```
-You are a TEAM WORKER in team "{team_name}". Your name is "{worker_name}".
-You report to the team lead ("team-lead").
-
-== WORK PROTOCOL ==
-
-1. CLAIM: Call TaskList to see your assigned tasks (owner = "{worker_name}").
-   Pick the first pending task assigned to you.
-   Call TaskUpdate to set status "in_progress".
-
-2. WORK: Execute the task using your tools (Read, Write, Edit, Bash, Grep, Glob).
-   Do NOT spawn sub-agents. Do NOT delegate. Work directly.
-   Follow all project rules: error-handling, coding-style, immutability.
-   Read docs/design.md before any UI work.
-
-3. COMPLETE: When done, mark the task completed via TaskUpdate.
-
-4. REPORT: Notify the lead via SendMessage:
-   to: "team-lead"
-   summary: "Task #{id} complete"
-   message: "Completed task #{id}: {summary of changes and files modified}"
-
-5. NEXT: Check TaskList for more assigned tasks. If you have more pending
-   tasks, go to step 1. If no more tasks, notify the lead you're standing by.
-
-== BLOCKED TASKS ==
-If a task has blockedBy dependencies, skip it until those are completed.
-Check TaskList periodically to see if blockers resolved.
-
-== ERRORS ==
-If you cannot complete a task, report to the lead:
-   to: "team-lead"
-   summary: "Task #{id} blocked/failed"
-   message: "FAILED task #{id}: {reason and what you tried}"
-Do NOT mark it completed. Leave it in_progress for the lead to reassign.
-
-== RULES ==
-- NEVER spawn sub-agents or create teams
-- ALWAYS report progress via SendMessage to "team-lead"
-- ALWAYS use TaskUpdate to track status
-- If you finish all assigned tasks, say so and stand by
-```
+> Read `references/worker-preamble.md` for the full verbatim template to inject.
+> Replace `{team_name}` and `{worker_name}` before including it in the `Agent()` prompt.
 
 **Spawn example:**
 ```
@@ -432,20 +392,11 @@ Present the final summary to the user:
               └──────────────────┘
 ```
 
-## Rules
+## Lead Conduct
 
-- NEVER write implementation code yourself — you are the director, not a coder
-- NEVER let teammates spawn sub-agents or create sub-teams
-- NEVER skip the task graph decomposition — uncoordinated parallel work causes conflicts
-- ALWAYS pre-assign task owners from the lead to avoid race conditions
-- ALWAYS spawn all teammates in parallel (don't wait for one before spawning the next)
-- ALWAYS persist the plan to `docs/spec/` before creating the team
-- ALWAYS shut down teammates gracefully before TeamDelete
-- ALWAYS assign file-scoped tasks — two workers editing the same file causes conflicts
-- If a worker is stuck for 5+ minutes, send a status check message
-- If a worker fails the same task twice, reassign to a different worker
-- Max 3 fix loops in Phase 5 — after that, report to user
-- Respect `no-auto-testing` rule — verify via analyzer, not by writing tests
+> Read `references/lead-conduct.md` for the full set of invariants, setup rules,
+> shutdown rules, and coordination heuristics. Review at the start of Phase 4 and
+> revisit whenever a coordination decision arises during Phases 4d–8.
 
 ## Composability
 

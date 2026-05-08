@@ -1,7 +1,10 @@
 ---
 name: aside
-description: Answer a quick side question without interrupting or losing context from the current task. Resume work automatically after answering. Use when the user interjects mid-task with "aside:", "quick q:", or similar.
+description: Answer a quick side question mid-task without losing context, then resume work automatically.
+when_to_use: |
+  Use when the user interjects mid-task with "aside:", "quick q:", "btw:", "side question", "quick question", "wait, before that", "off-topic but", or any short interruption that should not derail the current task.
 user-invocable: true
+allowed-tools: Read Grep Glob WebFetch
 ---
 
 # Aside Command

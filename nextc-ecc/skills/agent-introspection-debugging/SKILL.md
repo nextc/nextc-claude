@@ -1,6 +1,9 @@
 ---
 name: agent-introspection-debugging
-description: Structured self-debugging workflow for AI agent failures using capture, diagnosis, contained recovery, and introspection reports.
+description: Structured self-debugging workflow for AI agent failures — capture, diagnose, contained recovery, introspection report.
+when_to_use: |
+  Use when an agent stalls, loops, returns garbage output, repeats itself, fails silently, or drifts off-task. Also when user says "agent is stuck", "the agent didn't do what I asked", "why did the agent fail", "debug this agent", "agent is hallucinating", or "this agent keeps retrying".
+allowed-tools: Read Grep Glob Bash Write Edit
 ---
 
 # Agent Introspection Debugging

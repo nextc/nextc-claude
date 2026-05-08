@@ -1,6 +1,10 @@
 ---
 name: idea-explore
-description: Multi-framework idea exploration. Spawns 8 framework analysts in parallel and synthesizes a single markdown report. Use for deep multi-lens analysis of a problem or product idea — broader than `/product-explore`'s proposal pipeline.
+description: Multi-framework idea exploration. Spawns 8 framework analysts in parallel (JTBD, Opportunity Solution Tree, Morphological Analysis, Assumption Reversal, Blue Ocean, Wardley, 7 Powers, Mom Test) and synthesizes a single markdown report.
+when_to_use: |
+  Use for deep multi-lens analysis of a problem or product idea — broader than `/product-explore`'s proposal pipeline. Also when user says "explore this idea", "multiple frameworks", "different lenses", "is this idea good", "stress-test this concept", "should I pursue this", or "deep idea analysis".
+user-invocable: true
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
 # Idea Explore Pipeline

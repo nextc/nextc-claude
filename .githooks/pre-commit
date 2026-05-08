@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# nextc-claude pre-commit hook
+#
+# Blocks commits that introduce WARN/FAIL findings from validate.js.
+# Fast (~1s) — only re-runs when SKILL.md, agent .md, hooks.json, or schema.js
+# files are part of the staged change.
+#
+# Install:
+#   git config core.hooksPath .githooks
+#
+# Skip on a one-off commit (rarely needed):
+#   SKIP_VALIDATE=1 git commit ...
+
+set -e
+
+# Skip if no relevant files staged
+if ! git diff --cached --name-only | grep -qE '(SKILL\.md|agents/.+\.md|hooks/.+\.(js|json)|schema\.js|validate\.js|.claude-plugin/.+\.json)$'; then
+  exit 0
+fi
+
+if [ "${SKIP_VALIDATE:-}" = "1" ]; then
+  echo "[pre-commit] SKIP_VALIDATE=1 set — skipping validate"
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT="$REPO_ROOT/nextc-claude-toolbox/scripts/validate.js"
+
+if [ ! -f "$SCRIPT" ]; then
+  echo "[pre-commit] validate.js not found at $SCRIPT — skipping"
+  exit 0
+fi
+
+# Run validate; capture output for display on failure
+OUTPUT="$(node "$SCRIPT" --root "$REPO_ROOT" 2>&1)"
+EXIT=$?
+
+# Look for FAIL or WARN in output. Both block by default.
+if echo "$OUTPUT" | grep -qE '\[(FAIL|WARN)\]'; then
+  echo "$OUTPUT" | grep -E '\[(FAIL|WARN)\]' | head -20
+  echo ""
+  echo "[pre-commit] validate.js found issues. Fix them, or set SKIP_VALIDATE=1 to bypass."
+  exit 1
+fi
+
+if [ $EXIT -ne 0 ]; then
+  echo "$OUTPUT"
+  echo "[pre-commit] validate.js exited with code $EXIT"
+  exit 1
+fi
+
+exit 0

@@ -331,15 +331,15 @@ Present the final report:
 
 ## Rules
 
-- NEVER jump to a fix before Phase 4 synthesis — premature diagnosis is the #1 debugging mistake
-- NEVER generate 3 variations of the same hypothesis — they must be deliberately different
-- ALWAYS gather evidence FOR and AGAINST each hypothesis — confirmation bias kills debugging
-- ALWAYS rank evidence by strength, not by which hypothesis you "feel" is right
-- ALWAYS run the rebuttal round — even if one hypothesis seems obvious
-- ALWAYS cite file:line when referencing code evidence
-- ALWAYS make the minimal fix — no drive-by refactoring, no "while I'm here" changes
-- ALWAYS run the analyzer and build check after the fix (Phase 5)
-- ALWAYS spawn doc-keeper to update docs after the fix (Phase 8)
+- NEVER jump to a fix before Phase 4 synthesis — premature diagnosis is the #1 debugging mistake; the obvious cause is often not the root cause, and a fix aimed at the wrong target can mask the real one
+- NEVER generate 3 variations of the same hypothesis — deliberately different lanes are required because convergent hypotheses produce convergent blind spots
+- Gather evidence FOR and AGAINST each hypothesis, not just evidence that confirms it — confirmation bias is the dominant failure mode in debugging; the contra-evidence is what collapses the wrong hypotheses
+- Rank hypotheses by evidence strength when synthesizing, not by intuition — the hypothesis that "feels right" is often the one that got there first, not the one with the strongest support
+- Run the rebuttal round even when one hypothesis seems obvious — the rebuttal exists precisely for cases where the obvious answer is wrong
+- Cite file:line when referencing code evidence so findings are traceable and the review phase can verify them directly
+- NEVER expand the fix beyond what the root cause requires — no drive-by refactoring, no "while I'm here" changes; scope creep in a fix introduces new risk and obscures the minimal change
+- Run the analyzer and build check after the fix (Phase 5) — a fix that breaks the build is worse than no fix
+- Spawn doc-keeper to update docs after the fix (Phase 8) — regression cases belong in `docs/qc/` so the same bug doesn't re-enter undetected
 - If the same root cause was investigated before and the fix didn't work, say so and escalate
 - If confidence is low after Phase 4, recommend the discriminating probe instead of guessing
 - If a phase fails 3 times on the same issue, stop and present the problem to the user

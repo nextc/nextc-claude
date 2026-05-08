@@ -548,24 +548,17 @@ signing info, absolute log paths, and phase timings. On failure, show
 - NEVER push to remote
 - NEVER modify source beyond version fields in `ProjectSettings.asset` and the
   scaffolded `BuildScript.cs` / `.meta`
-- NEVER edit `ProjectSettings.asset` with `sed` — Edit tool only
-- NEVER skip the build log (mark status "failed" on failures)
+- NEVER edit `ProjectSettings.asset` with `sed` — Edit tool only, because sed
+  mangles YAML serialization Unity relies on
 - NEVER continue to the next platform if one fails
 - NEVER tag partially-failed builds
-- NEVER dump raw `git log` — always curate
-- NEVER truncate the commit range with `head`, `tail`, `-5`, `-10`, or `-20` when a `build/*` tag exists — Step 2 of `Mode: whats-new` requires the full range
-- NEVER infer the build date from session context — Step 1 resolves it via `date +%Y-%m-%d` and refuses to proceed if any existing entry is future-dated
-- NEVER write the buildlog entry without the Step 6 user review gate — Approve / Edit / Cancel is required
-- On Cancel: do not write the entry, do not commit, do not tag. The artifacts stay on disk. This is not a failure; it's an aborted bookkeeping step
-- NEVER run Unity invocations in parallel on the same project
-  (`Library/` + `Temp/UnityLockfile` contention)
+- NEVER run Unity invocations in parallel on the same project —
+  `Library/` and `Temp/UnityLockfile` contention causes silent no-ops
 - NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
-- NEVER recommend Unity reinstalls / license cache clears when the log points
-  to `read only` / `licensing mutex` / `permission denied` — that's sandbox,
-  not Unity
-- Exit code 0 + fresh, reasonably-sized artifact is the success bar, not exit
-  code alone
-- Unity batch mode can take 5–20+ min on cold script compile; don't set tight
-  Bash timeouts — use `timeout: 1800000` (30 min) or `run_in_background: true`
-  with log tailing
+- Always update the build log, even on failure (mark status "failed") — skipping breaks the tag-range history used by the next build
+- The Step 6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — `Mode: whats-new` describes the full procedure
+- On Cancel: do not write the entry, do not commit, do not tag. Artifacts stay on disk; this is not a failure
+- When a build log points to `read only` / `licensing mutex` / `permission denied`, report sandbox restriction — do not recommend Unity reinstalls or license cache clears
+- Exit code 0 + fresh, reasonably-sized artifact is the success bar — Phase F4 verifies mtime and size because the editor-already-open case also exits 0
+- Unity batch mode can take 5–20+ min on cold script compile; use `timeout: 1800000` (30 min) or `run_in_background: true` with log tailing
 - Always use absolute paths for the Unity binary and `-projectPath`

@@ -1,6 +1,9 @@
 ---
 name: search-first
-description: Research-before-coding workflow. Search for existing tools, libraries, and patterns before writing custom code. Invokes the researcher agent.
+description: Research-before-coding workflow. Search Context7, GitHub, and registries for existing tools, libraries, and patterns before writing custom code.
+when_to_use: |
+  Use before writing custom code for auth, payments, animations, file upload, charts, caching, or any common infra problem. Also when user says "is there a library for", "before we build this", "search first", "find existing", "any package that does", or proposes building something that's likely solved.
+allowed-tools: Agent Read Grep Glob Bash WebFetch WebSearch
 ---
 
 # /search-first — Research Before You Code

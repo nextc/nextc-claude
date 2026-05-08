@@ -1,0 +1,78 @@
+{
+  "skill_name": "team-feature-dev",
+  "_note": "Trigger eval queries for skill-creator run_loop. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --max-iterations 5",
+  "evals": [
+    {
+      "id": 1,
+      "should_trigger": true,
+      "query": "we have 3 separate features that need to ship by friday — saved searches, team invites, and a profile rewrite. spin up parallel teams to do them concurrently",
+      "expected_output": "Triggers team-feature-dev — multi-feature parallel sprint, the canonical fit"
+    },
+    {
+      "id": 2,
+      "should_trigger": true,
+      "query": "I want frontend and backend work to happen in parallel for the new auth flow, with both sides syncing on the API contract",
+      "expected_output": "Triggers team-feature-dev — full-stack feature with cross-team coordination"
+    },
+    {
+      "id": 3,
+      "should_trigger": true,
+      "query": "/team-feature-dev — implement the new admin dashboard. user search, role mgmt, audit log, all at once",
+      "expected_output": "Direct invocation"
+    },
+    {
+      "id": 4,
+      "should_trigger": true,
+      "query": "decompose this feature into parallel tasks and run them as a team — saved searches with sidebar pin",
+      "expected_output": "Triggers team-feature-dev — explicit parallel decomposition"
+    },
+    {
+      "id": 5,
+      "should_trigger": true,
+      "query": "spin up 3 specialists: one on the data model, one on the UI, one on the API. They need to coordinate so file-edits don't conflict",
+      "expected_output": "Triggers team-feature-dev — file-scoped parallel work, the failure mode it solves"
+    },
+    {
+      "id": 6,
+      "should_trigger": false,
+      "query": "build a saved-searches feature",
+      "expected_output": "Should NOT trigger — single feature, feature-dev territory unless user signals they want parallelism"
+    },
+    {
+      "id": 7,
+      "should_trigger": false,
+      "query": "the auth login is broken on safari mobile, debug it",
+      "expected_output": "Should NOT trigger — bug-fix territory, not a parallel sprint"
+    },
+    {
+      "id": 8,
+      "should_trigger": false,
+      "query": "review my latest commit for security issues",
+      "expected_output": "Should NOT trigger — code-reviewer or security-reviewer agent"
+    },
+    {
+      "id": 9,
+      "should_trigger": false,
+      "query": "spin up a team to brainstorm 8 different framework lenses on this product idea",
+      "expected_output": "Should NOT trigger — sounds like idea-explore (analysts, not implementers)"
+    },
+    {
+      "id": 10,
+      "should_trigger": false,
+      "query": "rewrite the entire data layer using a repository pattern",
+      "expected_output": "Should NOT trigger — single architectural refactor; planner first"
+    },
+    {
+      "id": 11,
+      "should_trigger": false,
+      "query": "add a typescript type for the User entity",
+      "expected_output": "Should NOT trigger — too small for parallel decomposition"
+    },
+    {
+      "id": 12,
+      "should_trigger": false,
+      "query": "explain how the auth system works in this codebase",
+      "expected_output": "Should NOT trigger — codebase-onboarding territory"
+    }
+  ]
+}
