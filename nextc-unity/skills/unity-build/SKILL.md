@@ -15,11 +15,11 @@ Interactive Unity build pipeline: gather params, pre-flight, invoke Unity in
 batch mode, archive + export for iOS, verify artifacts, log, commit. Companion
 to `/flutter-build` — same UX + buildlog format.
 
-> **Sandbox note.** Unity batch mode writes to `Library/`,
-> `~/Library/Unity/Licenses/`, and `Temp/` — typically outside Claude Code's
-> default sandbox. Run Unity + xcodebuild from the skill's **main thread** (not
-> sub-agents); the agent is for scaffolding + buildlog drafting only. Log lines
-> like `read only` / `licensing mutex` signal sandbox, not Unity config.
+> **Sandbox preamble.** If sandboxed, prompt the user to `/sandbox` (or re-run
+> unsandboxed) before Step 6 — iOS especially. `xcodebuild`, CocoaPods, signing,
+> keychain, plus Unity's `Library/` / licenses / `Temp/` writes need it; `read
+> only`, `licensing mutex`, `permission denied` are sandbox signals, not config.
+> Run Unity + xcodebuild on the skill's **main thread**; sub-agents scaffold/log.
 
 ## Step 1: Read Current State
 

@@ -49,13 +49,17 @@ See `references/agents-roster.md` for the full per-agent and per-team-worker mod
 5. **Escalate on failure** — haiku fails → retry with sonnet (not opus)
 6. **Never `effort: low`** — `medium` is the floor, no exceptions
 
-## Agent Teams (Experimental)
+## Agent Teams
 
-When a task involves 2+ parallel workers that need to coordinate with each other (not just report back), use TeamCreate instead of multiple Agent() calls. Teammates can message each other directly, claim tasks from a shared list, and appear in visible tmux panes.
+Use `TeamCreate` + `Agent(team_name=...)` whenever the work is framed as a **team**: any skill/command whose name contains "team", any user prompt asking for "a team", "parallel agents that coordinate", "watch them work", "spin up workers in panes", or any orchestration where the visible tmux panes are part of what's being requested.
 
-Examples: multi-feature sprint, parallel investigation with cross-checking, full-stack feature where frontend/backend need to sync.
+**The tmux-pane visualization is a first-class feature, not a nice-to-have.** Teammates can also message each other directly and claim tasks from a shared list, but even when workers are fully independent, the panes themselves are why the user asked for a team.
 
-Use Agent() for everything else — it's simpler and cheaper.
+**Do NOT silently downgrade to parallel `Agent()` calls** because the workers happen to be independent or the coordination feels light. That trade-off — losing the visualization to save ceremony — is the user's to make, not yours. If you believe parallel `Agent()` is genuinely cleaner for the case at hand, surface the tradeoff in one sentence and ask before downgrading.
+
+Plain parallel `Agent()` is the right default only when the user did **not** invoke a team skill and did **not** describe the work as a team. Examples: ad-hoc research fan-out, a single skill that internally spawns helpers, parallel scans where the user never said "team."
+
+Examples that REQUIRE `TeamCreate`: `/team-feature-dev`, `/team-builder`, "spin up a team of …", "run these as a team", "I want to watch them in panes", multi-feature sprints, full-stack features where frontend/backend need to sync, parallel investigations with cross-checking.
 
 ## Parallel Execution (CRITICAL)
 
@@ -67,3 +71,4 @@ ALWAYS launch independent agent operations in parallel, never sequentially.
 - Every agent definition: BOTH `model:` AND `effort:` fields in frontmatter
 - When in doubt: `sonnet` + `high`
 - Never `low` effort
+- Team work uses `TeamCreate` — never silently downgrade to parallel `Agent()` calls. If you want to downgrade, ask first.

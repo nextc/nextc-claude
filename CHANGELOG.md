@@ -2,6 +2,13 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-13
+
+### Changed
+- `rules/nextc-claude/agents.md` — Hardened the "Agent Teams" section. `TeamCreate` + `Agent(team_name=...)` is now mandatory whenever the work is framed as a team — any skill/command whose name contains "team", any user prompt asking for "a team", "parallel agents that coordinate", "watch them work", or any orchestration where the visible tmux panes are part of what's being requested. The tmux-pane visualization is now treated as a first-class feature, not a nice-to-have. Silent downgrades to parallel `Agent()` calls are explicitly forbidden — if Claude believes parallel `Agent()` is cleaner for the case at hand, it must surface the tradeoff and ask before downgrading. Renamed the section from "Agent Teams (Experimental)" to "Agent Teams" since the constraint is now firm. Added a corresponding bullet under "Enforcement" at the bottom of the file. Triggered by a failure mode where Claude silently substituted parallel `Agent()` for a team skill invocation because the workers happened to be independent — losing the tmux visualization the user actually wanted.
+- `nextc-flutter/skills/flutter-build/SKILL.md` — Added "Sandbox preamble" block under the H1 title. This preamble instructs Claude to prompt the user to disable Claude Code's sandbox before iOS builds begin. Explains that iOS toolchain components (xcodebuild, CocoaPods, signing, DerivedData, keychain access) require write access to paths the sandbox blocks by default, and that prompting the user to unsandbox is simpler than whitelisting every path individually. Notes that Android also benefits from unsandboxing when Gradle reaches outside the allowlist. Addresses the failure mode where Claude was attempting workarounds instead of taking the straightforward path of asking the user first.
+- `nextc-unity/skills/unity-build/SKILL.md` — Replaced the existing terse "Sandbox note" with a parallel "Sandbox preamble" block using the same pattern as flutter-build. Directs Claude to prompt the user to disable sandbox before builds. Retains the existing notes about Unity batch mode writing to `Library/`, `~/Library/Unity/Licenses/`, `Temp/`, and the architectural rule that Unity + xcodebuild run on the skill's main thread (not via sub-agents) due to sandbox-write constraints. Same rationale: prompt-first is simpler than per-path whitelisting.
+
 ## 2026-05-09
 
 ### Fixed
