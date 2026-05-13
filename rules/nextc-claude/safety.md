@@ -2,15 +2,16 @@
 
 All languages, all platforms, no exceptions.
 
-## Rule 1: Debug Logging is MANDATORY
+## Rule 1: Debug Logging is MANDATORY (and MUST be excluded from production)
 
-Every error handler (`try/catch`, `.catch()`, `.catchError`, `except`, `rescue`, etc.) MUST log with full context. Logs MUST NOT exist in production.
+Every error handler (`try/catch`, `.catch()`, `.catchError`, `except`, `rescue`, etc.) MUST log with full context. Every debug log MUST be **excluded from production / release builds** — compiled out, stripped, or gated behind a build-mode flag that the compiler can fold away. A log that "happens to be quiet" because nobody's reading the console is NOT excluded; it must be unreachable in release. No debug-log strings, error objects, stack traces, or third-party response bodies may ship in user-facing binaries.
 
 - Log error object/message AND stack trace
 - Include context: what failed, which class/function, what inputs (excluding secrets)
-- Use debug-only logging — never production-unsafe alternatives
-- For third-party errors (Supabase, Firebase, Stripe, etc.), log the full response
+- Use debug-only logging — never production-unsafe alternatives, and always behind a release-mode strip (`kDebugMode`, `NODE_ENV !== 'production'`, `#if DEBUG`, `NDEBUG`, build-tag, etc.)
+- For third-party errors (Supabase, Firebase, Stripe, etc.), log the full response in debug only — these payloads commonly contain tokens, emails, and PII
 - NEVER silently swallow errors
+- NEVER leave a bare `print` / `console.log` / `debugPrint` / `println!` / `System.out.println` reachable in release
 
 ### Debug-Safe Logging by Language
 
@@ -63,9 +64,10 @@ See `references/safety-reference.md` for the full technical→user-friendly erro
 
 ## Rule 3: Secret Management
 
-- NEVER hardcode secrets — use env vars or secret manager
-- Validate required secrets at startup
-- Rotate any exposed secrets
+- NEVER hardcode secrets — use env vars, a secret manager (1Password, AWS Secrets Manager, GCP Secret Manager, Doppler, Vault, etc.), or a gitignored local file (`.env`, `secrets.json`, `*.local.*`)
+- NEVER commit secrets to git — add `.env`, `secrets.json`, `*.local.*`, `*.pem`, `*.p12`, `*.keystore`, service-account JSON, and any project-specific secret files to `.gitignore` before the first commit that touches them; verify with `git check-ignore` and `git ls-files` that nothing slipped in; if a secret was ever committed (even briefly), rotate it — `git rm` alone does not erase it from history
+- Validate required secrets at startup — fail fast with a clear error, not a silent fallback
+- Rotate any exposed secrets immediately
 
 ## Enforcement
 

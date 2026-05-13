@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.3 (2026-05-14)
+
+Tightening pass on `rules/nextc-claude/safety.md` — two rules sharpened after recent production-leak failure modes.
+
+**Rule 1 (Debug Logging) now mandates production exclusion**, not just "production-unsafe alternatives are bad." Heading renamed to "Debug Logging is MANDATORY (and MUST be excluded from production)." Every debug log must be compiled out, stripped, or gated behind a build-mode flag the compiler can fold away in release — a log that "happens to be quiet" because nobody's reading the console is not excluded; it must be unreachable. New bullet enumerates the canonical strip mechanisms per language (`kDebugMode`, `NODE_ENV !== 'production'`, `#if DEBUG`, `NDEBUG`, build-tag, etc.). New NEVER bullet against bare `print` / `console.log` / `debugPrint` / `println!` / `System.out.println` reachable in release.
+
+**Rule 3 (Secret Management) expanded for storage options and git hygiene.** Storage list now includes a gitignored local-file option (`.env`, `secrets.json`, `*.local.*`) alongside env vars and secret managers (1Password, AWS Secrets Manager, GCP Secret Manager, Doppler, Vault) — `secrets.json` is a common Flutter/mobile pattern and was previously excluded. New NEVER bullet against committing secrets to git: must `.gitignore` `.env`, `secrets.json`, `*.local.*`, `*.pem`, `*.p12`, `*.keystore`, service-account JSON before the first commit touches them; verify with `git check-ignore` / `git ls-files`; rotate immediately if a secret was ever committed (even briefly) since `git rm` does not erase history. Startup-validation bullet sharpened to fail-fast on missing secrets rather than silent-fallback.
+
 ## v1.5.2 (2026-05-13)
 
 Two doc/policy changes, both triggered by failure modes seen this session.

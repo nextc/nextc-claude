@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-14
+
+### Changed
+- `rules/nextc-claude/safety.md` — Tightened Rule 1 (Debug Logging) and Rule 3 (Secret Management). Rule 1 heading renamed to "Debug Logging is MANDATORY (and MUST be excluded from production)" — the rule now explicitly requires every debug log to be compiled out, stripped, or gated behind a build-mode flag the compiler can fold away in release. A log that "happens to be quiet" because no one's reading the console is not excluded — it must be unreachable. Added a new bullet listing the canonical strip mechanisms per language (`kDebugMode`, `NODE_ENV !== 'production'`, `#if DEBUG`, `NDEBUG`, build-tag, etc.) and a NEVER bullet against bare `print` / `console.log` / `debugPrint` / `println!` / `System.out.println` reachable in release. Rule 3 expanded: the secret-storage list now includes a gitignored local file option (`.env`, `secrets.json`, `*.local.*`) alongside env vars and secret managers (1Password, AWS Secrets Manager, GCP Secret Manager, Doppler, Vault). New NEVER bullet against committing secrets to git — must `.gitignore` `.env`, `secrets.json`, `*.local.*`, `*.pem`, `*.p12`, `*.keystore`, service-account JSON before the first commit that touches them, verify with `git check-ignore` / `git ls-files`, and rotate if a secret was ever committed (even briefly) since `git rm` doesn't erase history. Startup-validation bullet clarified to fail fast on missing secrets rather than silent-fallback.
+
 ## 2026-05-13
 
 ### Changed
