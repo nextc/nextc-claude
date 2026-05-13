@@ -16,10 +16,20 @@ Every error handler (`try/catch`, `.catch()`, `.catchError`, `except`, `rescue`,
 
 | Language | Debug-Safe | NEVER Use in Production |
 |---|---|---|
-| **Dart/Flutter** | `debugPrint()`, `developer.log()`, `kDebugMode` guard | `print()` |
+| **Dart/Flutter** | `debugPrint()` **wrapped in `if (kDebugMode) { ... }`** or inside `assert(...)`; `developer.log()` (gated similarly) | `print()`; **bare `debugPrint()` without a `kDebugMode` guard** |
 | **TypeScript/JS** | Env-guarded `console.error()`, leveled logger (winston, pino) | Raw `console.log/error` |
 
 For Python/Go/Rust/Swift/Kotlin/Java/C++, see `references/safety-reference.md`.
+
+> **Dart/Flutter footgun.** `debugPrint` is NOT stripped in release builds. Per Flutter docs (`testing/code-debugging.md`): *"Will print messages in release mode unless part of a debug mode check or an assert."* The `debug` in the name refers to throttling intent, not release-mode behavior. Bare `debugPrint(...)` writes to system logs (logcat / iOS console / `flutter run --release` stdout) on user devices. Always wrap:
+>
+> ```dart
+> if (kDebugMode) {
+>   debugPrint('[Class.method] ...');
+> }
+> ```
+>
+> `kDebugMode` is from `package:flutter/foundation.dart`. The compiler folds the branch out in release builds, so the entire log call is eliminated.
 
 ### Pattern
 
