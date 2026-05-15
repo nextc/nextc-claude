@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.4 (2026-05-15)
+
+Two changes in `nextc-project-kickoff`, both targeting friction users hit on the first contact with a kickoff:
+
+**Identity Gate — added to both `flutter-kickoff` and `unity-kickoff`.** Project name and bundle/package identifier are now collected via an explicit gate that runs FIRST in Phase 1b, in *every* mode (including `--auto`). The gate confirms the product name (derived from the proposal as a candidate, e.g. `Tend`) and asks for the organization identifier (e.g. `mgvlabs`), then shows the derived package/bundle ID (`com.mgvlabs.tend`) for approval. Previously this was buried vaguely in "Round 1: Identity" and skipped entirely by `--auto`. A new `--org <identifier>` flag was added to both skills so the org can be pre-supplied for truly non-interactive runs; mode tables updated from "zero questions" to "identity gate only". Rationale: a bundle ID cannot be guessed from a proposal, so asking for it even in autopilot is correct.
+
+**Preflight plugin-cache path bug — fixed in 3 SKILL.md files.** `flutter-kickoff`, `unity-kickoff`, and `product-explore` all checked `~/.claude/plugins/cache/nextc-ecc/` to verify the `nextc-ecc` plugin was installed. That path is wrong: `nextc-ecc` is a plugin *within* the `nextc-claude` marketplace, so it actually lives at `~/.claude/plugins/cache/nextc-claude/nextc-ecc/<version>/`. The check therefore reported `nextc-ecc` as "missing" even when it was installed globally, producing spurious preflight failures. Replaced all 5 occurrences with a marketplace-agnostic, version-agnostic glob: `ls -d ~/.claude/plugins/cache/*/nextc-ecc/ 2>/dev/null`. The `aso-skills` / `pm-skills` / `marketingskills` checks in the same files were already correct — those are standalone top-level marketplaces, not nested plugins.
+
 ## v1.5.3 (2026-05-14)
 
 Tightening pass on `rules/nextc-claude/safety.md` — two rules sharpened after recent production-leak failure modes.
