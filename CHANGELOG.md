@@ -2,6 +2,17 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-15
+
+### Removed
+- `nextc-flutter/skills/flutter-build/SKILL.md` and `nextc-unity/skills/unity-build/SKILL.md` — Removed the "Sandbox preamble" blocks that instructed Claude to prompt the user to disable Claude Code's sandbox before iOS builds. The preambles created friction by stopping the build pipeline to ask a question — and they baked in an assumption (that the session is sandboxed) that is increasingly wrong. Sandbox handling, if needed at all, belongs in `settings.json` permissions or the harness, not in an interactive prompt at the top of a build skill. Failure-diagnosis mentions of sandbox signals in the post-build report (`unity-build/SKILL.md` lines ~293–296 and ~492) were kept — those only surface after a build fails and never prompt the user, so they're useful classification without friction. The unity-build preamble's non-sandbox sentence ("Run Unity + xcodebuild on the skill's main thread; sub-agents scaffold/log") was preserved as a standalone "Threading rule" blockquote since it's an architectural constraint, not a sandbox concern.
+
+### Fixed
+- Preflight plugin-cache checks used a wrong hardcoded path. `flutter-kickoff/SKILL.md`, `unity-kickoff/SKILL.md`, and `product-explore/SKILL.md` checked `~/.claude/plugins/cache/nextc-ecc/` — but `nextc-ecc` is a plugin *within* the `nextc-claude` marketplace, so it actually lives at `~/.claude/plugins/cache/nextc-claude/nextc-ecc/<version>/`. The check therefore reported `nextc-ecc` as "missing" even when it was installed globally. Replaced all 5 occurrences with a marketplace-agnostic, version-agnostic glob: `ls -d ~/.claude/plugins/cache/*/nextc-ecc/ 2>/dev/null`. (The `aso-skills` / `pm-skills` / `marketingskills` checks in the same files were already correct — those are standalone top-level marketplaces, not nested plugins.)
+
+### Changed
+- `nextc-project-kickoff` (flutter-kickoff + unity-kickoff) — Added an explicit **Identity Gate** to both kickoff agents that runs FIRST, before any other decision or scaffolding, in *every* mode including `--auto`. The gate confirms the product name (derived from the proposal as a candidate, e.g. `Tend`) and asks for the organization identifier (e.g. `mgvlabs` → `com.mgvlabs`), then shows the derived package/bundle ID for approval (`com.mgvlabs.tend`). Rationale: a bundle/package identifier cannot be guessed from a proposal, so it must be asked even in autopilot. Previously this was buried vaguely in "Round 1: Identity" and skipped entirely by `--auto`. Both agents' `flutter-kickoff-agent.md` / `unity-kickoff-agent.md` Phase 1b rewritten — interactive Round 1 is now "Platforms" since identity is handled by the gate; mode-dispatch `auto` row changed from "Zero questions" to "Identity gate only"; new adaptive rule documents the `--org` skip behavior. Added a `--org <identifier>` flag to both `SKILL.md` files (argument-hint, additional-flags list, agent spawn prompt) so the org can be pre-supplied for truly non-interactive runs; mode tables updated to "identity gate only". The unity-scaffolder templates reference now documents that `[ProductName]`/`[CompanyName]` in `ProjectSettings.asset` come from `product_name`/`company_name` in `decisions.json`.
+
 ## 2026-05-14
 
 ### Changed

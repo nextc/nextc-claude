@@ -13,8 +13,6 @@ paths: ["**/pubspec.yaml"]
 
 Interactive build pipeline: gather build parameters, spawn the flutter-builder agent to build, log, and commit.
 
-> **Sandbox preamble.** If this session is running in Claude Code's default sandbox, **disable it before starting an iOS build.** The iOS toolchain (`xcodebuild`, CocoaPods, signing, DerivedData, keychain access) needs write access to paths the sandbox blocks — log lines like `read only`, `permission denied`, `Operation not permitted`, or hangs at signing/provisioning are sandbox signals, not Flutter or Xcode config bugs. Unsandboxing is simpler and more reliable than trying to whitelist every path the iOS build touches. Android builds are usually fine sandboxed but also benefit from running unsandboxed when Gradle wants to reach outside the allow-list. Prompt the user to run `/sandbox` (or re-run this skill with sandbox disabled) before proceeding to Step 4 if iOS is in the platform list.
-
 ## Step 1: Read Current State
 
 Run in parallel:

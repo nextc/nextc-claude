@@ -42,7 +42,7 @@ This means the generated code always uses the current Unity version, never froze
 | Mode | Phases | Description |
 |------|--------|-------------|
 | `default` | 1-3 + summary | Standard kickoff with 3 decision rounds |
-| `auto` | 1-3 + summary | Zero questions, all from proposal, single confirmation |
+| `auto` | 1-3 + summary | Identity gate only, all else from proposal, single confirmation |
 | `full` | 1-8 + summary | Default + scenes, CI/CD, build profiles, collision, git |
 | `auto-full` | 1-8 + summary | Full autopilot |
 | `minimal` | 1-2 + summary | Bare project + packages only, no docs |
@@ -92,19 +92,40 @@ Read the proposal and extract structured data. Write to `.unity-kickoff/proposal
 
 ### Phase 1b: Decisions
 
+#### Identity Gate (ALL modes — runs FIRST, before any other decision or scaffolding)
+
+The bundle identifier and product name cannot be reliably guessed from a proposal, so
+this gate runs in every mode — including `--auto`. Do it before Phase 2.
+
+If the spawn prompt provided `Org: <value>` (from the `--org` flag), use it and skip
+the org question. Otherwise use `AskUserQuestion` to confirm:
+
+1. **Product name** — derive a candidate from the proposal (e.g. `Tend`) and ask the
+   user to confirm or correct it. Drives the Unity project name (PascalCase, no spaces or
+   hyphens — Unity requirement), the directory name, and the bundle ID.
+2. **Organization identifier** — the reverse-domain org segment, e.g. `mgvlabs` for
+   `com.mgvlabs`. There is no sensible default — always ask (unless `--org` was passed).
+   Accept either a bare segment (`mgvlabs`) or a full reverse-domain (`com.mgvlabs`).
+   This becomes the Company Name in Player Settings.
+3. **Confirm the result** — show the derived values and have the user approve:
+   - Unity project name: product name in PascalCase (e.g. `Tend`)
+   - Bundle ID (`applicationIdentifier`): `[org].[product-name-lowercased]` (e.g. `com.mgvlabs.tend`)
+
+Write `product_name`, `unity_project_name`, `company_name` (the org segment), and
+`bundle_id` into `decisions.json` from this gate. The unity-scaffolder consumes
+`product_name` and `company_name` when writing `ProjectSettings.asset`.
+
 #### Auto Mode
 
-Make ALL decisions from proposal + smart defaults. Present single post-hoc summary.
-"Override anything? Or Enter to proceed."
+After the Identity Gate, make ALL remaining decisions from proposal + smart defaults.
+Present single post-hoc summary. "Override anything? Or Enter to proceed."
 
 #### Interactive Mode (default)
 
 Present decisions as confident paragraphs with rationale. User overrides what they disagree with.
+The Identity Gate already covered product name, Unity project name, company/org, and bundle ID.
 
-**Round 1: Identity**
-- Product name, Unity project name (PascalCase, no spaces/hyphens — Unity requirement)
-- Company name (for Player Settings)
-- Target platforms (PC/Mac/Linux, Android, iOS, WebGL, Console)
+**Round 1: Platforms** — target platforms (PC/Mac/Linux, Android, iOS, WebGL, Console)
 
 **Round 2: Tech Stack** — present as confident paragraph with rationale tied to proposal
 
@@ -323,6 +344,7 @@ within 3 levels up/sideways. Append warnings to summary if found. Never block.
 | Condition | Adaptation |
 |-----------|-----------|
 | Proposal specifies tech stack | Pre-fill, confirm instead of asking |
+| `--org` flag provided | Skip the org question in the Identity Gate, still confirm product name |
 | No MVP features | Stop: "Add features to proposal or tell me what to build." |
 | Fast-mode proposal | More manual decisions. `--auto` not recommended. |
 | Proposal says "multiplayer" | Default to Netcode for GameObjects, add networking section |

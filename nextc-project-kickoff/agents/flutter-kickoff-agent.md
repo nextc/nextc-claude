@@ -42,7 +42,7 @@ This means the generated code always uses the current Flutter SDK, never frozen 
 | Mode | Phases | Description |
 |------|--------|-------------|
 | `default` | 1-3 + summary | Standard kickoff with 3 decision rounds |
-| `auto` | 1-3 + summary | Zero questions, all from proposal, single confirmation |
+| `auto` | 1-3 + summary | Identity gate only, all else from proposal, single confirmation |
 | `full` | 1-8 + summary | Default + l10n, design, routes, collision, git |
 | `auto-full` | 1-8 + summary | Full autopilot |
 | `minimal` | 1-2 + summary | Bare project + deps only, no docs |
@@ -93,14 +93,37 @@ Read the proposal and extract structured data. Write to `.flutter-kickoff/propos
 
 ### Phase 1b: Decisions
 
+#### Identity Gate (ALL modes — runs FIRST, before any other decision or scaffolding)
+
+The bundle/package identifier and product name cannot be reliably guessed from a
+proposal, so this gate runs in every mode — including `--auto`. Do it before Phase 2.
+
+If the spawn prompt provided `Org: <value>` (from the `--org` flag), use it and skip
+the org question. Otherwise use `AskUserQuestion` to confirm:
+
+1. **Product name** — derive a candidate from the proposal (e.g. `Tend`) and ask the
+   user to confirm or correct it. Drives the project directory, app title, and package name.
+2. **Organization identifier** — the reverse-domain org segment, e.g. `mgvlabs` for
+   `com.mgvlabs`. There is no sensible default — always ask (unless `--org` was passed).
+   Accept either a bare segment (`mgvlabs` → org `com.mgvlabs`) or a full reverse-domain
+   (`com.mgvlabs`).
+3. **Confirm the result** — show the derived values and have the user approve:
+   - Package name (`--project-name`): product name lowercased, non-alphanumerics → `_` (e.g. `tend`)
+   - Application ID / bundle ID (`--org`): `[org].[package_name]` (e.g. `com.mgvlabs.tend`)
+
+Write `product_name`, `org`, and `pkg` into `decisions.json` from this gate. The
+flutter-scaffolder consumes `org` and `pkg` directly in `flutter create`.
+
 #### Auto Mode
 
-Make ALL decisions from proposal + smart defaults. Present single post-hoc summary.
-"Override anything? Or Enter to proceed."
+After the Identity Gate, make ALL remaining decisions from proposal + smart defaults.
+Present single post-hoc summary. "Override anything? Or Enter to proceed."
 
 #### Interactive Mode (default)
 
-**Round 1: Identity** — product name, package name, org, platforms
+The Identity Gate already covered product name, org, and bundle ID.
+
+**Round 1: Platforms** — confirm target platforms (from proposal)
 **Round 2: Tech Stack** — state, routing, backend, auth (confident paragraph)
 **Round 3: Extras** — l10n, design assets (only if applicable)
 
@@ -272,6 +295,7 @@ Single-pass check. Append warnings to summary.
 | Condition | Adaptation |
 |-----------|-----------|
 | Proposal specifies tech stack | Pre-fill, confirm instead of asking |
+| `--org` flag provided | Skip the org question in the Identity Gate, still confirm product name |
 | No MVP features | Stop: "Add features to proposal or tell me what to build." |
 | Fast-mode proposal | More manual decisions. `--auto` not recommended. |
 | Proposal says "offline-first" | Default to Drift, add offline-first section to architecture |

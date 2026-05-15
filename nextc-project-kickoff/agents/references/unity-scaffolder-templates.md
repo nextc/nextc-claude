@@ -34,6 +34,10 @@ EditorSettings:
 
 Minimal stub. Unity populates remaining fields on first open.
 
+`[ProductName]` is `product_name` from `decisions.json`; `[CompanyName]` is `company_name`
+(the organization identifier collected in the kickoff agent's Identity Gate). Unity derives
+the default `applicationIdentifier` as `com.[CompanyName].[ProductName]` on first open.
+
 Set `defaultScreenWidth`/`Height` to 1080/1920 for mobile-first projects.
 
 ```yaml

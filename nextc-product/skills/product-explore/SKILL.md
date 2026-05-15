@@ -112,7 +112,7 @@ ls ~/.claude/plugins/cache/marketingskills/ 2>/dev/null
 
 ### Optional Checks
 
-- **nextc-ecc:** Check `~/.claude/plugins/cache/nextc-ecc/`.
+- **nextc-ecc:** Check `~/.claude/plugins/cache/*/nextc-ecc/` (glob — the plugin nests under its marketplace name).
   Not used by product-explore directly, but the next step (`/flutter-kickoff` or `/feature-dev`)
   requires it. Warn early.
 

@@ -5,7 +5,7 @@ description: >-
   Flutter app or going from proposal to code. Creates project with deps and
   docs/architecture.md that guides /feature-dev.
 user-invocable: true
-argument-hint: [--auto/--full/--minimal/--proposal path/--resume]
+argument-hint: [--auto/--full/--minimal/--proposal path/--resume/--org id]
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
@@ -27,15 +27,18 @@ Parse `$ARGUMENTS` to determine mode:
 | Argument | Mode | Phases | Description |
 |----------|------|--------|-------------|
 | _(none)_ | Default | 0-3 | Standard kickoff: preflight, decisions, create, docs |
-| `--auto` | Autopilot | 0-3 (zero questions) | All decisions from proposal, uses default subfolder |
+| `--auto` | Autopilot | 0-3 (identity gate only) | All decisions from proposal, uses default subfolder; still confirms product name + org |
 | `--full` | Full | 0-8 | Default + l10n, design, routes, collision, git |
-| `--auto --full` | Full autopilot | 0-8 (zero questions) | Full with no interaction |
+| `--auto --full` | Full autopilot | 0-8 (identity gate only) | Full with no interaction beyond the identity gate |
 | `--minimal` | Minimal | 0-2 | Bare project + deps, no docs |
 | `--resume` | Resume | From last checkpoint | Continue from where it stopped |
 
 Additional flags (combinable with modes):
 - `--proposal /path/to/file.md` — use proposal from specified path
 - `--dir /path/to/create` — create project at specified location
+- `--org <identifier>` — organization identifier for the package/bundle ID (e.g. `com.mgvlabs`,
+  or a bare `mgvlabs`). If omitted, the kickoff agent asks for it in the identity gate before
+  scaffolding — even in `--auto` mode, since a bundle ID cannot be guessed from a proposal.
 
 ## Phase 0: Preflight Check
 
@@ -49,7 +52,7 @@ cache directory exists:
 
 **nextc-ecc** (primary dependency):
 ```
-~/.claude/plugins/cache/nextc-ecc/
+~/.claude/plugins/cache/*/nextc-ecc/
 ```
 Provides: `planner`, `architect`, `code-reviewer`, `security-reviewer` agents.
 These are not used by kickoff directly, but `/feature-dev` (the next step after kickoff)
@@ -59,7 +62,7 @@ requires them. Warn now so the user doesn't hit a wall after scaffolding.
 
 Check for cached plugin directories:
 ```bash
-ls ~/.claude/plugins/cache/nextc-ecc/ 2>/dev/null
+ls -d ~/.claude/plugins/cache/*/nextc-ecc/ 2>/dev/null
 ```
 
 ### Required Tools
@@ -194,6 +197,7 @@ Agent(
   FVM: [yes/no]
   Git context: [new/existing]
   Target dir: [derived name]
+  Org: [--org value, or "ask" if not provided]
 
   [For resume mode:]
   Existing state: .flutter-kickoff/decisions.json exists
