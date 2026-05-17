@@ -217,10 +217,13 @@ For UI-touching features, check what design artifacts exist:
 
 ### Path D: No design.md
 - This is the first UI feature — design system doesn't exist yet
+- Check whether a design skill is installed: `ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max* 2>/dev/null`
 - Ask the user:
-  1. **Design first (Recommended)** — "Provide design assets or a design direction so I can create design.md"
-  2. **Code first, design later** — "Just implement with sensible defaults, I'll polish later"
-- If design first: ask user for design assets or description, create design.md from them
+  1. **Design via `ui-ux-pro-max` (Recommended if installed)** — leverage the skill to generate `design.md` (palette, typography, components, accessibility, stack-specific patterns) from a brief direction or product type, then ui-ux-developer implements against it
+  2. **Design first, manual assets** — "Provide design assets or a design direction so I can create design.md"
+  3. **Code first, design later** — "Just implement with sensible defaults, I'll polish later"
+- If `ui-ux-pro-max`: invoke it to draft `design.md`, then proceed to implementation
+- If design first (manual): ask user for design assets or description, create design.md from them
 - If code first: proceed with framework defaults, note in plan that design pass is needed later
 
 ## Phase 4: Implement

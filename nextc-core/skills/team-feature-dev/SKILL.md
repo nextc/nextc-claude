@@ -213,20 +213,34 @@ Spawn all teammates **in parallel**. Each teammate gets a worker preamble + thei
 
 **Worker type selection (see `model-selection` rule):**
 
-| Task Type | Agent Type | Model | Rationale |
-|-----------|-----------|-------|-----------|
-| Data model, repository, provider, service, logic | general-purpose | sonnet | Standard implementation |
-| Complex state management, multi-file coordination | general-purpose | opus | Deep reasoning, multi-file trade-offs |
-| UI screen implementation | ui-ux-developer (custom) | sonnet | Implementation from design.md specs |
-| Simple rename, import fix, config change | general-purpose | haiku | Minimal reasoning, scripted steps |
-| L10n string extraction | general-purpose | haiku | Mechanical text processing |
+| Task Type | Agent Type | Persona Injected | Model | Rationale |
+|-----------|-----------|------------------|-------|-----------|
+| Data model, repository, provider, service, logic | general-purpose | — | sonnet | Standard implementation |
+| Complex state management, multi-file coordination | general-purpose | — | opus | Deep reasoning, multi-file trade-offs |
+| UI screen implementation | general-purpose | `nextc-core/agents/ui-ux-developer.md` | sonnet | UI specialist instructions injected into worker prompt |
+| Simple rename, import fix, config change | general-purpose | — | haiku | Minimal reasoning, scripted steps |
+| L10n string extraction | general-purpose | — | haiku | Mechanical text processing |
+
+**ALL team workers spawn as `subagent_type: "general-purpose"`** — never as a custom file-based `subagent_type`. A general-purpose worker has `SendMessage` and the `Task*` family in its tools by default; those are required for team coordination (claim tasks, message the lead, send `shutdown_approved`). A custom file-based subagent_type whose hand-curated `tools:` list happens to omit those will silently hang at shutdown and force `TeamDelete` recovery.
+
+**Specialist behavior is delivered via prompt injection, not subagent_type.** When a task needs a specialist persona (e.g. UI screen implementation, security review, code archeology), the specialist agent's markdown file is read and its body (everything after the closing frontmatter `---`) is prepended into the worker prompt. The file's frontmatter (`tools:`, `model:`, `description:`) is ignored in this mode — only the body matters as instructions.
 
 **Worker preamble** (included in every teammate's prompt):
 
 > Read `references/worker-preamble.md` for the full verbatim template to inject.
 > Replace `{team_name}` and `{worker_name}` before including it in the `Agent()` prompt.
 
-**Spawn example:**
+**Prompt composition rule:**
+
+```
+prompt =
+  <worker preamble, with {team_name} / {worker_name} filled in>
+  + (if persona row in table above) "\n\n" + <persona body from .md file>
+  + "\n\nYour assigned tasks:\n" + <task list>
+  + "\n\nProject context: ..." + <relevant project rules>
+```
+
+**Spawn example (standard worker, no persona):**
 ```
 Agent(
   subagent_type="general-purpose",
@@ -234,6 +248,21 @@ Agent(
   name="worker-1",
   model="sonnet",
   prompt="<worker preamble>\n\nYour assigned tasks:\n- Task #1: Create GuildInvite model...\n- Task #2: Create repository (after #1)...\n\nProject context: Flutter app, see CLAUDE.md. Follow error-handling and coding-style rules."
+)
+```
+
+**Spawn example (UI worker with `ui-ux-developer` persona injected):**
+```
+# Step 1: load persona body (skip the frontmatter block)
+persona = Read("nextc-core/agents/ui-ux-developer.md", from_line_after_second_---)
+
+# Step 2: spawn as general-purpose with persona in the prompt
+Agent(
+  subagent_type="general-purpose",
+  team_name="{feature-slug}",
+  name="worker-3",
+  model="sonnet",
+  prompt="<worker preamble>\n\n<persona body>\n\nYour assigned tasks:\n- Task #4: Create invite screen + wire navigation...\n\nProject context: Flutter app, see CLAUDE.md and docs/design.md."
 )
 ```
 
@@ -408,7 +437,7 @@ Present the final summary to the user:
 | Phase 2b | `nextc-ecc:architect` | opus | Adversarial architecture review |
 | Phase 3 | User provides design assets | — | Core screen design (UI features) |
 | Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | — | Native team orchestration |
-| Phase 4 | `ui-ux-developer` agent (as teammate) | sonnet | UI screen implementation |
+| Phase 4 | `ui-ux-developer` persona (injected into a `general-purpose` worker prompt) | sonnet | UI screen implementation — file body is the prompt, NOT a custom subagent_type |
 | Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
