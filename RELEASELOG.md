@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.5.5 (2026-05-18)
+
+Team-worker spawn pattern refactored to eliminate a class of silent shutdown bug, plus design-skill integration for `ui-ux-developer`.
+
+**Option C refactor of `/team-feature-dev`.** All team workers now spawn as `subagent_type: "general-purpose"` — never as a custom file-based subagent_type. Specialist personas are delivered by reading the agent's `.md` file body and injecting it into the worker prompt as instructions. This removes the implicit "team worker tools list must include `SendMessage` and `Task*`" contract that was undocumented, unenforced, and silently broke shutdown when violated. Two live `ui-ux-developer` workers (`trips-ui-eng`, `detail-ui-eng`) hung at shutdown because they had no `SendMessage` to reply `shutdown_approved`, forcing recovery via `TeamDelete`. The new pattern can't trip this trap because the worker's tools come from the `general-purpose` default, not the specialist agent's `tools:` frontmatter. Worker-type table at line 220 of `team-feature-dev/SKILL.md` gained a "Persona Injected" column; a new "Prompt composition rule" block documents `preamble + persona body + tasks`; a second spawn example shows the UI-worker variant; the Composability table entry for `ui-ux-developer` clarifies it's a persona, not a subagent_type.
+
+**`ui-ux-developer` leverages installed design skills.** Added Core Principle 5 ("Leverage design skills when available") and a new "Design Skill Integration" section to `nextc-core/agents/ui-ux-developer.md`. The agent now checks for installed design skills (e.g. `ui-ux-pro-max`) at the start of its workflow and adapts: honor `design.md` as-is when it already incorporates the skill's guidance; surface back to the orchestrator with a concrete recommendation when `design.md` is missing or thin (rather than stopping cold); reference the skill's stack-specific component patterns when implementing for Flutter, React Native, SwiftUI, Next.js, Tailwind, shadcn/ui, etc. `/feature-dev` Phase 3 Path D ("no design.md") now offers `ui-ux-pro-max`-driven generation as the recommended first option when the skill is installed — three options instead of two. `/team-feature-dev` Phase 3 inherits this transitively.
+
+**Defense in depth on `ui-ux-developer` tools list.** Added `SendMessage`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`. No longer load-bearing for team coordination after the option-C refactor above, but provides safety if the agent is ever spawned typed in some other path (e.g. solo `/feature-dev`).
+
 ## v1.5.4 (2026-05-15)
 
 Two changes in `nextc-project-kickoff`, both targeting friction users hit on the first contact with a kickoff:
