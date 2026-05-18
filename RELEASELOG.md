@@ -1,5 +1,17 @@
 # Release Log
 
+## v1.5.6 (2026-05-18)
+
+ASO pipeline absorbed the strategic-product-naming and smart-ASO-techniques playbooks via two new agents, two new skills, and reference wiring into the existing pipeline.
+
+**`aso-naming` agent + `/aso-naming` skill.** Turns a product concept into ranked Title + Subtitle candidates using the Brand+Keyword formula, the 4 keyword angles (Category / Result / Niche / Anti-category), the safe-vs-risky table, collision + word-of-mouth checks, and a 12-point scoring rubric. Three modes: `explore` (new product), `validate` (score an existing candidate), `rename` (with migration-cost analysis). Standalone via `/aso-naming`, auto-offered from `/aso-pipeline build` when the brief's title is provisional, and recommended from `/product-explore` as a post-proposal handoff when the working name is provisional.
+
+**`aso-edge-tactics` agent + `/aso-edge-tactics` skill.** Audits an app against the 8 highest-leverage moves and the 2025–2026 algorithm shifts from `smart-aso-techniques.md`. Distinguishes three gap classes: metadata (closable in-pipeline), engineering (Core Spotlight + applinks — need dev tickets), and operational (reactive ASO reflex, editorial pitching cadence). Three modes: `eight-moves` (default fast audit), `algorithm-shifts` (quarterly re-eval), `full` (extended tactics). Wired into `aso-director` as a Phase 9 synthesis step that auto-runs after collision on every `/aso-pipeline run` and appends a `## Edge Tactics Gap` section to `changes.md`; also invoked by `/aso-pipeline audit` as a lens alongside `aso-skills:aso-audit`.
+
+**Reference wiring across existing ASO agents.** `aso-metadata`, `aso-keyword-research`, `aso-localization`, `aso-creative`, `aso-tracking`, and `aso-director` each gained a "Reference Material" block citing the relevant sections of `specs/aso-pipeline/strategic-product-naming.md` and `specs/aso-pipeline/smart-aso-techniques.md`. Examples: `aso-localization` now points at the §Part 3 cross-localization 10x exploit (en-GB primary + en-US/en-AU/en-CA + es-MX stack); `aso-keyword-research` cites §1.1 hidden-field misspellings and §1.8 competitor-brand-terms gray area; `aso-creative` cites §2.3 screenshot OCR indexing and §1.7 preview-video first-3-seconds rules; `aso-tracking` cites §Part 2 algorithm shifts and §5.5 update cadence. No behavior change beyond the references — each agent's process remains as before, with named source-of-truth pointers.
+
+**Note on spec distribution.** The two spec files live in `specs/aso-pipeline/` which is gitignored (`# Internal specs (not shipped with plugin)`). Each agent's body contains the framework distilled inline (operating procedure, 12-point rubric, 8 moves), so marketplace installs without local specs remain functional; the spec citations are pointers to the authoritative source for users who have the files locally.
+
 ## v1.5.5 (2026-05-18)
 
 Team-worker spawn pattern refactored to eliminate a class of silent shutdown bug, plus design-skill integration for `ui-ux-developer`.
