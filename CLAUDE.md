@@ -35,7 +35,7 @@ nextc-product/                    — Product exploration (2 skills, 14 agents)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-unity/                      — Unity build (1 skill, 1 agent)
-nextc-aso/                        — ASO pipeline (1 skill, 9 agents)
+nextc-aso/                        — ASO pipeline (3 skills, 11 agents)
 nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
 nextc-claude-toolbox/             — Utility toolkit (1 skill)
 rules/nextc-claude/               — Shared rules (9 rules, symlinked via setup-rules.sh)
@@ -113,16 +113,22 @@ Agents: `unity-builder` (haiku)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| aso-pipeline | `/aso-pipeline` | Full ASO optimization pipeline (8 phases + collision) |
+| aso-pipeline | `/aso-pipeline` | Full ASO optimization pipeline (8 phases + collision + edge-tactics synthesis) |
 | | `/aso-pipeline score` | Instant 0-100 ASO scorecard (~5K tokens) |
 | | `/aso-pipeline express` | Quick keywords + metadata (80/20 path) |
-| | `/aso-pipeline audit` | Quick ASO health check |
+| | `/aso-pipeline audit` | Quick ASO health check (includes edge-tactics gap lens) |
 | | `/aso-pipeline diff` | What changed since last run |
-| | `/aso-pipeline build` | Scaffold ASO project + app brief |
+| | `/aso-pipeline build` | Scaffold ASO project + app brief (offers `/aso-naming` if title is provisional) |
 | | `/aso-pipeline status` | Show pipeline progress |
 | | `/aso-pipeline [phase]` | Run a single phase |
+| aso-naming | `/aso-naming` | Strategic product naming — Brand+Keyword formula, 4 angles, 12-point scoring, collision + WoM checks |
+| aso-edge-tactics | `/aso-edge-tactics` | Audit app against the 8 highest-leverage ASO moves + 2025–2026 algorithm shifts |
 
-Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet)
+Specs (project-level source of truth, in `specs/aso-pipeline/`):
+- `strategic-product-naming.md` — naming framework; powers `aso-naming` and informs `aso-metadata` title policy.
+- `smart-aso-techniques.md` — advanced ASO playbook; powers `aso-edge-tactics` and is referenced by `aso-keyword-research`, `aso-localization`, `aso-creative`, `aso-tracking`, and `aso-director`.
+
+Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet), `aso-naming` (sonnet), `aso-edge-tactics` (sonnet)
 
 ### nextc-ecc
 

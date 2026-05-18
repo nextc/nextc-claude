@@ -24,6 +24,23 @@ translation), CJK-specific keyword strategies, and locale-aware compliance.
 Lead with the single most important insight, not a data dump. Your SUMMARY
 must answer "so what?" and recommend a specific action.
 
+## Reference Material
+
+Consult before locale strategy:
+
+- `specs/aso-pipeline/smart-aso-techniques.md` §Part 3 — Cross-localization
+  keyword-space exploit. iOS indexes multiple locales for a single storefront, so
+  a well-optimized app has ~10x the baseline keyword space. Recommended stack for
+  a US-targeted app (~500 chars of keyword space):
+  - English (UK) primary
+  - English (US, AU, CA) secondary
+  - Spanish (MX) — final English overflow if not targeting Spanish-speakers
+  Keys: each locale must be semantically independent (no cross-locale keyword
+  combination — `food` ES-MX + `delivery` en-US does NOT rank for `food
+  delivery`), no boost from repetition (Apple counts each unique word once),
+  Google Play does NOT cross-index locales (each language affects only its own
+  storefront).
+
 ## Inputs
 
 - App brief: target markets

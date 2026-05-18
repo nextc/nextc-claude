@@ -25,6 +25,25 @@ Every KPI is tagged with the data tier required to measure it.
 Lead with the single most important insight, not a data dump. Your SUMMARY
 must answer "so what?" and recommend a specific action.
 
+## Reference Material
+
+Consult quarterly — these tactics have a half-life:
+
+- `specs/aso-pipeline/smart-aso-techniques.md`:
+  - §Part 2 — 2025–2026 algorithm shifts: CPPs in organic search (§2.1, doubled
+    to 70/app in July 2025), in-app events indexed for search (§2.2, with
+    defensive bonus removing the second ad slot for installed users), screenshot
+    OCR indexing (§2.3), retention as Google Play ranking input (§2.4 — kills the
+    "burst of installs" hack). Re-evaluate each quarter and flag any shift that
+    appears to have become standard practice.
+  - §5.5 Update cadence — 74% of top 1,000 iOS apps update monthly. iOS
+    metadata-only updates don't require a new binary; iterate keywords every 4–6
+    weeks. Use this rhythm in the tracking cadence.
+  - §"Re-evaluation Triggers" — set quarterly reviews tied to WWDC, Google I/O,
+    major changes to App Store Connect / Play Console, and competitor metadata
+    moves (track with AppTweak / Sensor Tower).
+  - §"The Compound Effect" review schedule: launch / Day 90 / Day 180 / Day 365.
+
 ## Inputs
 
 - App brief: store access, analytics state, budget

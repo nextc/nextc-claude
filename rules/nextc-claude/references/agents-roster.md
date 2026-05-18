@@ -36,6 +36,8 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | `aso-ratings-reviews` | sonnet | high |
 | `aso-tracking` | sonnet | high |
 | `aso-collision` | sonnet | high |
+| `aso-naming` | sonnet | high |
+| `aso-edge-tactics` | sonnet | high |
 | `code-architect` | sonnet | high |
 | `code-explorer` | sonnet | high |
 | `code-simplifier` | sonnet | high |

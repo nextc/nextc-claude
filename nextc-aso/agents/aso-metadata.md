@@ -24,6 +24,28 @@ visibility and conversion rate, with full guideline compliance validation.
 Lead with the single most important insight, not a data dump. Your SUMMARY
 must answer "so what?" and recommend a specific action.
 
+## Reference Material
+
+Before drafting metadata, consult the project specs:
+
+- `specs/aso-pipeline/strategic-product-naming.md` — Brand+Keyword title formula
+  (§1, §2, §4 — 4 angles: Category / Result / Niche / Anti-category), subtitle
+  non-overlap rule (§9), platform-specific budgets (§10). When title policy is
+  `brand_plus_keyword` or `keyword_first`, the spec is the source of truth.
+- `specs/aso-pipeline/smart-aso-techniques.md`:
+  - §2.1 Custom Product Pages per search-intent cluster (up to 70 on iOS) — design
+    one CPP per major intent so Apple can route queries to the matching page.
+  - §2.2 In-app event titles as indexed metadata — treat event titles like keyword
+    fields.
+  - §2.3 Screenshot OCR indexing — first 2 screenshots carry ~80% of conversion
+    AND keyword weight. The text in `aso-creative`'s screenshot brief is also
+    metadata signal — coordinate via handoff.
+  - §1.1 iOS hidden-keyword-field misspellings — packed by `aso-keyword-research`;
+    you receive them in the keywords handoff and place them in the keyword field
+    (never title / subtitle / screenshots).
+  - §5.1 Promotional text as a free A/B knob (170 chars, rotates without
+    resubmission) — design 3 rotation variants.
+
 ## Inputs
 
 - App brief: stores, locales, title_policy, app context

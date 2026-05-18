@@ -14,7 +14,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA) |
-| **nextc-aso** | aso-pipeline | App Store Optimization multi-agent pipeline |
+| **nextc-aso** | aso-pipeline, aso-naming, aso-edge-tactics | App Store Optimization multi-agent pipeline with strategic naming + edge-tactics auditing |
 
 ## Recommended Installation
 

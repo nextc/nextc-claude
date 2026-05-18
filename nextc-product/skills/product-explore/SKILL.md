@@ -216,3 +216,20 @@ Agent(
 | `--export pitch` | `docs/proposal.md` must exist | "No proposal found. Run /product-explore first." |
 | `--fast` | None | Proceed |
 | _(default)_ | None | Proceed |
+
+## Post-Run Handoff
+
+After the agent writes the proposal, surface a single next-step recommendation
+based on what the user committed to in "The Assignment." Common handoffs:
+
+| Proposal state | Next step to offer |
+|---|---|
+| Working product name is provisional / placeholder | **`/aso-naming --from-proposal`** — runs the ASO naming framework (Brand+Keyword formula, 4 angles, 12-point scoring, collision + WoM checks). Spec at `specs/aso-pipeline/strategic-product-naming.md`. ~5 min. |
+| Name is locked AND user is ready to build | `/flutter-kickoff` or `/unity-kickoff` |
+| Name is locked AND store launch is the next milestone | `/aso-pipeline build` (the build step in `/aso-pipeline` will itself offer `/aso-naming` if the title is still provisional in the brief) |
+| Major assumptions still untested | The Assignment itself — stop layering tools on top of an idea that needs a real-world check first |
+
+Lead with one recommendation, not a menu. The product-shaper agent already
+handled vision-level naming during Phase 4; `/aso-naming` is the ASO-grade
+discoverability pass that the user can run before committing to the App Store
+listing or trademark filing.

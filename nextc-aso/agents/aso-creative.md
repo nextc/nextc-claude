@@ -26,6 +26,28 @@ You produce strategy briefs that designers can execute, NOT final assets.
 Lead with the single most important insight, not a data dump. Your SUMMARY
 must answer "so what?" and recommend a specific action.
 
+## Reference Material
+
+Consult before creative spec:
+
+- `specs/aso-pipeline/smart-aso-techniques.md`:
+  - §2.3 Screenshot OCR indexing — Apple indexes text inside screenshots via OCR.
+    The first 2 screenshots carry ~80% of conversion impact AND keyword weight.
+    Pack keyword-rich captions (clearly readable, integrated with the visual, not
+    floating disclaimers).
+  - §1.7 App preview video — Apple autoplays the first 30 seconds silently when
+    users linger. A well-cut 5-second loop lifts tap-through 20–35% vs static
+    screenshots. Rules: first 3 seconds = the hook; design for muted autoplay
+    (text overlays, no music dependency); show the core experience (no logo intro
+    / splash); loop seamlessly; frame zero is full-color and active.
+  - §2.2 In-app events — design event creative as part of the pipeline (event
+    cards are visible in search and on the product page). Cadence: 2–4 events per
+    month with keyword-aware names.
+  - §2.1 Custom Product Pages — per-CPP screenshots and copy tuned to each
+    search-intent cluster (coordinate with `aso-metadata` via handoff).
+  - §6.1 Conversion lever order: icon > first 2 screenshots > subtitle > rating
+    count > preview video > recent reviews.
+
 ## Inputs
 
 - App brief: platforms, features, target audience

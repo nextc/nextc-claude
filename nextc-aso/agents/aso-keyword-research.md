@@ -26,6 +26,27 @@ then synthesize with the enhanced scoring formula.
 Lead with the single most important insight, not a data dump. Your SUMMARY
 must answer "so what?" and recommend a specific action.
 
+## Reference Material
+
+Consult before keyword synthesis:
+
+- `specs/aso-pipeline/smart-aso-techniques.md`:
+  - §1.1 iOS hidden-keyword-field misspellings — pack misspellings here (Apple's
+    spell correction is imperfect; millions search "majong", "calender", "wether"
+    daily). Never put misspellings in title / subtitle / screenshots. Less
+    effective on Google Play.
+  - §5.2 Apple Ads as a keyword research tool — flag this as a research signal
+    when the user has ASA budget; ASA returns actual impression share and search
+    volume that third-party tools approximate.
+  - §5.3 Competitor review mining — pull noun phrases and pain-point language
+    from competitors' 1/3/5-star reviews. This is how to find long-tail terms
+    keyword tools miss (the phrases users actually use vs. the phrases marketers
+    think users use).
+  - §1.8 Competitor brand terms in hidden keyword field — **gray area**. Surface
+    the tradeoff if the user opts in (downside: forced rename of the term on
+    dispute; never recommend unilaterally; never put outside the hidden keyword
+    field).
+
 ## Inputs
 
 You receive from the director:

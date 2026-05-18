@@ -39,10 +39,33 @@ manage pipeline state, and ensure every user interaction has consultant quality.
 **Anti-patterns:** No data without interpretation. No questions without recommendations.
 No equally-weighted options. Never present estimated data as if it were verified.
 
+## Reference Material
+
+The director carries the strategic playbook across phases:
+
+- `specs/aso-pipeline/strategic-product-naming.md` — naming framework. The
+  `aso-naming` specialist runs execution; you offer it in `build` mode and at
+  `/product-explore` handoff.
+- `specs/aso-pipeline/smart-aso-techniques.md`:
+  - §"Quick Reference: The 8 Highest-Leverage Moves" — anchor for the final
+    synthesis. The `aso-edge-tactics` specialist runs the audit on every full
+    `run` and on `audit` mode.
+  - §1.5 Portfolio play / sister apps — when the brief shows a category with 3+
+    viable keyword clusters or distinct sub-audiences, recommend the SKU split.
+  - §1.6 Editorial pitching to Apple/Google — flag at launch milestones. Pitch
+    around a hook (major update, cultural moment, technical achievement,
+    underserved audience), not "our app is great."
+  - §Part 4 Launch-timing leverage — new-app boost, soft-launch in low-competition
+    English-speaking countries (NZ, IE, PH, SG) to accumulate 4.5+ rating before
+    global, Google Play pre-registration. Apply only when maturity ==
+    `pre_launch`.
+  - §"The Compound Effect" review cadence: launch, Day 90, Day 180, Day 365.
+
 ## Specialist Agents
 
 | Phase | Agent | Model | Skills Invoked |
 |-------|-------|-------|---------------|
+| 0a (build, optional) | `nextc-aso:aso-naming` | sonnet | (none — uses strategic-product-naming.md spec) |
 | 1 | `nextc-aso:aso-competitive` | sonnet | competitor-analysis, competitor-tracking, market-pulse, market-movers |
 | 2 | `nextc-aso:aso-keyword-research` | sonnet | keyword-research, seasonal-aso |
 | 3 | `nextc-aso:aso-metadata` | sonnet | metadata-optimization, android-aso, app-launch, app-store-featured |
@@ -51,6 +74,7 @@ No equally-weighted options. Never present estimated data as if it were verified
 | 6 | `nextc-aso:aso-ratings-reviews` | sonnet | rating-prompt-strategy, review-management, crash-analytics |
 | 7 | `nextc-aso:aso-tracking` | sonnet | app-analytics, asc-metrics, ab-test-store-listing |
 | 8 | `nextc-aso:aso-collision` | sonnet | (none — custom cross-referencing) |
+| 9 (synthesis) | `nextc-aso:aso-edge-tactics` | sonnet | (none — uses smart-aso-techniques.md spec) |
 
 ## Parsing Specialist Returns
 
@@ -265,6 +289,43 @@ Display them prominently:
 > - `/aso-pipeline metadata` — [specific reason]
 > - `/aso-pipeline creative` — [specific reason]
 
+### Phase 9 Synthesis: Edge-Tactics Gap Audit
+
+After Phase 8 collision completes, BEFORE writing `changes.md`, spawn
+`aso-edge-tactics` in `eight-moves` mode. This audits the listing against
+the 8 highest-leverage moves from
+`specs/aso-pipeline/smart-aso-techniques.md` and surfaces gaps that the
+main phases do not guarantee (cross-localization stack depth, hidden-field
+misspellings, CPP cluster count, in-app event cadence, screenshot OCR
+captions, Core Spotlight integration, Smart App Banner / applinks, Brand+
+Keyword title compliance).
+
+```
+Agent(
+  subagent_type: "nextc-aso:aso-edge-tactics",
+  model: "sonnet",
+  prompt: """
+  Mode: eight-moves
+  Working directory: [cwd]
+  Output path: aso/outputs/changes.md
+  Append vs overwrite: append (as ## Edge Tactics Gap section)
+
+  App brief: aso/config/app_brief.yaml (exists)
+  Prior outputs: [list of aso/outputs/*.md from phases 1-8]
+  Snapshot: aso/.snapshots/[latest].json (if exists)
+
+  Playbook spec: specs/aso-pipeline/smart-aso-techniques.md
+  Naming framework: specs/aso-pipeline/strategic-product-naming.md
+  """
+)
+```
+
+Parse the return block. The SUMMARY line surfaces into the final consultant
+wrap-up. If signal `EDGE_TACTICS_HIGH_GAP` fires, lead the final summary with
+its top recommendation rather than the collision recommendations. If
+`ENGINEERING_BLOCKER` fires, separate engineering gaps from metadata gaps in
+the wrap-up so the user knows what is closable in-pipeline.
+
 ### Final Output: `changes.md`
 
 After the last phase completes (or after collision), generate `aso/outputs/changes.md`.
@@ -332,11 +393,37 @@ Streamlined path: Setup → Keywords → Metadata. Single checkpoint at the end.
 
 1. Run Phase 0 (Setup) — lightweight brief (app URL + store required)
 2. Invoke `aso-skills:aso-audit` skill
-3. Synthesize into prioritized action plan:
+3. **Edge-tactics lens** — spawn `aso-edge-tactics` in `eight-moves` mode:
+
+   ```
+   Agent(
+     subagent_type: "nextc-aso:aso-edge-tactics",
+     model: "sonnet",
+     prompt: """
+     Mode: eight-moves
+     Working directory: [cwd]
+     Output path: aso/outputs/edge-tactics-audit.md
+     Append vs overwrite: overwrite
+
+     App brief: aso/config/app_brief.yaml (exists)
+     Prior outputs: [list, if any]
+
+     Playbook spec: specs/aso-pipeline/smart-aso-techniques.md
+     Naming framework: specs/aso-pipeline/strategic-product-naming.md
+     """
+   )
+   ```
+
+4. Synthesize the `aso-audit` skill output AND the edge-tactics gap report into
+   a single prioritized action plan:
    - CRITICAL / HIGH / MEDIUM / LOW issues
-   - Per issue: current state, recommended fix, which pipeline phase addresses it
-4. Write `aso/outputs/audit-report.md`
-5. Offer upgrade: "Want to fix these? `/aso-pipeline run` addresses all issues."
+   - Per issue: current state, recommended fix, which pipeline phase or agent
+     addresses it
+   - Edge-tactics gaps merged in by leverage × effort (not by tactic order)
+5. Write `aso/outputs/audit-report.md` — include a top section
+   `## Edge Tactics Gap` summarizing the high-leverage edge moves missing.
+6. Offer upgrade: "Want to fix these? `/aso-pipeline run` addresses metadata
+   gaps. Engineering gaps (Core Spotlight, applinks) need dev tickets."
 
 ## Mode: `diff`
 
@@ -352,8 +439,23 @@ Streamlined path: Setup → Keywords → Metadata. Single checkpoint at the end.
 1. Run Phase 0 (Setup) — full interactive brief construction
 2. Create empty directory structure: `aso/config/`, `aso/outputs/`, `aso/handoffs/`, `aso/.snapshots/`
 3. Initialize `.pipeline-state.json`
-4. Do NOT run any analysis phases
-5. Report: "ASO project scaffolded. Run `/aso-pipeline run` to start analysis."
+4. **Optional naming pass** — if the brief's title field is empty OR the user
+   flagged `title_provisional: true`, offer to run the naming framework:
+
+   > Your title is provisional. The strategic naming framework at
+   > `specs/aso-pipeline/strategic-product-naming.md` can produce a ranked
+   > shortlist of title + subtitle candidates against the 12-point ASO rubric.
+   >
+   > Run now? (~5 min, ~25K tokens)
+
+   If accepted, spawn `aso-naming` in `explore` mode (or `validate` mode if a
+   working title exists). Pass `Output path:
+   aso/outputs/naming-worksheet.md`. After the agent returns, update
+   `aso/config/app_brief.yaml` with the recommended title + subtitle (mark them
+   as candidates until the user runs `/aso-pipeline run` to lock them in).
+
+5. Do NOT run any analysis phases
+6. Report: "ASO project scaffolded. Run `/aso-pipeline run` to start analysis."
 
 ## Mode: Single Phase
 
