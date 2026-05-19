@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-20
+
+### Changed
+- `nextc-core/skills/team-feature-dev/SKILL.md` — Phase 3 (Design) tightened to close the design-system gap when teams spawn. Previous behavior only cross-referenced `/feature-dev` verbatim without explicitly leveraging design skills. Now explicitly: (1) checks for `ui-ux-pro-max` or equivalent design skill availability at the team-lead level BEFORE TeamCreate fires; (2) documents three cases: skill installed + no `design.md` → invoke skill first; skill installed + `design.md` exists → workers inherit system via persona injection; no skill + no `design.md` → surface to user before launching team; (3) reinforces the "do this BEFORE TeamCreate" timing so workers don't make uncoordinated visual decisions in parallel. Rationale: closes observed failure mode where team workers proceeded without a common design reference, causing visual inconsistency and rework.
+
 ## 2026-05-18
 
 ### Added
@@ -26,6 +31,12 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ### Fixed
 - `nextc-core/agents/ui-ux-developer.md` — Added `SendMessage`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate` to the agent's tools list. Observed live: 2 `ui-ux-developer` workers (`trips-ui-eng`, `detail-ui-eng`) hung at shutdown because they had no `SendMessage` to reply `shutdown_approved`, forcing recovery via `TeamDelete`. The proper fix (above) is in `team-feature-dev` — this entry remains as defense in depth for direct/typed invocations.
+
+### Added
+- **New global rule:** `rules/nextc-claude/tool-preferences.md` — encodes preferred tools by use case (e.g., cloakbrowser over Playwright / Puppeteer / Selenium for browser automation). Table-based, extensible, includes "How to apply" guidance (verify API via Context7 before use; surface tradeoffs before falling back; project CLAUDE.md can override). Designed to be extended as additional tool-preference decisions emerge across the marketplace.
+
+### Changed
+- `CLAUDE.md` — bumped rule count from 9 to 10; added `tool-preferences` to the "All projects" rule list.
 
 ## 2026-05-15
 

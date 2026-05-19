@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.7 (2026-05-20)
+
+Two related changes that close gaps in how Claude Code leverages global preferences and design skills across projects.
+
+**New global rule: `tool-preferences`.** Added `rules/nextc-claude/tool-preferences.md` — a table-based, extensible global rule that encodes preferred tools by use case. First entry: prefer **cloakbrowser** over Playwright / Puppeteer / Selenium for browser automation (scraping, headless testing, web interaction). Includes "How to apply" guidance (verify API via Context7 before use, surface tradeoffs before falling back, project `CLAUDE.md` can override per-project) and "Adding to this list" criteria so the table grows only with generalizable preferences. The rule is active globally via the existing `~/.claude/rules/nextc-claude` symlink — no `setup-rules.sh` re-run needed. `CLAUDE.md` rule count bumped from 9 to 10 with `tool-preferences` added to the "All projects" list.
+
+**`/team-feature-dev` Phase 3 (Design) tightened to mandate design-skill leverage at the team-lead level.** Previously Phase 3 was a single-line cross-reference to `/feature-dev` ("Same as /feature-dev — check design.md and design assets"), which meant the team lead had to chase the reference to discover the `ui-ux-pro-max` recommendation. Now Phase 3 explicitly: (1) skips entirely for backend-only features; (2) runs a **mandatory design-skill availability check** (`ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max*`) BEFORE `TeamCreate` fires; (3) documents three cases with concrete actions — skill installed + no `design.md` → invoke the skill first to generate `design.md`; skill installed + `design.md` exists → workers inherit the system via the injected `ui-ux-developer` persona; no skill + no `design.md` → surface to the user before launching the team rather than letting workers freelance visual decisions in parallel. Cross-references to `/feature-dev` Path D and the `ui-ux-developer` agent's "Design Skill Integration" section retained so design-system logic stays single-sourced.
+
 ## v1.5.6 (2026-05-18)
 
 ASO pipeline absorbed the strategic-product-naming and smart-ASO-techniques playbooks via two new agents, two new skills, and reference wiring into the existing pipeline.

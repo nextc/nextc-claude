@@ -174,8 +174,24 @@ Ask:
 
 ## Phase 3: Design (UI Features Only)
 
-Same as `/feature-dev` — check design.md and design assets in the project folder.
-This phase runs BEFORE the team is created (design decisions inform task details).
+**Skip entirely for backend-only features.** Run BEFORE the team is created — design decisions inform task details and worker prompts.
+
+Follow the same paths as `/feature-dev` Phase 3 (Paths A–D in `nextc-core/skills/feature-dev/SKILL.md`): check `docs/design.md` and design assets in the project folder, then choose the path that matches.
+
+### Design-skill leverage (mandatory check)
+
+Before falling back to "code first" or hand-rolled design, check for an installed design skill:
+
+```
+ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max* 2>/dev/null
+# Repeat for any other design skill the project may install.
+```
+
+- **If `ui-ux-pro-max` (or equivalent) is installed AND `docs/design.md` is missing or insufficient**: invoke the design skill first to generate or extend `design.md` (palette, typography, components, accessibility, stack-specific patterns). Do this *before* `TeamCreate` so workers inherit a real design system instead of inventing one in parallel.
+- **If a design skill is installed AND `design.md` already exists**: assume `design.md` already encodes the skill's inventory — workers honor it via the injected `ui-ux-developer` persona. No re-invocation needed.
+- **If no design skill is installed AND no `design.md` exists**: surface this to the user before launching the team. Workers freelancing visual decisions in parallel produces drift that's expensive to reconcile later.
+
+This mirrors `/feature-dev`'s Path D recommendation and the `ui-ux-developer` agent's "Design Skill Integration" section — the team lead must do this check at the lead level, not delegate it to workers.
 
 ## Phase 4: Create Team & Execute
 
