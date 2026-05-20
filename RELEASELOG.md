@@ -1,5 +1,17 @@
 # Release Log
 
+## v1.5.8 (2026-05-21)
+
+Security hardening of the Flutter and Unity build pipelines so secrets can never be embedded into a shipped binary.
+
+**Motivation — a real near-miss.** `/flutter-build` defaulted to "Use .env: yes if .env exists" and fed that `.env` to `--dart-define-from-file`, which bakes every value into the client binary. A root `.env` holding a Supabase service-role key would have leaked into the app. Publishable (non-secret) config now lives in committed Dart constants, not `.env`, so the build must never consume `.env`.
+
+**`/flutter-build` — removed the dangerous default.** Dropped `.env` auto-detection (Step 1) and the "Use .env: yes/no (default: yes)" prompt (Step 2). The replacement option is "Dart defines file: none / <non-secret config path> (default: none)". Added a "Secrets Guard (SECURITY)" subsection that hard-blocks secret-bearing files — `.env`, `.env.*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*-service-account.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks` — from `--dart-define-from-file`, refusing the build if matched. Step 4a re-runs the guard on any supplied path. "Env file" relabeled to "Dart-define-from-file (non-secret)" across the confirm summary, both parallel-build agent prompts, and the whats-new field. `flutter-builder` agent mirrors all of this: a Phase 1 Secrets Guard, a Phase 3 note that the dart-define flag is empty unless a guard-cleared file was passed, relabeled buildlog fields, and a new SECURITY rule replacing the old ".env absolute path" rule.
+
+**`/unity-build` — preventive secrets-in-bundle guard.** Unity has no `.env`/dart-define mechanism, but anything under `Assets/` (especially `Resources/` and `StreamingAssets/`) is packed verbatim into the APK/IPA and is trivially extractable. Added a pre-flight `find Assets -type f ...` scan (same secret patterns) to SKILL Step 4 and `unity-builder` Phase F1 that STOPs the build if a secret-bearing file would ship. Matching SECURITY lines added to both Rules sections.
+
+This aligns the build pipelines with the global `safety.md` Rule 3 (secrets never embedded or committed).
+
 ## v1.5.7 (2026-05-20)
 
 Two related changes that close gaps in how Claude Code leverages global preferences and design skills across projects.

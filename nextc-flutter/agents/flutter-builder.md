@@ -21,7 +21,7 @@ You are spawned by the `/flutter-build` skill with a prompt containing:
 - **Version number:** semantic version (e.g., 1.2.3)
 - **Build number:** integer build number
 - **App name:** canonical `{appname}` string for artifact filenames (may be absent in older skill versions — see Phase 4 fallback)
-- **Env file:** path to .env file or "none"
+- **Dart-define-from-file:** path to a NON-SECRET build-config file or "none". NEVER `.env` or any secret-bearing file — see the Secrets Guard in Phase 1.
 - **Project root:** absolute path to the Flutter project
 
 The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.0.0_7.apk`). When present, use it EXACTLY as the renamed output — do not derive your own.
@@ -31,7 +31,7 @@ The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.
 ### Phase 1: Pre-Build Validation
 
 1. Read `pubspec.yaml` — confirm current version line exists
-2. If env file specified, verify it exists
+2. **Secrets Guard (SECURITY):** if a dart-defines file was specified, verify it exists, then confirm its path does NOT match a secret pattern (case-insensitive): `.env`, `.env.*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*-service-account.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`. `--dart-define-from-file` embeds every value into the shipped binary, so a secret fed this way is a leak. If the path matches, **STOP** and refuse — report that the file holds secrets and that publishable config belongs in committed Dart constants.
 3. Verify `flutter` is available: `flutter --version`
 4. Run `git status` — if there are uncommitted changes, **STOP** and ask the user to review:
    - Show the list of modified/untracked files
@@ -56,7 +56,8 @@ flutter build apk -t lib/main.dart --{mode} {dart_define_flag}
 flutter build ipa --export-method ad-hoc {dart_define_flag}
 ```
 
-- If `--dart-define-from-file` is specified, include it in both commands
+- `{dart_define_flag}` is `--dart-define-from-file=<absolute path>` ONLY when a non-secret dart-defines file passed the Phase 1 Secrets Guard; otherwise it is empty. Never construct this flag from `.env` or any secret-bearing file.
+- If the flag is set, include it in both commands
 - Log build output — capture both stdout and stderr
 - If a build fails, log the failure (Phase 5) and STOP. Do not continue to the next platform.
 
@@ -94,7 +95,7 @@ Update `docs/buildlog.md` with a new entry. Create the file if it does not exist
 
 - **Platforms:** {android, ios, or both}
 - **Mode:** {release/profile/debug}
-- **Env:** {.env or none}
+- **Dart defines:** {non-secret config file or none}
 - **Status:** {success or failed}
 
 ### What's new
@@ -269,7 +270,7 @@ Spawn prompt fields:
 - **Build number:** integer
 - **Platforms:** `android`, `ios`, or `both`
 - **Mode (build):** `release` / `profile` / `debug`
-- **Env:** path to .env or `none`
+- **Dart defines:** non-secret config file or `none`
 - **Status:** `success` or `failed`
 - **Artifacts:** one line per built platform with `{size}` and `{path}` (or the failure reason if status=failed)
 
@@ -306,4 +307,4 @@ The review gate, date sanity checks, range rules, `--stat` reading, vague-subjec
 - Always update the build log, even on failure (mark status as "failed") — skipping it breaks the tag-range history used by the next build
 - The Phase 5.6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — Phase 5 describes the full procedure
 - On Cancel: do not write the entry, do not commit, do not tag. The artifact stays on disk. This is not a failure; it's an aborted bookkeeping step
-- Always use absolute paths for the `.env` file in `--dart-define-from-file`
+- SECURITY: NEVER feed `.env` or any secret-bearing file (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) to `--dart-define-from-file` — it embeds secrets into the shipped binary. Only a Phase-1-cleared non-secret config file may be used, and always with an absolute path.

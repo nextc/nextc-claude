@@ -161,6 +161,8 @@ Run BEFORE any build work — each failure aborts:
    )
    ```
 
+5. **Secrets-in-bundle guard (SECURITY).** `Assets/` (esp. `Resources/`, `StreamingAssets/`) packs verbatim into the APK/IPA and is trivially extractable, so scan for secret-bearing files (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks` — the full runnable `find Assets ...` command lives in `unity-builder` Phase F1) and **STOP** if any match: list the paths, explain they would ship in the binary, and have the user move the secret out of `Assets/` before building.
+
 ## Step 5: Version Bump
 
 Edit `ProjectSettings/ProjectSettings.asset` in-place via the Edit tool
@@ -487,6 +489,7 @@ already main-thread.
 - NEVER guess at Unity reinstalls or license cache clears — if a log says
   `read only` / `licensing mutex` / `permission denied`, it's a sandbox signal
 - NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
+- SECURITY: NEVER let secret-bearing files (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) sit under `Assets/` at build time — they get packed into the shipped binary. The Step 4 secrets-in-bundle guard must pass before building
 - Unity exit code 0 + a fresh, reasonably-sized artifact is the success bar,
   not exit code alone
 - Unity builds are slow (5–20+ min on cold compile); don't set tight Bash

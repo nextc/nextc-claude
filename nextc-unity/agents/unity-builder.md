@@ -336,6 +336,7 @@ Unity + xcodebuild yourself.
 7. `git status --porcelain` — if dirty, ask user before proceeding.
 8. Verify / scaffold `Assets/Editor/BuildScript.cs` + `.meta` (use the
    templates in `Mode: scaffold` above).
+9. **Secrets-in-bundle guard (SECURITY):** `find Assets -type f \( -iname '.env' -o -iname '.env.*' -o -iname 'secrets.json' -o -iname '*.local.*' -o -iname 'service-account*.json' -o -iname '*-service-account.json' -o -iname '*.pem' -o -iname '*.p12' -o -iname '*.keystore' -o -iname '*.jks' \) 2>/dev/null`. If anything is returned, STOP — these get packed into the shipped binary. List the paths and tell the user to move the secret out of `Assets/` before building.
 
 ### Phase F2: Version Bump
 
@@ -555,6 +556,7 @@ signing info, absolute log paths, and phase timings. On failure, show
 - NEVER run Unity invocations in parallel on the same project —
   `Library/` and `Temp/UnityLockfile` contention causes silent no-ops
 - NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
+- SECURITY: NEVER build with secret-bearing files under `Assets/` (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) — they pack into the shipped binary. The Phase F1 secrets-in-bundle guard must pass first
 - Always update the build log, even on failure (mark status "failed") — skipping breaks the tag-range history used by the next build
 - The Step 6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — `Mode: whats-new` describes the full procedure
 - On Cancel: do not write the entry, do not commit, do not tag. Artifacts stay on disk; this is not a failure

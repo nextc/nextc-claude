@@ -17,8 +17,13 @@ Interactive build pipeline: gather build parameters, spawn the flutter-builder a
 
 Run in parallel:
 - Read `pubspec.yaml` — extract current `version:` line (format: `X.Y.Z+N`) AND the `name:` line
-- Check if `.env` file exists in project root
 - Run `git log --oneline -5` — show recent commits for context
+
+> **Do NOT auto-detect `.env` for the build.** A `.env` in the project root holds
+> secrets (service-role keys, API secrets) and must never be fed to
+> `--dart-define-from-file` — that embeds every value into the shipped client
+> binary. Publishable runtime config belongs in committed Dart constants. See the
+> Secrets Guard in Step 2.
 
 Parse the current version into:
 - `current_version` — the semantic version part (before `+`)
@@ -42,12 +47,33 @@ Build configuration:
   2. Mode: release / profile / debug (default: release)
   3. Version: {current_version} (press enter to keep)
   4. Build number: {next_build} (press enter to auto-increment)
-  5. Use .env: yes/no (default: yes if .env exists)
+  5. Dart defines file: none / <path to a NON-SECRET config file> (default: none)
 
 Please provide your choices (e.g., "android, release" or just press enter for defaults).
 ```
 
 Wait for user response. Parse their choices — use defaults for anything not specified.
+
+> **Default is `none`.** Do not offer or assume `.env`. Only set a
+> `--dart-define-from-file` path if the user explicitly names a file AND it passes
+> the Secrets Guard below.
+
+### Secrets Guard (SECURITY — always enforce)
+
+`--dart-define-from-file` bakes every key/value into the compiled client binary.
+Anything embedded is shippable and extractable — so a secret fed this way is a
+leak, not a config.
+
+- **Never** pass `.env` or any secret-bearing file to `--dart-define-from-file`.
+  Blocked patterns (case-insensitive): `.env`, `.env.*`, `secrets.json`,
+  `*.local.*`, `service-account*.json`, `*-service-account.json`, `*.pem`,
+  `*.p12`, `*.keystore`, `*.jks`.
+- If the user-supplied dart-defines path matches a blocked pattern, **STOP** and
+  refuse: explain that the file holds secrets that would be embedded in the
+  binary, and that publishable config should be committed Dart constants instead.
+- A dart-defines file is acceptable ONLY when it is explicitly non-secret build
+  config (e.g. a feature-flag or environment-name file the user confirms carries
+  no credentials). When in doubt, treat it as a secret and refuse.
 
 ## Step 3: Confirm
 
@@ -55,10 +81,10 @@ Show a summary:
 
 ```
 Build plan:
-  Platforms : {platforms}
-  Mode      : {mode}
-  Version   : {version}+{build}
-  Env file  : {.env or none}
+  Platforms   : {platforms}
+  Mode        : {mode}
+  Version     : {version}+{build}
+  Dart defines: {non-secret config file or none}
 
 Proceed?
 ```
@@ -84,7 +110,7 @@ Build the Flutter app with the following configuration:
 - Version: {version}
 - Build number: {build}
 - App name: {appname}  (use EXACTLY this string for artifact filenames — do not transform)
-- Env file: {path to .env or "none"}
+- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - Project root: {absolute path to project}
 
 Target artifact names:
@@ -104,7 +130,7 @@ When building both platforms, the skill orchestrates shared steps and spawns two
 
 Run these checks before spawning agents:
 1. Read `pubspec.yaml` — confirm version line exists
-2. If env file specified, verify it exists
+2. If a dart-defines file was specified, verify it exists AND re-run the Step 2 Secrets Guard against its path — if it matches a blocked secret pattern, STOP and refuse (do not build with it)
 3. Run `flutter --version` — verify Flutter is available
 4. Run `git status` — if uncommitted changes, ask user before proceeding
 
@@ -132,7 +158,7 @@ Build the Flutter app with the following configuration:
 - Version: {version}
 - Build number: {build}
 - App name: {appname}  (use EXACTLY this string for the APK filename — do not transform)
-- Env file: {path to .env or "none"}
+- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - Project root: {absolute path to project}
 
 Target artifact name: {appname}_{version}_{build}.apk
@@ -161,7 +187,7 @@ Build the Flutter app with the following configuration:
 - Version: {version}
 - Build number: {build}
 - App name: {appname}  (use EXACTLY this string for the IPA filename — do not transform)
-- Env file: {path to .env or "none"}
+- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - Project root: {absolute path to project}
 
 Target artifact name: {appname}_{version}_{build}.ipa
@@ -196,7 +222,7 @@ After BOTH agents complete:
      Build number: {build}
      Platforms: both
      Mode (build): {release/profile/debug}
-     Env: {env file path or "none"}
+     Dart defines: {non-secret config file or "none"}
      Status: {success — or failed, if either platform failed}
      Artifacts:
        android: {size} — {path}

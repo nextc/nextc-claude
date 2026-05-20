@@ -2,6 +2,12 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-21
+
+### Changed
+- **`nextc-flutter/skills/flutter-build/SKILL.md` + `nextc-flutter/agents/flutter-builder.md`** — Security hardening: removed `.env` auto-detection and replaced dangerous `--dart-define-from-file` prompting with an explicit Secrets Guard that blocks secret-bearing files (`.env`, `.env.*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`). New Step 2 option is "Dart defines file: none / <non-secret config path> (default: none)". Step 4a validation re-runs the guard on any supplied path; refuses build if matched. Motivation: near-miss where the builder defaulted `--dart-define-from-file` to `.env` if present, embedding every key-value pair (including secrets like Supabase service-role keys) into the client binary. The team no longer ships publishable config in `.env` (it lives in committed Dart constants), so the build must never use `.env`.
+- **`nextc-unity/skills/unity-build/SKILL.md` + `nextc-unity/agents/unity-builder.md`** — Added preventive Secrets-in-bundle guard: `find Assets -type f ...` scan in pre-flight that STOPs the build if a secret-bearing file sits under `Assets/` (same patterns as flutter). Covers the same risk surface: secret files are packed into the APK/IPA if found in the bundle.
+
 ## 2026-05-20
 
 ### Changed
