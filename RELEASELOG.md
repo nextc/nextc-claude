@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.9 (2026-05-21)
+
+New global UI/UX design rule, wired into every surface that does UI work.
+
+**`rules/nextc-claude/ui-ux-design.md` (new, mandatory, all projects).** Six standardized design principles: (1) neutral color by default — never accent/vibrant color on borders, reserve high-salience color for the single most important element per screen; (2) glass/frost styles never use solid fills — low-opacity tint layered into the material only; (3) sans-serif by default, serif only on explicit command, never italic serif; (4) max 2 font families and 3 font sizes per screen (because each new size reads as a new font); (5) propose-before-execute as a SOFT gate — confirm in interactive sessions, proceed in `--auto`/team/autonomous runs; (6) whole-product consistency as a HARD rule that never relaxes in any mode — audit the entire product on every change, define each design decision once and reuse it, verify cross-screen consistency. The rules explicitly override conflicting `ui-ux-pro-max` output.
+
+**Wired into the three UI surfaces** so the rule isn't passive text: `ui-ux-developer` agent (mandatory constraints callout atop Core Principles), and the Phase 3 (Design) sections of both `feature-dev` and `team-feature-dev` (the team variant frames #6 as the consistency guarantee parallel workers cannot relax). `CLAUDE.md` rule count bumped 10 → 11.
+
 ## v1.5.8 (2026-05-21)
 
 Security hardening of the Flutter and Unity build pipelines so secrets can never be embedded into a shipped binary.

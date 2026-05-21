@@ -195,6 +195,8 @@ On approval, persist the plan per Step 2d before proceeding.
 
 **Skip this phase entirely for backend-only features.**
 
+> **Obey `~/.claude/rules/nextc-claude/ui-ux-design.md` throughout this phase.** #5 (propose-before-execute) is a soft gate — confirm design changes in interactive runs, proceed in `--auto`. #6 (whole-product consistency) is a **hard rule in every mode**: any design change must be applied product-wide, design code deduplicated/reused, and consistency verified — never leave one screen out of step with the rest.
+
 For UI-touching features, check what design artifacts exist:
 
 ### Path A: design.md Exists + Screens Already Designed

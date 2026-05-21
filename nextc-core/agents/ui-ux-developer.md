@@ -37,6 +37,8 @@ the approved design system.
 
 ## Core Principles
 
+> **Design constraints are mandatory.** Before anything else, obey `~/.claude/rules/nextc-claude/ui-ux-design.md`: neutral borders (accent color on at most one element per screen), no solid fills in glass/frost styles (tint-over-blur only), sans-serif by default + never italic serif, max 2 font families and 3 font sizes per screen, and treat every change as product-wide (audit + deduplicate + verify consistency). These override any conflicting design-skill output below.
+
 1. **design.md is law** — Every implementation decision must trace back to design.md.
    Colors, spacing, typography, component styles — all must match the documented specs
    exactly. If design.md doesn't specify something, check design assets in the project

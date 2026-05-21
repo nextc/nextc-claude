@@ -176,6 +176,8 @@ Ask:
 
 **Skip entirely for backend-only features.** Run BEFORE the team is created — design decisions inform task details and worker prompts.
 
+> **Obey `~/.claude/rules/nextc-claude/ui-ux-design.md`.** #5 (propose-before-execute) is soft — in a team run the user has opted into autonomy, so workers proceed without pausing. #6 (whole-product consistency) is a **hard rule**: every UI worker applies the shared design system, reuses centralized tokens/components (never duplicates a design value), and the lead verifies cross-screen consistency before sign-off. Parallel workers drifting into per-screen visual decisions is the exact failure this forbids.
+
 Follow the same paths as `/feature-dev` Phase 3 (Paths A–D in `nextc-core/skills/feature-dev/SKILL.md`): check `docs/design.md` and design assets in the project folder, then choose the path that matches.
 
 ### Design-skill leverage (mandatory check)

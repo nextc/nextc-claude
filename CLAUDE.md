@@ -179,9 +179,9 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
-## Rules (10)
+## Rules (11)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing, code-comments, verify-before-claim, tool-preferences
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing, code-comments, verify-before-claim, tool-preferences, ui-ux-design
 
 ## Changelog
 
