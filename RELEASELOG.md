@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.5.10 (2026-05-26)
+
+Adopted two behavioral principles from the external `multica-ai/andrej-karpathy-skills` CLAUDE.md, integrated to fit our existing rule set rather than copied wholesale.
+
+**`rules/nextc-claude/practices.md` — new "Think Before Coding" section.** Sits between Research & Reuse and Workflow. Three always-on behaviors: surface competing interpretations instead of silently picking one, push back when a simpler path exists before writing the larger version, and name what's unclear rather than guessing. Cross-references `verify-before-claim.md` (facts about external APIs) and the `/clarify` skill (full interview) so it acts as the always-on floor beneath them without duplicating either.
+
+**`nextc-ecc/skills/verification-loop/SKILL.md` — new "Define Success Criteria First" section.** Brings the goal-driven "define checkable criteria, then loop until met" spirit into the verification workflow, but deliberately strips the source's test-first mechanism and defers to `no-auto-testing.md` (run existing tests, never author new ones unless the user explicitly asks) — the one place the source directly conflicted with our rules.
+
+Two of the source's four principles (Surgical Changes, Simplicity First) were evaluated and deliberately not adopted.
+
 ## v1.5.9 (2026-05-21)
 
 New global UI/UX design rule, wired into every surface that does UI work.
