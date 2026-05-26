@@ -2,6 +2,12 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-26
+
+### Changed
+- **`rules/nextc-claude/practices.md`** — added a new "## Think Before Coding" section (after "Research & Reuse", before "Workflow") adopting a behavioral principle from external reference CLAUDE.md. Three guidelines: surface competing interpretations instead of silently picking one, push back when a simpler path exists before implementing the complex version, and name what's unclear before guessing. Explicitly positioned as the always-on floor for interpreting requests and design; cross-references `/clarify` skill for full requirements interviews and `verify-before-claim.md` for asserting external facts.
+- **`nextc-ecc/skills/verification-loop/SKILL.md`** — added a new "## Define Success Criteria First" section (after "When to Use", before "Project Type Detection") adopting goal-driven execution principles. Instructs users to restate vague task goals as concrete, checkable criteria first, then loop until all pass. Explicitly defers test authorship to `no-auto-testing.md` (do not author new tests unless the user asked); the loop uses only existing build, typecheck, lint, and app-behavior verification. Criteria must be stated up front so the loop has an objective done condition.
+
 ## 2026-05-21
 
 ### Added

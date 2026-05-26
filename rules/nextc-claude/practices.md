@@ -32,6 +32,16 @@ This rule covers *"do I need a new library or pattern?"*. For *"am I about to as
 
 Prefer battle-tested packages over hand-rolled code.
 
+## Think Before Coding
+
+Before implementing anything beyond a trivial change:
+
+- **Surface competing interpretations.** When a request has more than one reasonable reading, present them and let the user choose — never silently pick one and build on it.
+- **Push back when a simpler path exists.** If the ask is more complex than the problem requires, say so and propose the smaller version *before* writing the larger one.
+- **Name what's unclear.** If something blocks a correct implementation, stop and ask rather than guess.
+
+This rule is about interpreting the *request and design*. For asserting *facts* about an external library/API/service, see `verify-before-claim.md`. For a full requirements interview, use the `/clarify` skill — this is the always-on floor beneath it.
+
 ## Workflow
 
 1. **Plan** — Use **planner** agent for multi-file features or architectural changes. Skip for single-file changes.
