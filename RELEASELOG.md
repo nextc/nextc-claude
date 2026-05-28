@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.11 (2026-05-28)
+
+New global rule capturing fix-scope discipline.
+
+**`rules/nextc-claude/minimal-fix-scope.md` (new, mandatory CRITICAL, all projects).** A fix changes only what's required to resolve the reported problem; it must not alter — deliberately or as a side effect — UI/UX, animation/motion, visual design, business logic, user flow, API/output/data contracts, or any observable behavior. When the only correct fix genuinely requires changing how something works, the rule mandates STOP-and-ask: present the minimal fix, the change-how-it-works fix (naming exactly what observable thing changes), and the tradeoff, then wait for explicit approval (which does not carry to the next change). Names the "while I was in there" anti-pattern — cleanups, renames, default changes, bundled unrelated fixes — as forbidden without asking, and distinguishes itself from `practices.md` Think Before Coding (interpreting the request) and `ui-ux-design.md` Consistency (applying an already-approved UI change). Enforcement parity with `safety.md`. Motivated by a performance fix that silently rewrote a UI animation without asking.
+
+**Wiring.** `CLAUDE.md` rule count bumped 11 → 12 with `minimal-fix-scope` added to the list; `README.md` rule count synced (the stale `9` corrected to `12`) and its rule list brought current (it had been missing `tool-preferences` and `ui-ux-design`).
+
 ## v1.5.10 (2026-05-26)
 
 Adopted two behavioral principles from the external `multica-ai/andrej-karpathy-skills` CLAUDE.md, integrated to fit our existing rule set rather than copied wholesale.
