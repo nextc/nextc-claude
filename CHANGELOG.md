@@ -2,6 +2,15 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-05-30
+
+### Added
+- **New global rule:** `rules/nextc-claude/latest-spec-wins.md` — mandatory CRITICAL rule that the most recent valid instruction is the canonical spec, and every recorded version of the prior spec (in `docs/`, code, comments, README, CLAUDE.md, rule files, error messages, test names, examples) must be brought current in the same response that adopts the change. Two branches: **Branch A** (new instruction is non-conflicting or a clear refinement) — adopt as final and propagate to every record of the old version; **Branch B** (new instruction conflicts with a deliberate prior decision) — STOP, present old vs. new side-by-side, ask the user to decide, then run Branch A on the loser. Names the "stale echo" anti-pattern (comments, error messages, test names quoting the old spec) as a CRITICAL review issue, and explicitly composes with `minimal-fix-scope.md`: the behavioral change stays minimal, but the documentary sync of an authorized spec change is required, not scope creep. Cross-references `project-docs.md`, `practices.md` Think Before Coding, and `verify-before-claim.md` to delineate scope. Enforcement parity with `safety.md`.
+
+### Changed
+- **`CLAUDE.md`** — bumped rule count 12 → 13 in both the Structure block and the "## Rules" heading; added `latest-spec-wins` to the "All projects" rule list.
+- **`README.md`** — bumped rule count 12 → 13 in the Structure tree and the "### Rules" heading; added `latest-spec-wins` to the rule list.
+
 ## 2026-05-28
 
 ### Added
