@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.5.12 (2026-05-30)
+
+New global rule capturing spec-supersession discipline; pairs with v1.5.11's `minimal-fix-scope`.
+
+**`rules/nextc-claude/latest-spec-wins.md` (new, mandatory CRITICAL, all projects).** The most recent valid instruction is the canonical spec; every recorded version of the prior spec (`docs/`, code, comments, `README.md`, `CLAUDE.md`, rule files, error messages, test names, examples) must be brought current in the same response that adopts the change. Two branches: **Branch A** (non-conflicting refinement or extension) — adopt as final and propagate to every record of the old version; **Branch B** (conflicts with a deliberate prior decision) — STOP, present old vs. new side-by-side naming where the old lives, ask the user to decide, then run Branch A on the loser. Names the "stale echo" anti-pattern — comments, error messages, test names, README examples still quoting the old spec — as a CRITICAL review issue, equal in severity to a missing error log under `safety.md`. Explicitly composes with `minimal-fix-scope.md`: the behavioral change stays minimal; the documentary sync of an *authorized* spec change is required, not scope creep. Cross-references `project-docs.md`, `practices.md` Think Before Coding, and `verify-before-claim.md` to delineate scope.
+
+**Wiring.** `CLAUDE.md` rule count bumped 12 → 13 with `latest-spec-wins` added to the list; `README.md` rule count and list synced to match.
+
 ## v1.5.11 (2026-05-28)
 
 New global rule capturing fix-scope discipline.
