@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.5.13 (2026-06-04)
+
+`verify-before-claim` upgraded to cover internal and runtime claims, not just external libraries/APIs/services. Inference is not proof.
+
+**`rules/nextc-claude/verify-before-claim.md` (upgraded in place).** Rule rewritten to extend its scope from "external libraries/SDKs/APIs/services only" to any claim where being wrong breaks the code or misleads the user. New framing at the top: *Inference is not proof — recall, guess, "it's probably like X", and "based on similar code" all count as inference and must be replaced by an authoritative lookup before the claim lands.* Authoritative source per claim type now explicit: external → MCP / Context7; internal (what code does, what's in a file, repo state) → `Read` / `Grep` / `Glob`; runtime (build, lint, test, migration, what a command outputs) → `Bash` execution. Mandatory Verification Triggers regrouped into **External** (1–4), **Internal** (5–7: schema-from-filenames, asserting what repo code does without `Read`, repo-state claims without checking), and **Runtime** (8: build/lint/test/migration claims must be executed, not deduced). "When You Can Skip" tightened to require proof from **this session** — "I read this file last week" and "known stack" explicitly disqualified. Red-flag phrase list extended with internal/runtime-specific tells ("it probably", "would return", "we already have", "this will compile/build/pass"). "How to Verify" promotes `Read`/`Grep`/`Glob` (#3) and `Bash` (#4) to first-class verification tools. Self-Check and Enforcement reworded to drop the "external" framing throughout.
+
+**Stale-echo sync per `latest-spec-wins.md`.** `practices.md`: two `verify-before-claim` cross-references broadened from "external library/API/service" framing to cover internal claims too. `latest-spec-wins.md`: own cross-reference to `verify-before-claim` reframed from "facts about external systems" to "not asserting any fact (external or internal) without proof"; the actual distinction between the two rules is now stated as *asserting unverified facts* vs. *which version of the spec is canonical across time*, not external vs. internal. No plugin agents/skills reference the rule by name, so no plugin-side echoes. Past `CHANGELOG`/`RELEASELOG` entries left as dated history.
+
+**Rule count unchanged** (13) — this is an in-place upgrade, not a new rule.
+
 ## v1.5.12 (2026-05-30)
 
 New global rule capturing spec-supersession discipline; pairs with v1.5.11's `minimal-fix-scope`.
