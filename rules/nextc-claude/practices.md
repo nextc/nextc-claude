@@ -14,7 +14,7 @@ Rationale: Immutable data prevents hidden side effects, makes debugging easier, 
 
 ## Research & Reuse
 
-This rule covers *"do I need a new library or pattern?"*. For *"am I about to assert a fact about an existing library, SDK, API, or service?"* — see `verify-before-claim.md` (CRITICAL). Both rules apply; this one is about scoping work, that one is about not making things up.
+This rule covers *"do I need a new library or pattern?"*. For *"am I about to assert a fact — about a library, SDK, API, service, OR about what code in this repo does, OR about runtime behavior — that I haven't proven this session?"* — see `verify-before-claim.md` (CRITICAL). Both rules apply; this one is about scoping work, that one is about not making things up (whether external or internal).
 
 **Search before coding** when the task involves:
 - Common infrastructure (auth, payments, file upload, caching, etc.)
@@ -40,7 +40,7 @@ Before implementing anything beyond a trivial change:
 - **Push back when a simpler path exists.** If the ask is more complex than the problem requires, say so and propose the smaller version *before* writing the larger one.
 - **Name what's unclear.** If something blocks a correct implementation, stop and ask rather than guess.
 
-This rule is about interpreting the *request and design*. For asserting *facts* about an external library/API/service, see `verify-before-claim.md`. For a full requirements interview, use the `/clarify` skill — this is the always-on floor beneath it.
+This rule is about interpreting the *request and design*. For asserting *facts* — external (library/API/service) or internal (what code in this repo does, what's in a file, what a command outputs) — see `verify-before-claim.md`. For a full requirements interview, use the `/clarify` skill — this is the always-on floor beneath it.
 
 ## Workflow
 

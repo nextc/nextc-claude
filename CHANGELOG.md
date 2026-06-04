@@ -2,6 +2,13 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-06-04
+
+### Changed
+- **`rules/nextc-claude/verify-before-claim.md`** — rule upgraded in place to broaden scope from "external libraries/SDKs/APIs/services only" to **"any claim where being wrong breaks the code or misleads the user"**, including internal code behavior, repo state, and runtime claims. New framing: *Inference is not proof — recall, guess, and "it's probably like X" all count as inference and must be replaced by an authoritative lookup before the claim lands.* Authoritative sources made explicit per claim type: external → MCP/Context7; internal → open the file (`Read`/`Grep`/`Glob`); runtime → execute the command (`Bash`). Mandatory Verification Triggers regrouped into External (1–4), Internal (5–7: schema-inferred-from-filenames, asserting what repo code does without `Read`ing it, asserting repo/file state without confirming), and Runtime (8: build/lint/test/migration claims must be executed, not deduced). "When You Can Skip" tightened to require proof from *this session* only — "I read this file last week" and "known stack" explicitly disqualified. Red-flag phrase list extended (it probably, would return, we already have, this will compile/build/pass). "I Don't Know" examples broadened (read the file, grep, run the build). "How to Verify" promotes `Read`/`Grep`/`Glob` (#3) and `Bash` (#4) to first-class verification tools for internal/runtime claims. Self-Check and Enforcement reworded to drop the "external" framing throughout.
+- **`rules/nextc-claude/practices.md`** — two cross-references to `verify-before-claim.md` broadened from "external library/API/service" framing to "external (library/API/service) or internal (what code does, what's in a file, what a command outputs)" to match the upgraded scope. Stale-echo fix per `latest-spec-wins.md`.
+- **`rules/nextc-claude/latest-spec-wins.md`** — cross-reference to `verify-before-claim.md` reframed from "facts about external systems" to "not asserting any fact (external or internal) without proof", clarifying that the distinction between the two rules is *asserting unverified facts* vs. *which version of the spec is canonical across time*, not external vs. internal. Stale-echo fix.
+
 ## 2026-05-30
 
 ### Added
