@@ -36,7 +36,7 @@ nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO pipeline (3 skills, 11 agents)
-nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 4 hooks)
+nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 5 hooks)
 nextc-claude-toolbox/             — Utility toolkit (1 skill)
 rules/nextc-claude/               — Shared rules (13 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
@@ -153,7 +153,7 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 
 Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
-Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`
+Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`, `verify-before-claim-scan`
 
 ### nextc-claude-toolbox
 

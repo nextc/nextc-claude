@@ -1,5 +1,9 @@
 # Verify Before Claim (CRITICAL — ALWAYS ENFORCE)
 
+## The One Line (read this first)
+
+**If a command, file, or query can answer the question, consult it — and consult the source that *directly* answers, not a proxy that merely *implies* the answer.** Execution and the live system *are* the state; configs, caches, prefs files, naming conventions, lock files, and memory are only *evidence about* it. A list that contains *some* of X is never proof about *all* of X — **absence in a proxy is not absence in reality.** "Can the system do X?" is answered by *making it do X*, not by reading a file that happens to mention X. When the real thing can be queried, querying it is the only authoritative answer. Everything below is the long form of this one sentence.
+
 Training data is **stale**. Memory is **stale**. The codebase as you remember it is **as of last commit**, and only if you actually read it this session. **Inference is not proof.** Recalling, guessing, "it's probably like X", and "based on similar code" are all forms of inference, and they all get tagged as fact in your draft if you don't catch them.
 
 Before any claim — in code, in a response to the user, in a decision you're about to act on — where being wrong will **break the code** or **mislead the user**, you must verify it against an authoritative source. The source depends on the kind of claim:

@@ -45,6 +45,19 @@
         "description": "Log agent and skill invocations so the user sees what is being spawned in real time",
         "id": "pre:agent-skill:tool-awareness"
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/verify-before-claim-scan.js\""
+          }
+        ],
+        "description": "Scan the final assistant message for unverified/hedge language (verify-before-claim.md) and surface a reminder to verify-or-tag. Catches hedged inference only, NOT confidently-stated wrong facts. Modes via VERIFY_HOOK_MODE: warn (default, user-facing) | context | block | off.",
+        "id": "stop:verify-before-claim-scan"
+      }
     ]
   }
 }

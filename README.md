@@ -175,7 +175,7 @@ nextc-claude/                         (marketplace root)
 ├── rules/nextc-claude/               (13 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
 ├── nextc-core/                       (6 skills, 2 agents)
-├── nextc-ecc/                        (16 skills, 13 agents, 3 hooks)
+├── nextc-ecc/                        (16 skills, 13 agents, 5 hooks)
 ├── nextc-product/                    (2 skills, 14 agents)
 ├── nextc-project-kickoff/            (2 skills, 6 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
