@@ -23,9 +23,9 @@
  *            `stop_hook_active` field — the loop guard below is ours.
  *
  * Config (env):
- *   VERIFY_HOOK_MODE    = "warn" (default) | "context" | "block" | "off"
+ *   VERIFY_HOOK_MODE    = "context" (default) | "warn" | "block" | "off"
+ *       context -> non-blocking note fed to the MODEL so it self-corrects (default)
  *       warn    -> one-line notice to the USER, stop proceeds (no model turn, no loop)
- *       context -> non-blocking note fed to the MODEL (may prompt a self-correcting turn)
  *       block   -> forces the model to continue and re-check once (loop-guarded)
  *       off     -> disabled
  *   VERIFY_HOOK_PHRASES = comma-separated list to override the defaults
@@ -70,7 +70,7 @@ function assistantTexts(messages) {
 }
 
 function run(input) {
-  const mode = (process.env.VERIFY_HOOK_MODE || 'warn').toLowerCase();
+  const mode = (process.env.VERIFY_HOOK_MODE || 'context').toLowerCase();
   if (mode === 'off') return null;
 
   const phrases = getPhrases();
@@ -115,7 +115,7 @@ function run(input) {
     return { exitCode: 0, json: { hookSpecificOutput: { hookEventName: 'Stop', additionalContext: full } } };
   }
 
-  // mode === 'warn' (default): user-facing, non-blocking. Exit non-zero so the
+  // mode === 'warn' (and any unrecognized value): user-facing, non-blocking. Exit non-zero so the
   // first stderr line is shown to the user; the stop still proceeds.
   return { exitCode: 1, stderr: oneLine };
 }
