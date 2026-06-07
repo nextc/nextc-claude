@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.5.14 (2026-06-08)
+
+Verify-before-claim gains an enforcement hook and a sharper top-line; the testing rule becomes a nuanced four-case policy.
+
+**`nextc-ecc` Stop hook — `hooks/scripts/verify-before-claim-scan.js` (new).** Scans the final assistant message for the hedge/unverified phrases enumerated in `verify-before-claim.md` (e.g. "should work", "I believe", "this will compile", "we already have") and surfaces a verify-or-tag reminder. Ships defaulting to `context` mode (a non-blocking note fed back to the model so it self-corrects); also supports `warn` (user-facing one-liner), `block` (forces one re-check, loop-guarded), and `off`, selectable per-user via `VERIFY_HOOK_MODE`. Phrase list overridable via `VERIFY_HOOK_PHRASES`; skips turns that already self-tagged `(unverified`. Documented limitation by design: it catches *hedged* inference only — a confidently-stated wrong fact has no lexical tell and passes through. Hook contract verified against the official Claude Code hooks docs.
+
+**`rules/nextc-claude/verify-before-claim.md` — "The One Line".** A sharp operational heuristic hoisted to the very top: consult the source that *directly* answers the question, not a proxy that merely implies it; execution and the live system *are* the state, while configs/caches/prefs/memory are only evidence about it — *absence in a proxy is not absence in reality*. Distills the long rule into one sentence that survives under momentum.
+
+**`rules/nextc-claude/no-auto-testing.md` → `testing-policy.md` (renamed + rewritten).** From a blanket "never touch tests" into four cases: (1) no TDD and no auto-run of the full suite, ever, unless asked; (2) project with no tests → fully hands-off (never write, scaffold, run, or even suggest); (3) change touches code an existing test covers → auto-update those tests and run only the affected ones (never weaken an assertion just to pass); (4) change touches uncovered code → suggest coverage and wait for explicit approval. Rule name synced across `CLAUDE.md`, `README.md`, and the `feature-dev`, `bug-fix`, `team-feature-dev` (lead-conduct), and `verification-loop` skills.
+
 ## v1.5.13 (2026-06-04)
 
 `verify-before-claim` upgraded to cover internal and runtime claims, not just external libraries/APIs/services. Inference is not proof.
