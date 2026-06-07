@@ -46,4 +46,4 @@ task so two workers never write to the same file simultaneously.
 | Worker silent for 5+ min | Send a status check via SendMessage |
 | Worker fails the same task twice | Reassign to a different worker |
 | Fix loop hits 3 attempts on the same issue | Stop; surface the issue to the user |
-| Verification failures | Use the project's analyzer, not tests (`no-auto-testing` rule) |
+| Verification failures | Use the project's analyzer, not tests (`testing-policy` rule) |

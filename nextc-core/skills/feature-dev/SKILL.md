@@ -439,7 +439,7 @@ Spawn **doc-keeper** agent in the background to update:
 - Run cleanup after implementation — AI-generated code accumulates slop; the `/cleanup` pass keeps the codebase maintainable
 - If the user says "faster" or "skip reviews" — skip Phase 6 (review) and Phase 7 (cleanup), but NEVER skip Phase 5 (verify) — shipping unverified code is worse than shipping unreviewed code
 - If a phase fails 3 times on the same issue, stop and present the problem to the user
-- Respect the project's `no-auto-testing` rule — verify via analyzer and manual acceptance criteria, not by writing tests
+- Respect the project's `testing-policy` rule — verify via analyzer and manual acceptance criteria, not by writing tests (update existing tests only when your change touches code they already cover)
 
 ## Composability
 

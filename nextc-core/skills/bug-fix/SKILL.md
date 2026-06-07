@@ -343,7 +343,7 @@ Present the final report:
 - If the same root cause was investigated before and the fix didn't work, say so and escalate
 - If confidence is low after Phase 4, recommend the discriminating probe instead of guessing
 - If a phase fails 3 times on the same issue, stop and present the problem to the user
-- Respect `no-auto-testing` rule — verify via analyzer and manual checks, not by writing tests
+- Respect `testing-policy` rule — verify via analyzer and manual checks, not by writing tests (update existing tests only when your fix touches code they already cover)
 
 ## Evidence Strength Reference
 

@@ -185,7 +185,7 @@ nextc-claude/                         (marketplace root)
 
 ### Rules (13, shared across all plugins)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, no-auto-testing, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins
 
 ---
 

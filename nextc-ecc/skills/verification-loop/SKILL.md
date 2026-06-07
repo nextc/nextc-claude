@@ -23,7 +23,7 @@ Invoke this skill:
 Before running the loop, restate the task as concrete, checkable criteria — then loop until every one is met:
 
 - Turn vague goals into observable checks: "fix the bug" → "the failing input now produces the correct output"; "add validation" → "invalid input is rejected with a clear message".
-- Confirm criteria by running the existing build, type check, lint, and app behavior. **Do not author new tests to satisfy a criterion unless the user explicitly asked** — see `no-auto-testing.md`. Run tests that already exist; don't write new ones.
+- Confirm criteria by running the existing build, type check, lint, and app behavior. **Do not author new tests to satisfy a criterion unless the user explicitly asked** — see `testing-policy.md`. Run tests that already exist; don't write new ones.
 - Weak criteria ("make it work") force constant clarification; strong criteria let the loop run to a definite done.
 
 State the criteria briefly up front, then use the phases below to verify each one. The loop is done only when every criterion passes — not when the code merely compiles.
