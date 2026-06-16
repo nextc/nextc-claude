@@ -1,5 +1,11 @@
 # Release Log
 
+## v1.5.15 (2026-06-17)
+
+`/flutter-build` becomes fastlane-aware for iOS, enabling cross-laptop signed builds without per-machine certificate setup.
+
+**`nextc-flutter` — fastlane-aware iOS builds (`skills/flutter-build/SKILL.md` + `agents/flutter-builder.md`).** When `ios/fastlane/Fastfile` is present, iOS builds are routed through a fastlane lane (shared code-signing via `match`, so the build is reproducible on any laptop); when it's absent, the build falls back to the existing `flutter build ipa --export-method ad-hoc` path. Android is unaffected. With fastlane detected, the skill asks which lane to run — **ad-hoc** (default, matches prior behavior), **app-store**, or **testflight** (build + upload). Lane names resolve by convention (`build_adhoc` / `build_appstore` / `release_testflight`) with a `fastlane lanes` discovery fallback to stay project-agnostic, and the invocation prefers `bundle exec fastlane` when an `ios/Gemfile` exists. Phase 4 artifact rename handles the fastlane IPA landing in `ios/` rather than `build/ios/ipa/`. Two limitations are surfaced to the user at confirm time: the fastlane path always builds **release** (so the release/profile/debug mode applies to Android only), and `--dart-define-from-file` is not applied to the iOS build because the Fastfile owns the `flutter build ios` invocation.
+
 ## v1.5.14 (2026-06-08)
 
 Verify-before-claim gains an enforcement hook and a sharper top-line; the testing rule becomes a nuanced four-case policy.

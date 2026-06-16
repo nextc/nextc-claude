@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-06-17
+
+### Changed
+- **`nextc-flutter/skills/flutter-build/SKILL.md` + `nextc-flutter/agents/flutter-builder.md`** — iOS builds now fastlane-aware. When `ios/fastlane/Fastfile` is detected, iOS builds are routed through fastlane (shared code-signing via `match`, cross-laptop repeatability); when absent, falls back to existing `flutter build ipa --export-method ad-hoc` path. Android unaffected. **Step 1** (Fastlane detection) runs `test -f ios/fastlane/Fastfile && echo "fastlane" || echo "no-fastlane"`. **Step 2** (iOS lane selection) — when fastlane detected AND iOS is being built, asks user to choose ad-hoc (default), app-store, or testflight lane; lane names resolved by convention (`ad-hoc → build_adhoc`, `app-store → build_appstore`, `testflight → release_testflight`) with discovery fallback (`fastlane lanes`) for project-agnostic lane discovery. **Step 3** (Confirm) shows iOS method as either `fastlane ({ios_lane})` or `flutter build ipa (ad-hoc)`. **Documented limitations** presented to user at confirm time: (1) fastlane iOS is always release mode (lanes build `--release` internally, so mode choice applies Android-only); (2) `--dart-define-from-file` skipped for fastlane iOS (Fastfile owns the `flutter build ios` invocation, so dart-defines reach Android but not the fastlane IPA). **Phase 4** (flutter-builder) fastlane IPA artifact resolution: lanes don't write to `build/ios/ipa/` — output lands in `ios/` (e.g., `ios/Runner.ipa`). Fastlane lane invocation: `cd ios && [bundle exec] fastlane ios {lane}` (prefix = "bundle exec fastlane" when Gemfile present, else "fastlane"; lane resolved in Phase 1). Fallback `flutter build ipa --export-method ad-hoc` when Fastfile missing or requested lane not found. **Artifact rename** (Phase 4) handles fastlane IPA path: `ipa=$(ls -t ios/*.ipa build/ios/ipa/*.ipa 2>/dev/null | head -1) && mv "$ipa" ...` to locate the actual fastlane output. **Phase 6** (build report) shows correct iOS artifact directory — `ios/` for fastlane path, `build/ios/ipa/` for flutter path.
+
 ## 2026-06-08
 
 ### Added

@@ -22,6 +22,8 @@ You are spawned by the `/flutter-build` skill with a prompt containing:
 - **Build number:** integer build number
 - **App name:** canonical `{appname}` string for artifact filenames (may be absent in older skill versions — see Phase 4 fallback)
 - **Dart-define-from-file:** path to a NON-SECRET build-config file or "none". NEVER `.env` or any secret-bearing file — see the Secrets Guard in Phase 1.
+- **iOS build method:** `fastlane` or `flutter` (may be absent in older skill versions — default `flutter`). Only relevant when building iOS. `fastlane` means run the project's fastlane lane (shared code-signing, builds on any laptop); `flutter` means the legacy `flutter build ipa` path.
+- **iOS fastlane lane:** `ad-hoc`, `app-store`, `testflight`, or `n/a`. Only meaningful when iOS build method = `fastlane`.
 - **Project root:** absolute path to the Flutter project
 
 The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.0.0_7.apk`). When present, use it EXACTLY as the renamed output — do not derive your own.
@@ -33,7 +35,13 @@ The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.
 1. Read `pubspec.yaml` — confirm current version line exists
 2. **Secrets Guard (SECURITY):** if a dart-defines file was specified, verify it exists, then confirm its path does NOT match a secret pattern (case-insensitive): `.env`, `.env.*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*-service-account.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`. `--dart-define-from-file` embeds every value into the shipped binary, so a secret fed this way is a leak. If the path matches, **STOP** and refuse — report that the file holds secrets and that publishable config belongs in committed Dart constants.
 3. Verify `flutter` is available: `flutter --version`
-4. Run `git status` — if there are uncommitted changes, **STOP** and ask the user to review:
+4. **Fastlane resolution (only when building iOS AND iOS build method = `fastlane`):**
+   - Confirm `ios/fastlane/Fastfile` exists. If the method is `fastlane` but the file is missing, fall back to the `flutter` iOS path and note it in the report — do not fail.
+   - Resolve the lane name from the requested **iOS fastlane lane** using **convention first, discovery fallback**:
+     - Convention map: `ad-hoc → build_adhoc`, `app-store → build_appstore`, `testflight → release_testflight`.
+     - Verify the conventional lane exists: `cd ios && bundle exec fastlane lanes 2>/dev/null` (or `fastlane lanes` if there is no `ios/Gemfile`). If the conventional name is **not** listed, pick the lane whose name/description best matches the intent (a lane mentioning `adhoc`/`ad-hoc`, `appstore`/`app-store`/`release`, or `testflight`/`upload`). If no lane plausibly matches, **STOP** and report the available lanes so the user can choose.
+   - Decide the fastlane invocation prefix once: `bundle exec fastlane` when `ios/Gemfile` exists, else `fastlane`. All lane runs use `cd ios && <prefix> ios <lane>`.
+5. Run `git status` — if there are uncommitted changes, **STOP** and ask the user to review:
    - Show the list of modified/untracked files
    - Ask: "You have uncommitted changes. Should I commit these first, or proceed with the build as-is?"
    - Do NOT proceed until the user confirms
@@ -51,14 +59,24 @@ For each platform:
 flutter build apk -t lib/main.dart --{mode} {dart_define_flag}
 ```
 
-**iOS (IPA):**
+**iOS (IPA) — fastlane path (when iOS build method = `fastlane`):**
+```bash
+cd ios && {prefix} ios {resolved_lane}    # prefix = "bundle exec fastlane" or "fastlane" (Phase 1); lane resolved in Phase 1
+```
+
+- This is the cross-laptop path: the lane runs `match` to install the shared signing cert/profiles from the team git repo, so it builds on any machine without per-laptop cert setup.
+- **The lane controls the flutter build invocation**, so `{dart_define_flag}` is NOT passed to iOS here, and the build is always **release** regardless of the requested mode. (The skill warns the user about both at confirm time.)
+- If `ios/Gemfile` exists and the run fails with a bundler/"could not find gem" error, run `cd ios && bundle install` once, then retry the lane.
+- For `release_testflight`, the lane also uploads to TestFlight — there is no local IPA-rename step beyond what Phase 4 finds; report the upload in Phase 6.
+
+**iOS (IPA) — flutter path (when iOS build method = `flutter`, or fastlane was requested but no Fastfile/lane was found):**
 ```bash
 flutter build ipa --export-method ad-hoc {dart_define_flag}
 ```
 
 - `{dart_define_flag}` is `--dart-define-from-file=<absolute path>` ONLY when a non-secret dart-defines file passed the Phase 1 Secrets Guard; otherwise it is empty. Never construct this flag from `.env` or any secret-bearing file.
-- If the flag is set, include it in both commands
-- Log build output — capture both stdout and stderr
+- If the flag is set, include it in the Android and the **flutter-path** iOS commands (never the fastlane path).
+- Log build output — capture both stdout and stderr.
 - If a build fails, log the failure (Phase 5) and STOP. Do not continue to the next platform.
 
 ### Phase 4: Artifact Rename
@@ -69,9 +87,25 @@ After a successful build, rename output artifacts **in-place** using `mv` (never
 # APK — rename in the Gradle release output directory
 mv build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/{appname}_{version}_{build}.apk
 
-# IPA — rename in the Xcode output directory
+# IPA (flutter path) — rename in the Xcode output directory
 mv build/ios/ipa/*.ipa build/ios/ipa/{appname}_{version}_{build}.ipa
 ```
+
+**IPA — fastlane path:** `gym`/`build_app` does not write to `build/ios/ipa/`. By
+default it outputs to the directory the lane runs from (`ios/`, e.g. `ios/Runner.ipa`),
+and fastlane prints the exact path. Locate the produced IPA and rename it **in place** —
+do not assume `build/ios/ipa/`:
+
+```bash
+# Prefer the path fastlane printed ("exported and signed the ipa file: <path>").
+# If parsing that is impractical, pick the newest IPA across the likely locations:
+ipa=$(ls -t ios/*.ipa build/ios/ipa/*.ipa 2>/dev/null | head -1)
+mv "$ipa" "$(dirname "$ipa")/{appname}_{version}_{build}.ipa"
+```
+
+Report the actual directory the renamed IPA lives in (Phase 6) — it may be `ios/` for
+the fastlane path, not `build/ios/ipa/`. For the `testflight` lane the IPA is also
+uploaded; still rename the local artifact if one was produced.
 
 Resolving `{appname}` (canonical order — STOP at the first source that applies):
 1. If the spawn prompt contains a "Target artifact name" line, extract the basename and use it verbatim. Do NOT re-derive.
@@ -223,7 +257,8 @@ Report results in a table:
 
 - **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
 - **Artifact column shows the renamed filename**
-- Show paths relative to project root
+- Show paths relative to project root — use the **actual** iOS directory (the fastlane path lands in `ios/`, not `build/ios/ipa/`)
+- For the `testflight` lane, add a line noting the build was uploaded to TestFlight
 - If a platform fails, show `failed` status with a one-line error summary instead of artifact/path
 
 ### Phase 7: Git Commit & Tag

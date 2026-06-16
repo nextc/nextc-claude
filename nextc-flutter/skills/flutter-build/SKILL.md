@@ -33,6 +33,18 @@ Parse the current version into:
 Also extract:
 - `appname` — the exact value of `name:` from `pubspec.yaml`, used verbatim for artifact filenames (no transformation, no lowercasing beyond what's already written). This is the canonical `{appname}` passed to build agents.
 
+### Fastlane detection (iOS only)
+
+Check whether the project ships a fastlane setup for iOS:
+
+```bash
+test -f ios/fastlane/Fastfile && echo "fastlane" || echo "no-fastlane"
+```
+
+- `ios_fastlane = true` when `ios/fastlane/Fastfile` exists, else `false`.
+- This only affects **iOS** builds. Android always uses the Gradle/`flutter build apk` path regardless.
+- **Why it matters:** a fastlane setup wires up shared code-signing (typically via `match`), which is what lets iOS build on any laptop without per-machine cert juggling. When present, prefer it for iOS; when absent, fall back to the current `flutter build ipa` method.
+
 ## Step 2: Gather Parameters
 
 Present the current state and ask the user for build configuration in a single prompt:
@@ -57,6 +69,33 @@ Wait for user response. Parse their choices — use defaults for anything not sp
 > **Default is `none`.** Do not offer or assume `.env`. Only set a
 > `--dart-define-from-file` path if the user explicitly names a file AND it passes
 > the Secrets Guard below.
+
+### iOS lane selection (only when `ios_fastlane = true` AND iOS is being built)
+
+When fastlane was detected (Step 1) and the platform selection includes iOS, ask one
+additional question — the fastlane lane controls the iOS export method and signing:
+
+```
+This project has fastlane. How should the iOS build run?
+  1. ad-hoc     — signed Ad Hoc IPA, installable on registered devices (default)
+  2. app-store  — signed App Store IPA (no upload)
+  3. testflight — build the App Store IPA AND upload to TestFlight
+```
+
+Record the choice as `ios_lane` ∈ {`ad-hoc`, `app-store`, `testflight`}. Default `ad-hoc`
+(closest to the current `flutter build ipa --export-method ad-hoc` behavior).
+
+> **Two consequences of the fastlane path — state them to the user, do not hide them:**
+> - **iOS is always a release build.** The lanes build `--release` internally, so the
+>   release/profile/debug "Mode" choice applies to **Android only** when iOS goes
+>   through fastlane.
+> - **`--dart-define-from-file` is NOT applied to iOS.** The Fastfile owns the
+>   `flutter build ios` invocation, so a dart-defines file (even a cleared non-secret
+>   one) reaches Android but **not** the fastlane iOS build. If the user supplied a
+>   dart-defines file together with a fastlane iOS build, warn them in Step 3 that it
+>   won't affect the IPA.
+
+When `ios_fastlane = false`, skip this question entirely — iOS uses the current method.
 
 ### Secrets Guard (SECURITY — always enforce)
 
@@ -85,9 +124,15 @@ Build plan:
   Mode        : {mode}
   Version     : {version}+{build}
   Dart defines: {non-secret config file or none}
+  iOS method  : {fastlane ({ios_lane}) | flutter build ipa (ad-hoc)}   ← only show this row when iOS is being built
 
 Proceed?
 ```
+
+- Show the `iOS method` row only when iOS is in the platform selection.
+- When `ios_fastlane = true`, the row reads `fastlane ({ios_lane})`; otherwise `flutter build ipa (ad-hoc)`.
+- If the fastlane path is selected AND a dart-defines file was provided, add a one-line
+  warning here: `Note: dart-defines won't apply to the iOS (fastlane) build.`
 
 Wait for user confirmation. If they say no or want changes, go back to Step 2.
 
@@ -111,6 +156,8 @@ Build the Flutter app with the following configuration:
 - Build number: {build}
 - App name: {appname}  (use EXACTLY this string for artifact filenames — do not transform)
 - Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
+- iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
+- iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
 - Project root: {absolute path to project}
 
 Target artifact names:
@@ -188,6 +235,8 @@ Build the Flutter app with the following configuration:
 - Build number: {build}
 - App name: {appname}  (use EXACTLY this string for the IPA filename — do not transform)
 - Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
+- iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
+- iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
 - Project root: {absolute path to project}
 
 Target artifact name: {appname}_{version}_{build}.ipa
@@ -265,8 +314,8 @@ After the agent completes, report:
 
 If the flutter-builder agent is unavailable, execute the build steps inline:
 1. Update pubspec.yaml version
-2. Run `flutter build` commands
-3. Rename artifacts
+2. Run the build commands — `flutter build apk` for Android; for iOS use the selected fastlane lane (`cd ios && bundle exec fastlane ios {ios_lane-as-lane-name}`) when `ios_fastlane = true`, otherwise `flutter build ipa --export-method ad-hoc`
+3. Rename artifacts (the fastlane IPA lands in `ios/`, not `build/ios/ipa/` — see the flutter-builder Phase 4 fastlane rules)
 4. Update docs/buildlog.md (curated "What's new", not git log dump)
 5. Report in table format
 6. Commit and tag (tag only on success)
