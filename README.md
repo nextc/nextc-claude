@@ -8,8 +8,8 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
-| **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs | Development workflow pipelines that chain into each other |
-| **nextc-ecc** | save-session, verification-loop, council, +13 more | Core agents + quality tools migrated from Everything Claude Code |
+| **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, blueprint, finishing-branch, interface-polish | Development workflow pipelines that chain into each other |
+| **nextc-ecc** | save-session, verification-loop, council, adversarial-review, production-audit, agent-self-evaluation, code-tour, canary-watch, +13 more | Core agents + quality tools migrated from Everything Claude Code |
 | **nextc-product** | product-explore, idea-explore | Idea/product analysis — proposal pipeline plus an 8-framework multi-lens explorer |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build + localization pipeline |
@@ -172,10 +172,10 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 8 plugins)
-├── rules/nextc-claude/               (13 rules, symlinked via setup-rules.sh)
+├── rules/nextc-claude/               (14 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
-├── nextc-core/                       (6 skills, 2 agents)
-├── nextc-ecc/                        (16 skills, 13 agents, 5 hooks)
+├── nextc-core/                       (9 skills, 2 agents)
+├── nextc-ecc/                        (21 skills, 15 agents, 8 hooks)
 ├── nextc-product/                    (2 skills, 14 agents)
 ├── nextc-project-kickoff/            (2 skills, 6 agents)
 ├── nextc-flutter/                    (8 skills, 2 agents)
@@ -183,9 +183,9 @@ nextc-claude/                         (marketplace root)
 └── nextc-aso/                        (1 skill, 9 agents)
 ```
 
-### Rules (13, shared across all plugins)
+### Rules (14, shared across all plugins)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins, skill-authoring
 
 ---
 

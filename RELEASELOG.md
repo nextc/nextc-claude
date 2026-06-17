@@ -1,5 +1,19 @@
 # Release Log
 
+## v1.6.0 (2026-06-17)
+
+Best-practice gems migrated from two MIT-licensed reference repos — obra/Superpowers and affaan-m/ecc — now vendored under the gitignored `reference-oss/` (with `update.sh` to refresh them). Ten skills, two agents, three hooks, one rule, and one reference were added, plus seven enhancements to existing skills/rules/agents. Every migrated artifact credits its source inline; the repo validator passes all 242 checks.
+
+**New skills.** `/blueprint` (cold-start multi-PR/multi-session construction plans, the layer above `/feature-dev`), `/adversarial-review` (two independent reviewers must both pass before high-stakes output ships), `/production-audit` (local-evidence 0-100 ship/block readiness with hard score caps), `/agent-self-evaluation` (5-axis evidence-backed self-scorecard), `/writing-skills` (TDD-style pressure-testing of skill docs), `/finishing-branch` (merge/PR/keep/discard menu with worktree-safe cleanup, reconciled with `testing-policy.md`), `/code-tour` (persona-targeted CodeTour `.tour` walkthroughs with verified anchors), `/canary-watch` (post-deploy live-URL verification; browser checks via cloakbrowser), `/interface-polish` (web/CSS polish recipes, governed by the ui-ux-design rule), and `/rules-distill` (promote principles recurring across skills into rules, user-approved per candidate).
+
+**New agents.** `spec-miner` (opus) extracts Requirements/Invariants with stable IDs from a brownfield codebase to `docs/spec/`; `a11y-architect` (sonnet) is a WCAG 2.2 AA accessibility specialist.
+
+**New hooks (nextc-ecc, 6→8).** `loop-scope-guard` (PostToolUse-style loop + scope-creep detection, stderr-only), `fact-force-guard` (denies a destructive bash command once until targets+rollback+instruction are stated; optional opt-in first-touch edit gate), `pre-commit-quality` (on `git commit`, blocks staged secrets/`debugger`, warns on `console.log` + non-conventional subject). All three behavior-tested; each disable-able via env.
+
+**New rule + reference.** `skill-authoring.md` (rule #14) encodes the SDO principle — a skill `description` states purpose+trigger only, never the workflow, or agents follow the summary and skip the body; six existing descriptions were de-leaked accordingly. `references/agentic-security.md` (owned by `safety.md`, which gains a "Rule 4: Agentic Security") distills the untrusted-content boundary, sanitization, least agency, isolation, kill switches, and memory trust.
+
+**Enhancements.** `practices.md` gains "Receiving Review Feedback" (no performative agreement, verify before implementing, YAGNI-check); `bug-fix` enforces the 3-fix→question-architecture rule; `team-feature-dev` adds file-path artifact handoff + a durable progress ledger; the `planner` agent adds Consumes/Produces interface contracts; `agents.md` gains parallel-dispatch craft.
+
 ## v1.5.15 (2026-06-17)
 
 `/flutter-build` becomes fastlane-aware for iOS, enabling cross-laptop signed builds without per-machine certificate setup.

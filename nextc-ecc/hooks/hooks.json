@@ -24,6 +24,28 @@
         "id": "pre:write-edit:config-protection"
       },
       {
+        "matcher": "Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/fact-force-guard.js\""
+          }
+        ],
+        "description": "Fact-forcing gate: deny a destructive bash command once until targets+rollback+instruction are stated (retry then allowed). Optional first-touch edit gate via FACT_FORCE_EDITS=1. Disable: FACT_FORCE_GUARD=off.",
+        "id": "pre:bash-edit:fact-force-guard"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-commit-quality.js\""
+          }
+        ],
+        "description": "On `git commit`, scan staged content: block (exit 2) on secrets/debugger; warn on console.log and non-conventional subject. No external linters. Disable: PRECOMMIT_QUALITY=off.",
+        "id": "pre:bash:pre-commit-quality"
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -44,6 +66,17 @@
         ],
         "description": "Log agent and skill invocations so the user sees what is being spawned in real time",
         "id": "pre:agent-skill:tool-awareness"
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/loop-scope-guard.js\""
+          }
+        ],
+        "description": "Notice stuck tool loops (same tool+input >=3x in a window) and scope creep (>20 distinct files edited). stderr-only, never blocks. Tunables: LOOP_THRESHOLD, LOOP_WINDOW, SCOPE_THRESHOLD; disable via LOOP_SCOPE_GUARD=off.",
+        "id": "pre:multi:loop-scope-guard"
       }
     ],
     "Stop": [

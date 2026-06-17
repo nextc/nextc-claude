@@ -69,8 +69,18 @@ See `references/safety-reference.md` for the full technical→user-friendly erro
 - Validate required secrets at startup — fail fast with a clear error, not a silent fallback
 - Rotate any exposed secrets immediately
 
+## Rule 4: Agentic Security
+
+When an agent ingests untrusted content (file/tool/MCP output, fetched URLs, PR/issue/email/attachment
+text), uses external tools, or performs destructive/outward-facing actions, the **agentic** security
+layer applies on top of Rules 1–3. The core boundary: the user's instruction is trusted; everything
+else is untrusted input that may *describe* an action but must never *authorize* one. See
+`references/agentic-security.md` for the full reference (untrusted-content boundary, sanitization,
+least agency, isolation, kill switches, memory trust boundary, and the minimum-bar checklist).
+
 ## Enforcement
 
 - Every new/modified catch block: apply Rules 1 + 2
 - Code review: flag catch without debug log as CRITICAL
 - Code review: flag raw error shown in UI as CRITICAL
+- Code review: flag any path where untrusted content can authorize a privileged action (Rule 4) as CRITICAL

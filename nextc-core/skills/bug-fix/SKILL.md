@@ -2,8 +2,7 @@
 name: bug-fix
 description: >
   Evidence-driven bug investigation and fix pipeline. Use when something is broken, not
-  working, or the root cause is ambiguous. Hypothesizes, investigates with parallel agents,
-  fixes, reviews, and updates docs.
+  working, or the root cause is ambiguous.
 user-invocable: true
 allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill
 ---
@@ -192,7 +191,17 @@ Once the user approves (or if confidence is high and the fix is low-risk):
    - Build check — must succeed
    - If there's a reproduction path, verify the symptom is gone
    - Check that the fix doesn't break adjacent functionality
-4. **If verification fails** → fix and re-verify (max 3 attempts per issue)
+4. **If verification fails** → fix and re-verify, but count your attempts:
+   - **Attempts 1–2:** return to Phase 1 (Observe) and re-investigate with the new information the
+     failed fix revealed — do not just tweak and retry blindly.
+   - **3+ failed fixes → STOP. Do not attempt fix #4. Question the architecture instead.**
+
+   > **The 3-fix rule** (from obra/Superpowers `systematic-debugging`): when each fix reveals a new
+   > problem in a different place, requires "massive refactoring," or creates new symptoms elsewhere,
+   > that is not a failed hypothesis — it is a **wrong architecture**. Ask: is this pattern
+   > fundamentally sound, or are we sticking with it through inertia? Surface this to the user and
+   > discuss refactoring vs. continuing to patch symptoms **before** any further fix. This composes
+   > with `minimal-fix-scope.md` — an architectural change is a separate, explicitly-approved decision.
 
 ## Phase 6: Review
 

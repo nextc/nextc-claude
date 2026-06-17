@@ -65,6 +65,20 @@ Examples that REQUIRE `TeamCreate`: `/team-feature-dev`, `/team-builder`, "spin 
 
 ALWAYS launch independent agent operations in parallel, never sequentially.
 
+**Dispatch craft** (adapted from obra/Superpowers `dispatching-parallel-agents`) — a parallel agent
+only succeeds if its brief is right:
+
+- **Self-contained prompt.** Each agent starts with a fresh context — it does NOT see your session
+  history. Construct exactly what it needs: the goal, the relevant paths/constraints, and any prior
+  decision it must respect. Don't assume shared context.
+- **Explicit return contract.** Tell each agent precisely what to return (a verdict, a file path, a
+  structured list) — not "report back." You synthesize their returns; vague asks produce vague returns.
+- **No write conflicts.** Agents editing files in parallel must touch disjoint files, or run in
+  separate worktrees. Hand off large artifacts as file *paths*, not pasted text (see
+  `team-feature-dev` Step 4e), to keep every context lean.
+- **Always pass `model`** per agent (an omitted model inherits yours — often the most expensive).
+- **Verify the merge.** After they return, confirm results don't conflict before acting on them.
+
 ## Enforcement
 
 - Every `Agent()` call: `model` parameter required

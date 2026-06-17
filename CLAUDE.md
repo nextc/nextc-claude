@@ -30,15 +30,15 @@ claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 
 ```
 .claude-plugin/marketplace.json   — Marketplace manifest (8 plugins)
-nextc-core/                   — Development workflows (6 skills, 2 agents)
+nextc-core/                   — Development workflows (9 skills, 2 agents)
 nextc-product/                    — Product exploration (2 skills, 14 agents)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
 nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO pipeline (3 skills, 11 agents)
-nextc-ecc/                        — Core agents + quality tools (16 skills, 13 agents, 5 hooks)
-nextc-claude-toolbox/             — Utility toolkit (1 skill)
-rules/nextc-claude/               — Shared rules (13 rules, symlinked via setup-rules.sh)
+nextc-ecc/                        — Core agents + quality tools (21 skills, 15 agents, 8 hooks)
+nextc-claude-toolbox/             — Utility toolkit (4 skills)
+rules/nextc-claude/               — Shared rules (14 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
 
@@ -63,6 +63,9 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 | bug-fix | `/bug-fix` | Evidence-driven bug investigation and fix |
 | cleanup | `/cleanup` | Deletion-first code cleanup |
 | update-docs | `/update-docs` | Sync docs with codebase state |
+| blueprint | `/blueprint` | Cold-start-executable, multi-PR/multi-session construction plan (the layer above `/feature-dev`). Adapted from affaan-m/ecc. |
+| finishing-branch | `/finishing-branch` | Structured merge / PR / keep / discard menu with safe worktree cleanup. Adapted from obra/Superpowers. |
+| interface-polish | `/interface-polish` | Concrete web/CSS polish recipes (radius, type, motion, hit areas). Adapted from affaan-m/ecc; governed by the ui-ux-design rule. |
 
 Agents: `doc-keeper` (haiku), `ui-ux-developer` (sonnet)
 
@@ -150,16 +153,24 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 | council | `/council` | 4-voice decision council |
 | agent-introspection-debugging | `/agent-introspection-debugging` | Self-debugging for agent stalls |
 | workspace-surface-audit | `/workspace-surface-audit` | Audit repo + plugins + MCP setup |
+| adversarial-review | `/adversarial-review` | Two independent reviewers must both pass before high-stakes output ships. Adapted from affaan-m/ecc (santa-method). |
+| production-audit | `/production-audit` | Local-evidence 0-100 production-readiness audit with ship/block scoring. Adapted from affaan-m/ecc. |
+| agent-self-evaluation | `/agent-self-evaluation` | Self-rate output on 5 evidence-backed axes before handoff. Adapted from affaan-m/ecc. |
+| code-tour | `/code-tour` | Generate persona-targeted CodeTour `.tour` walkthroughs with verified anchors. Adapted from affaan-m/ecc. |
+| canary-watch | `/canary-watch` | Post-deploy verification of a live URL (health, errors, assets, vitals) vs baseline. Adapted from affaan-m/ecc. |
 
-Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
+Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `spec-miner` (opus), `a11y-architect` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
-Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`, `verify-before-claim-scan`
+Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`, `verify-before-claim-scan`, `loop-scope-guard`, `fact-force-guard`, `pre-commit-quality`
 
 ### nextc-claude-toolbox
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | validate | `/validate` | Validate plugins against Claude Code specs and repo conventions |
+| skill-audit | `/skill-audit` | Deep audit of skill quality against skill-creator best practices |
+| writing-skills | `/writing-skills` | Author/revise a skill by pressure-testing it (TDD for skill docs). Adapted from obra/Superpowers. |
+| rules-distill | `/rules-distill` | Promote principles repeated across skills into rule files, with per-candidate approval. Adapted from affaan-m/ecc. |
 
 ## Pipeline
 
@@ -179,9 +190,9 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
-## Rules (13)
+## Rules (14)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins, skill-authoring
 
 ## Changelog
 

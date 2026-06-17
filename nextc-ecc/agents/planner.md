@@ -67,6 +67,8 @@ Create detailed steps with:
    - Action: Specific action to take
    - Why: Reason for this step
    - Dependencies: None / Requires step X
+   - Consumes: exact inputs/signatures this step needs from earlier steps (e.g. `getUser(id): User` from Step 2) — or "nothing"
+   - Produces: exact outputs/signatures later steps will consume (e.g. `subscriptions` table, `SubRepo.create(dto): Sub`)
    - Risk: Low/Medium/High
 
 2. **[Step Name]** (File: path/to/file.ts)
@@ -98,6 +100,7 @@ Create detailed steps with:
 5. **Enable Testing**: Structure changes to be easily testable
 6. **Think Incrementally**: Each step should be verifiable
 7. **Document Decisions**: Explain why, not just what
+8. **Interface contracts (Consumes/Produces)**: state each step's exact inputs from earlier steps and outputs for later steps with concrete signatures. This lets a fresh agent execute one step from its entry alone — without re-reading the whole plan — and makes the dependency graph checkable. (Same contract the `blueprint` skill uses for multi-PR plans.) Adapted from obra/Superpowers `writing-plans`.
 
 ## Worked Example: Adding Stripe Subscriptions
 

@@ -2,8 +2,7 @@
 name: feature-dev
 description: >
   Full feature pipeline — idea to committed code. Use when building a new feature, adding
-  functionality, or implementing from specs. Auto-detects UI vs backend. Orchestrates plan,
-  implement, review, cleanup, docs.
+  functionality, or implementing from specs.
 user-invocable: true
 allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill
 ---

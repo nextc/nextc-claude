@@ -1,6 +1,6 @@
 ---
 name: product-explore
-description: Turn a raw product idea into a validated proposal — demand probe, research, competitor scan, collision analysis, CEO-level scope review.
+description: Turn a raw product idea into a validated proposal with a recommended scope decision.
 when_to_use: |
   Use when going from rough idea to written proposal. Also when user says "should I build this", "validate this idea", "is this a real product", "explore this product idea", "competitor scan", "scope this", or supplies a half-baked concept they want pressure-tested.
 user-invocable: true

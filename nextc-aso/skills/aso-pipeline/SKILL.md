@@ -1,8 +1,7 @@
 ---
 name: aso-pipeline
 description: >
-  ASO optimization pipeline — competitive analysis, keywords, metadata, creative,
-  localization, ratings, and tracking with cross-phase collision insights. Use when
+  ASO optimization pipeline for an app store listing. Use when
   optimizing an App Store or Play Store listing.
 user-invocable: true
 argument-hint: "[mode: run/score/express/audit/diff/build/status] or [phase: competitive/keywords/metadata/creative/localization/ratings/tracking/collision]"

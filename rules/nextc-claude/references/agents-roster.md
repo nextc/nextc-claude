@@ -46,6 +46,8 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | `silent-failure-hunter` | sonnet | high |
 | `build-error-resolver` | sonnet | high |
 | `refactor-cleaner` | sonnet | high |
+| `spec-miner` | opus | high |
+| `a11y-architect` | sonnet | high |
 | `flutter-l10n-agent` | sonnet | medium |
 | `flutter-doc-seeder` | sonnet | medium |
 | `unity-doc-seeder` | sonnet | medium |

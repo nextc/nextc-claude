@@ -1,6 +1,6 @@
 ---
 name: opensource-pipeline
-description: Open-source release pipeline — fork, sanitize, and package private projects for safe public release. Chains forker, sanitizer, packager agents.
+description: Prepare a private project for safe public open-source release.
 when_to_use: |
   Use when preparing a private repo for public release. Triggers: "/opensource", "open source this", "make this public", "prepare for open source", "release publicly", "strip secrets before pushing", "ship this to GitHub publicly".
 disable-model-invocation: true

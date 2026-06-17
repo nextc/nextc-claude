@@ -305,6 +305,26 @@ Once teammates are spawned, monitor via two channels:
 **Wave coordination:**
 As each wave completes, unblock the next wave's tasks and notify assigned workers.
 
+### Step 4e: Context-efficient handoff & progress ledger
+
+> Source: distilled from obra/Superpowers `subagent-driven-development` (MIT).
+
+Two disciplines keep a long multi-task run cheap and compaction-proof:
+
+- **Hand off artifacts as file PATHS, not pasted text.** When a worker produces a diff, spec, or
+  report another agent must review, write it to a file (e.g. `docs/plans/<feature>/<task>.diff`) and
+  pass the **path** in the next agent's prompt — never paste the full content into the prompt. Pasted
+  artifacts bloat context fast (a real session hit 42K chars of pasted history); a path costs almost
+  nothing and the agent reads only what it needs. This also keeps the Director's own context lean.
+- **Keep a durable progress ledger.** Record each completed task to a file the Director re-reads after
+  any compaction — `docs/plans/<feature>/progress.md` (or the plan file's `## Progress` section):
+  task id, status, the artifact path, and the reviewer verdict. If the session compacts mid-run, the
+  ledger — not fading context — is the source of truth for what's done, so finished work is never
+  re-dispatched. The shared `TaskList` is the live view; the ledger is the durable record.
+
+Per `agents.md`, always pass each spawned worker an explicit `model` — an omitted model inherits the
+Director's (often the most expensive) model and silently defeats per-role tiering.
+
 ## Phase 5: Verify
 
 After all tasks are completed:
