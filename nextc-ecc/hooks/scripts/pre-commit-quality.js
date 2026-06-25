@@ -29,7 +29,12 @@ const SECRET_PATTERNS = [
   { re: /ghp_[a-zA-Z0-9]{36}/, name: 'GitHub personal access token' },
   { re: /AKIA[A-Z0-9]{16}/, name: 'AWS access key id' },
   { re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/, name: 'private key' },
-  { re: /(?:api[_-]?key|secret|token|password)\s*[=:]\s*['"][^'"]{8,}['"]/i, name: 'hardcoded credential' },
+  // Leading (?:^|[^a-z0-9]) anchors the keyword to a token start so a camelCase
+  // suffix like `authForgotPassword = '/auth/forgot-password'` isn't read as a
+  // `password` credential. Real keys (`apiKey`, `password`, `db_password`,
+  // `MY_API_KEY`) still match — they're preceded by start-of-line, whitespace,
+  // a quote, or a `_`/`-` separator, never a lowercase letter.
+  { re: /(?:^|[^a-z0-9])(?:api[_-]?key|secret|token|password)\s*[=:]\s*['"][^'"]{8,}['"]/i, name: 'hardcoded credential' },
 ];
 
 function isOff() {
