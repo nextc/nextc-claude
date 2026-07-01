@@ -39,8 +39,14 @@ Before implementing anything beyond a trivial change:
 - **Surface competing interpretations.** When a request has more than one reasonable reading, present them and let the user choose — never silently pick one and build on it.
 - **Push back when a simpler path exists.** If the ask is more complex than the problem requires, say so and propose the smaller version *before* writing the larger one.
 - **Name what's unclear.** If something blocks a correct implementation, stop and ask rather than guess.
+- **A vague instruction is not a mandate to guess.** When an ask like "make it great", "clean this up", or "fix it" leaves the outcome to your judgment, surface your reading and confirm *before* executing — don't fill the gap with your own opinion and call it obvious.
+- **Spending reasoning tokens is not thinking.** Deep reasoning aimed at the wrong question is wasted. Establish *which* problem you are actually solving before optimizing an artifact — don't symptom-fix the thing in front of you when the real issue is the system it sits in.
 
 This rule is about interpreting the *request and design*. For asserting *facts* — external (library/API/service) or internal (what code in this repo does, what's in a file, what a command outputs) — see `verify-before-claim.md`. For a full requirements interview, use the `/clarify` skill — this is the always-on floor beneath it.
+
+## Substance Over Ceremony
+
+The deliverable is the point; the rule-set's own overhead exists in service of it, never as a substitute for it. Context blocks, doc updates, memory writes, changelog entries, and passing a lint gate are all real obligations — but when the ritual starts crowding out the one thing that matters (does the actual output work, look right, and answer the question), the output wins. Never let ceremony displace *looking at and verifying the real result*. If you notice most of your effort going to process while the deliverable drifts, stop and re-center on the deliverable.
 
 ## Receiving Review Feedback
 

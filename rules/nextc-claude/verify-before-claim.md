@@ -40,6 +40,8 @@ You MUST verify before proceeding when:
 
 8. **You are about to assert that something runs, builds, compiles, lints clean, or passes** without having executed it this session. "This will compile" is a hypothesis until the build runs. Same for "this passes lint", "this test runs", "the migration applies cleanly", "the script outputs Z". Execute, don't deduce.
 
+9. **You are about to judge a visual or UI deliverable** — layout, spacing, positioning, whether it "looks right" — without having rendered it this session. The authoritative source for appearance is the *rendered screen*; for interaction, the *running app*. A green `analyze` / typecheck / lint / test proves the code compiles and the logic holds — **not** that the UI looks right or sits where it should (those are proxies for code correctness, not for the pixels). Render the actual state — for a layout gap, the current and target states *together* — make one change, then re-render to confirm. Don't reason about geometry/spacing/easing in the abstract, and don't react to one screenshot at a time.
+
 ## When You Can Skip Verification
 
 Verification is skippable only when **every fact you are about to use can be proven without leaving the conversation** — files already Read in this session, command output already returned in this session, git state shown above, the user's prompt itself, content in the system context block. Examples:

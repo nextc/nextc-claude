@@ -42,9 +42,18 @@ This is a **hard rule. It applies in every mode — interactive, `--auto`, auton
 
 **Why:** a change that leaves one screen inconsistent with the rest is a regression, not an improvement. This is the most important rule — it is what keeps the product feeling like one product. Skipping the audit because a run is "autonomous" or "just one screen" is exactly the failure this rule exists to prevent.
 
+## 7. Layout is scientific; structure before polish; use the design skill
+
+- **Scientific layout.** Ground every layout decision in a measured system — a spacing scale, an alignment grid, a type scale, actual rendered measurements — not eyeballing or vibes. Positions, gaps, and sizes come from the system and are verified against the **rendered screen** (per `verify-before-claim.md` #9), not asserted from the code or the analyzer.
+- **Structure before polish.** Get layout, spacing, and position correct *first*; only then touch motion, color, and finish. Polishing an animation or easing curve before the element sits in the right place is wasted work in the wrong order.
+- **Use the installed design skill.** For any design / layout / UI task, check for and use the relevant design skill (e.g. `ui-ux-pro-max`) for palette, type pairing, spacing systems, and stack-specific patterns — don't hand-roll what the skill already systematizes. (Skill selection in general is governed by `agentic-awareness.md`.) These rules still override the skill's output on conflict.
+
+**Why:** layout done by eye drifts and can't be reproduced or audited; polishing before the structure is right optimizes the wrong thing (the exact failure behind `verify-before-claim.md` #9).
+
 ## Enforcement
 
 - Before implementing any UI: confirm the screen obeys #1–#4. Treat a vibrant border, a solid fill in a glass style, an italic serif, or a 4th font / 5th size as a defect to fix, not ship.
 - Before applying a design change (interactive): propose and confirm per #5.
 - After any design change (every mode): run the #6 whole-product audit — apply the change everywhere, deduplicate the design code, verify consistency.
+- Before touching motion / color / finish: confirm the layout and structure are correct and verified against the rendered screen (#7). Polishing before the layout is right is an ordering defect. For a design/layout task, confirm the relevant design skill (e.g. `ui-ux-pro-max`) was consulted (#7).
 - When a design skill's output conflicts with these rules, these rules win — note the override per the global "rule conflict" guidance in `~/.claude/CLAUDE.md`.

@@ -2,6 +2,17 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-07-02
+
+Rule additions distilled from a cross-session UI/layout failure (a screen "verified" via `flutter analyze` + tests — proxies for code correctness — while its actual rendered layout was never checked).
+
+### Added
+- **`rules/nextc-claude/verify-before-claim.md`** — new trigger #9: judging a visual/UI deliverable (layout, spacing, positioning, "looks right") requires rendering it this session. The rendered screen is the authoritative source for appearance, the running app for interaction; a green analyze/typecheck/lint/test is a proxy for code correctness, not for pixels. Render current + target together, make one change, re-render.
+- **`rules/nextc-claude/ui-ux-design.md`** — new principle #7 "Layout is scientific; structure before polish; use the design skill": ground layout in a measured system (spacing/type scale, alignment grid, rendered measurements) rather than eyeballing; get structure/position correct before motion/color/finish; use the installed design skill (e.g. `ui-ux-pro-max`) for design tasks. Matching Enforcement bullets added.
+
+### Changed
+- **`rules/nextc-claude/practices.md` → Think Before Coding** — two new guards: a vague instruction ("make it great", "clean this up", "fix it") is not a mandate to guess — surface your reading and confirm first; and "spending reasoning tokens is not thinking" — establish *which* problem you're solving before optimizing an artifact. New **"Substance Over Ceremony"** section: the rule-set's overhead (context blocks, docs, memory, changelog, lint gates) serves the deliverable and must never crowd out verifying the real output.
+
 ## 2026-07-01
 
 ### Added
