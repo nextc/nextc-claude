@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.6.1 (2026-07-02)
+
+Harness-currency + iOS build tooling + three rule additions.
+
+**Team orchestration synced to Claude Code v2.1.178.** `TeamCreate`/`TeamDelete` were removed from the harness (the team now forms on the first `Agent` spawn and cleans up on session exit; `Agent`'s `team_name` is accepted but ignored). Purged every stale reference across `team-feature-dev`, `team-builder`, and the `agents.md` rule, and gave `/team-feature-dev` Phase 8 a bounded-wait + manual-kill shutdown fallback (the harness documents teammate shutdown as "can be slow").
+
+**Fastlane signing/env for iOS builds + a full Unity fastlane path.** `flutter-build` and `unity-build` now read the project's fastlane setup and fill the env vars its lanes need (nextc `~/.fastlane-nextc` config-file convention: preflight the signing config, auto-fill `FL_CHANGELOG`/`TESTFLIGHT_GROUPS`/`IOS_SIGNING_CONFIG`, never touch `MATCH_PASSWORD`; generic dotenv fallback for other Fastfiles). `unity-build` gained a sign-only fastlane iOS path (lanes on `Builds/iOS/Unity-iPhone.xcodeproj`) that replaces raw `xcodebuild` when a root `fastlane/Fastfile` exists. Signing secrets stay out of the repo and out of logs.
+
+**Rule additions** (distilled from a cross-session UI/layout failure): `verify-before-claim` #9 — a visual/UI deliverable's authoritative source is the rendered screen, not `analyze`/tests; `ui-ux-design` #7 — scientific layout, structure before polish, use the installed design skill; `practices` — vague asks get confirmed not guessed, "reasoning tokens ≠ thinking", and a new "Substance Over Ceremony" section.
+
 ## v1.6.0 (2026-06-17)
 
 Best-practice gems migrated from two MIT-licensed reference repos — obra/Superpowers and affaan-m/ecc — now vendored under the gitignored `reference-oss/` (with `update.sh` to refresh them). Ten skills, two agents, three hooks, one rule, and one reference were added, plus seven enhancements to existing skills/rules/agents. Every migrated artifact credits its source inline; the repo validator passes all 242 checks.
