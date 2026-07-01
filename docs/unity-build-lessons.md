@@ -5,6 +5,14 @@ pipeline (Unity 6.x, Android + iOS, macOS + modern Xcode). All project-specific
 context (app name, team ID, exact tool versions, file sizes, timings) has been
 scrubbed — the issues and fixes below are platform-level, not project-level.
 
+> **Note:** This document describes the **xcodebuild-based iOS path** (raw archive + export). 
+> As of v1.6.0, the skill also supports a **fastlane iOS sign-only path** (when `fastlane/Fastfile` 
+> exists at the project root). The fastlane path skips the xcodebuild archive/export steps and instead 
+> runs the `gym` lanes; see `nextc-unity/skills/unity-build/SKILL.md` under "Fastlane detection (iOS only)" 
+> for configuration. All the xcodebuild issues and fixes below apply to projects without fastlane. 
+> For projects using fastlane, team ID and signing are managed by the `Appfile` + `match`, 
+> and the signing validation points (B5, B6, M5) are handled by fastlane instead.
+
 File targets referenced throughout:
 
 - `nextc-unity/skills/unity-build/SKILL.md` (skill)

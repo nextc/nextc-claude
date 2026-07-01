@@ -51,15 +51,15 @@ See `references/agents-roster.md` for the full per-agent and per-team-worker mod
 
 ## Agent Teams
 
-Use `TeamCreate` + `Agent(team_name=...)` whenever the work is framed as a **team**: any skill/command whose name contains "team", any user prompt asking for "a team", "parallel agents that coordinate", "watch them work", "spin up workers in panes", or any orchestration where the visible tmux panes are part of what's being requested.
+Use Claude Code's agent-teams orchestration — spawn teammates via the `Agent` tool with the experimental flag set (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`); the team forms on the first spawn, with no `TeamCreate`/`TeamDelete` step (both removed in v2.1.178) — whenever the work is framed as a **team**: any skill/command whose name contains "team", any user prompt asking for "a team", "parallel agents that coordinate", "watch them work", "spin up workers in panes", or any orchestration where the visible tmux panes are part of what's being requested.
 
-**The tmux-pane visualization is a first-class feature, not a nice-to-have.** Teammates can also message each other directly and claim tasks from a shared list, but even when workers are fully independent, the panes themselves are why the user asked for a team.
+**The split-pane visualization is a first-class feature, not a nice-to-have.** Teammates can also message each other directly and claim tasks from a shared list, but when the user asks to "watch them in panes," the panes themselves are why they asked for a team. Note split-pane display is now opt-in (in-process is the default) — set `teammateMode` to `tmux`/`auto`/`iterm2` when the user wants panes.
 
 **Do NOT silently downgrade to parallel `Agent()` calls** because the workers happen to be independent or the coordination feels light. That trade-off — losing the visualization to save ceremony — is the user's to make, not yours. If you believe parallel `Agent()` is genuinely cleaner for the case at hand, surface the tradeoff in one sentence and ask before downgrading.
 
 Plain parallel `Agent()` is the right default only when the user did **not** invoke a team skill and did **not** describe the work as a team. Examples: ad-hoc research fan-out, a single skill that internally spawns helpers, parallel scans where the user never said "team."
 
-Examples that REQUIRE `TeamCreate`: `/team-feature-dev`, `/team-builder`, "spin up a team of …", "run these as a team", "I want to watch them in panes", multi-feature sprints, full-stack features where frontend/backend need to sync, parallel investigations with cross-checking.
+Examples that REQUIRE agent-teams orchestration: `/team-feature-dev`, `/team-builder`, "spin up a team of …", "run these as a team", "I want to watch them in panes", multi-feature sprints, full-stack features where frontend/backend need to sync, parallel investigations with cross-checking.
 
 ## Parallel Execution (CRITICAL)
 
@@ -85,4 +85,4 @@ only succeeds if its brief is right:
 - Every agent definition: BOTH `model:` AND `effort:` fields in frontmatter
 - When in doubt: `sonnet` + `high`
 - Never `low` effort
-- Team work uses `TeamCreate` — never silently downgrade to parallel `Agent()` calls. If you want to downgrade, ask first.
+- Team work uses agent-teams orchestration (teammates spawned via `Agent` under the experimental flag) — never silently downgrade to plain parallel `Agent()` calls. If you want to downgrade, ask first.

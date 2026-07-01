@@ -2,6 +2,36 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-07-01
+
+### Added
+- **Fastlane signing + env resolution for iOS builds (`flutter-build` and `unity-build`)** — the build skills/agents now read the project's fastlane setup and fill the environment variables the lanes need, modeled on the nextc `setup-ios-signing.sh` generator (which is config-file-based, not dotenv-based). Behavior:
+  - **Preflight** (mirrors the generator's own): before running a lane, verify the signing config exists at `~/.fastlane-nextc/config/teams.json` (or `$IOS_SIGNING_CONFIG`); if missing, STOP with `setup-ios-signing.sh <team> <bundle-id>` instructions rather than failing mid-build. Best-effort warn if the team's `~/.fastlane-nextc/private-keys/AuthKey_<id>.p8` is absent.
+  - **Auto-filled env** (inline prefix to the `fastlane` command only, never persisted/logged): `IOS_SIGNING_CONFIG` (only when non-default), `FL_CHANGELOG` (from the build's curated "What's new" for the `testflight` lane, so external testers get real release notes), `TESTFLIGHT_GROUPS` (on override). `MATCH_PASSWORD` is deliberately never set — the Fastfile self-seeds it from the config.
+  - **Generic fallback** for non-nextc Fastfiles: discovers `ENV['X']` references across `Fastfile`/`Appfile`/`Matchfile`, unions with `.env`/`.env.default` keys, relies on fastlane's automatic dotenv loading, and warns on anything still unresolved (no secret prompting — secrets belong in `~/.fastlane-nextc`, not the repo).
+  - New "Fastlane Signing & Env" section in `flutter-builder.md`; new "iOS via Fastlane (sign-only)" section in `unity-build/SKILL.md`. Added a `Changelog` spawn field (Flutter) so the testflight lane can receive the approved What's-new.
+- **Full fastlane iOS build path for `unity-build`** — Unity iOS builds can now sign + export via the nextc fastlane lanes (`build_adhoc`/`build_appstore`/`release_testflight`) instead of raw `xcodebuild`. The generator already supports Unity as a **sign-only** path (fastlane at the project root, operating on the `Builds/iOS/Unity-iPhone.xcodeproj` Unity regenerates each build). When `fastlane/Fastfile` exists at the project root, the skill runs the lane (on the main thread, per the threading rule) in place of the `ExportOptions.plist` + `xcodebuild archive` + `exportArchive` steps; when absent, the xcodebuild path is unchanged. Lane selection mirrors `flutter-build`. The "Team ID in ProjectSettings" guard is relaxed on the fastlane path (the `Appfile` carries `team_id` and `match` signs); artifact verification/rename now handle gym's project-root IPA output. The `unity-builder` `MODE: full` fallback gained the same fastlane branch so fallback behavior matches.
+
+### Security
+- Documented and enforced (in build skills/agents) that fastlane signing secrets (`teams.json` `match_password`, the `.p8` key) live only in `~/.fastlane-nextc/` and are never read into logs, reports, or commits, and that these build-time credentials are distinct from `--dart-define-from-file` / the `Assets/` bundle guard — they authenticate signing/upload and never enter the app binary.
+
+## 2026-06-27
+
+### Changed
+- **`team-feature-dev/SKILL.md` Step 4c — corrected the rationale for the "general-purpose workers" rule** — the old note claimed a custom file-based `subagent_type` would omit `SendMessage`/`Task*` and "silently hang at shutdown," which is no longer true: Claude Code now keeps the team-coordination tools available to every teammate regardless of a subagent definition's `tools:` allowlist, and referencing a subagent type as a teammate is fully supported. Rewrote the note so it presents general-purpose + prompt injection as a deliberate design choice (one consistent spawn path; avoids the teammate/subagent behavior gap where a definition's `skills`/`mcpServers` frontmatter are ignored and its body is appended rather than replacing the system prompt) instead of a tooling constraint, and added guidance to set `model`/effort explicitly if a custom `subagent_type` is used.
+
+## 2026-06-26
+
+### Changed
+- **Team-orchestration docs synced to current Claude Code agent-teams API** — `TeamCreate` and `TeamDelete` were removed from Claude Code in v2.1.178 (the team now forms automatically when the first teammate spawns via the `Agent` tool, and the team config is cleaned up on session exit), and the `team_name` input on the `Agent` tool is now accepted-but-ignored. Updated every stale reference (a `latest-spec-wins` sweep) across:
+  - `nextc-core/skills/team-feature-dev/SKILL.md` — removed `TeamCreate`/`TeamDelete` from `allowed-tools`; rewrote Step 4a ("Create Team" → "Form the Team", documenting the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` flag and the removed tools); dropped the ignored `team_name=` arg from both spawn examples; fixed the Phase 4 flow diagram, the Composability table (Phase 4 + Phase 8 rows), and the pre-design note.
+  - `nextc-core/skills/team-feature-dev/references/lead-conduct.md` — Shutdown Rules no longer reference `TeamDelete`.
+  - `nextc-ecc/skills/team-builder/SKILL.md` — removed unused `TeamCreate`/`TeamDelete` from `allowed-tools` (this skill uses parallel `Agent` calls, not team orchestration); reworded the "not TeamCreate" rule.
+  - `rules/nextc-claude/agents.md` (global rule) — the "Agent Teams" section now describes spawning teammates via `Agent` under the experimental flag instead of `TeamCreate` + `Agent(team_name=...)`, and notes that split-pane display is now opt-in (`teammateMode`) since in-process is the default.
+
+### Fixed
+- **`/team-feature-dev` Phase 8 could hang waiting on a teammate that never acknowledges shutdown** — Claude Code documents teammate shutdown as "can be slow" (a teammate finishes its current request/tool call before exiting). Phase 8 previously awaited each `shutdown_response` with no bound. Added a bounded wait (~2 min per teammate) and an explicit fallback: if a teammate never acknowledges, proceed rather than block, and surface the manual-kill paths to the user (`x` on the teammate in-process, or `tmux ls` + `tmux kill-session` in split-pane mode). Mirrored the same guidance into `lead-conduct.md`.
+
 ## 2026-06-17
 
 ### Added

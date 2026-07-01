@@ -35,9 +35,13 @@ task so two workers never write to the same file simultaneously.
 
 ## Shutdown Rules
 
-- **Send each teammate a `shutdown_request` message and wait for their
-  `shutdown_response` before calling `TeamDelete`.** Deleting the team while a
-  worker is mid-write can leave files in a partial state.
+- **Send each teammate a `shutdown_request` and wait for their `shutdown_response`
+  before ending the session.** A teammate finishes its current request or tool call
+  before it can exit, so shutdown can be slow — wait, but bound the wait (~2 min per
+  teammate) rather than blocking forever. If one never acknowledges, proceed and have
+  the user kill it manually (`x` in-process, or `tmux kill-session` in split-pane).
+  There is no `TeamDelete` step (removed in v2.1.178); the team config is cleaned up
+  automatically when the session ends.
 
 ## Coordination Heuristics
 

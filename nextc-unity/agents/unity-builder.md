@@ -33,11 +33,17 @@ Required prompt fields for `full`:
 - **Editor version:** Unity editor version
 - **Project root:** absolute path
 - **iOS-only (required when ios in platforms):**
-  - **Team ID:** Apple developer team ID (10 chars)
+  - **iOS build method:** `fastlane` or `xcodebuild` (default `xcodebuild` when absent). `fastlane`
+    when a root `fastlane/Fastfile` exists — it signs + exports the generated Xcode project via
+    `match` + `gym`. See "iOS build method: fastlane" under Phase F3.
+  - **iOS fastlane lane:** `ad-hoc` / `app-store` / `testflight` / `n/a` (only when method = fastlane)
+  - **Changelog:** (optional) curated "What's new" — exported as `FL_CHANGELOG` for the `testflight` lane
+  - **Team ID:** Apple developer team ID (10 chars) — required for the `xcodebuild` method; on the
+    `fastlane` method it comes from `fastlane/Appfile`, so an empty ProjectSettings value is fine
   - **Xcode major:** detected major version
-  - **Export method:** one of `release-testing`, `app-store-connect`, `debugging`, `enterprise`, `ad-hoc`
-  - **Strip Swift symbols:** `true` / `false`
-  - **Compile bitcode:** `true` / `false`
+  - **Export method:** one of `release-testing`, `app-store-connect`, `debugging`, `enterprise`, `ad-hoc` (xcodebuild method only)
+  - **Strip Swift symbols:** `true` / `false` (xcodebuild method only)
+  - **Compile bitcode:** `true` / `false` (xcodebuild method only)
 - **Skill start epoch:** integer Unix timestamp for mtime verification
 
 ## Canonical Paths
@@ -327,8 +333,13 @@ Unity + xcodebuild yourself.
    with "Install Unity Editor {editor_version} via Unity Hub."
 3. If iOS is in platforms: confirm `xcodebuild -version` exits 0; extract the
    major version. If missing, STOP with "Install Xcode for iOS builds."
-4. If iOS is in platforms and prompt's `Team ID` is empty, STOP with
-   "Set appleDeveloperTeamID in ProjectSettings.asset first."
+4. If iOS is in platforms with the **xcodebuild** method and prompt's `Team ID` is empty,
+   STOP with "Set appleDeveloperTeamID in ProjectSettings.asset first." (On the **fastlane**
+   method this is relaxed — the team comes from `fastlane/Appfile`.)
+4b. If iOS is in platforms with the **fastlane** method, run the signing preflight:
+    `cfg="${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}"`. If it does not exist,
+    STOP: "run `setup-ios-signing.sh <team> <bundle-id>` (from the project root) or create
+    `teams.json`." Never print `match_password` or any secret read from `$cfg`.
 5. **Editor not running:** `pgrep -fl 'Unity\.app/Contents/MacOS/Unity'` must
    return nothing. If it does, STOP: "Close the Unity Editor first — batch
    mode will silently no-op while the editor is open."
@@ -382,9 +393,28 @@ Scaffolded BuildScript.cs writes
   {developmentBuildFlag}
 ```
 
-Expected: `Builds/iOS/Unity-iPhone.xcodeproj`.
+Expected: `Builds/iOS/Unity-iPhone.xcodeproj` (needed by both methods).
 
-#### iOS — Stage B (ExportOptions.plist)
+#### iOS build method: `fastlane` (Stage A above, then this — skip Stages B–D)
+
+When the iOS build method is `fastlane`, the lane signs the just-generated project and exports
+the IPA — replacing ExportOptions.plist + xcodebuild archive + export. Run from the **project root**:
+
+```bash
+# prefix = "bundle exec fastlane" when a root ./Gemfile exists, else "fastlane"
+# lane   = build_adhoc | build_appstore | release_testflight  (from iOS fastlane lane)
+# env    = inline KEY=value prefix: IOS_SIGNING_CONFIG only if non-default+exists;
+#          FL_CHANGELOG only for the testflight lane when a Changelog was passed;
+#          TESTFLIGHT_GROUPS only if overridden. NEVER set MATCH_PASSWORD (Fastfile seeds it).
+{env} {prefix} ios {lane}
+```
+
+- `gym` writes the IPA to the project root as `Unity-iPhone.ipa` by default and prints the path.
+- On bundler "could not find gem" failure, run `bundle install` at the root once, then retry.
+- SECURITY: signing secrets are in `~/.fastlane-nextc/` — never read those values into the log,
+  report, or commit. These are build-time credentials that never enter the app binary.
+
+#### iOS — Stage B (ExportOptions.plist) — xcodebuild method only
 
 Write `{project_root}/Builds/ExportOptions.plist` (NOT inside `Builds/iOS/`):
 
@@ -459,15 +489,17 @@ If any check fails → treat as build failure even on exit 0.
 
 ### Phase F5: Artifact Rename (iOS only)
 
-Android is already correctly named by BuildScript.cs. For iOS, xcodebuild
-names the IPA after the scheme:
+Android is already correctly named by BuildScript.cs. For iOS the exporter names the
+IPA after the scheme — rename in whichever directory it landed:
 
 ```bash
-mv "{project_root}/Builds/iOS/ipa/"*.ipa \
-   "{project_root}/Builds/iOS/ipa/{appname}_{version}_{ios_build}.ipa"
+# xcodebuild method → Builds/iOS/ipa/ ; fastlane method → project root (Unity-iPhone.ipa)
+ipa=$(ls -t "{project_root}/Builds/iOS/ipa/"*.ipa "{project_root}/"*.ipa 2>/dev/null | head -1)
+mv "$ipa" "$(dirname "$ipa")/{appname}_{version}_{ios_build}.ipa"
 ```
 
-Always `mv` (not `cp`), always in the original directory.
+Always `mv` (not `cp`), always in the original directory. In Phase F4, verify this same
+resolved path (fastlane lands at the project root, not `Builds/iOS/ipa/`).
 
 ### Phase F6: Build Log
 
@@ -480,7 +512,7 @@ Append to `docs/buildlog.md` (create with `# Build Log` header if missing):
 - **Mode:** ...
 - **Unity:** {editor_version}
 - **Xcode:** {xcode_version}                    ← iOS only
-- **Signing method:** {export_method}            ← iOS only
+- **Signing method:** {export_method} (xcodebuild) OR `fastlane match ({lane})`   ← iOS only
 - **Artifact sizes:** Android {N} MiB, iOS {N} MiB
 - **Status:** success / failed
 
@@ -557,6 +589,7 @@ signing info, absolute log paths, and phase timings. On failure, show
   `Library/` and `Temp/UnityLockfile` contention causes silent no-ops
 - NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
 - SECURITY: NEVER build with secret-bearing files under `Assets/` (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) — they pack into the shipped binary. The Phase F1 secrets-in-bundle guard must pass first
+- SECURITY (fastlane method): signing secrets live in `~/.fastlane-nextc/` (`teams.json` `match_password`, the `.p8` key) — NEVER read those values into the report, log, or commit, and NEVER set `MATCH_PASSWORD` yourself. They authenticate signing/upload and never enter the binary
 - Always update the build log, even on failure (mark status "failed") — skipping breaks the tag-range history used by the next build
 - The Step 6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — `Mode: whats-new` describes the full procedure
 - On Cancel: do not write the entry, do not commit, do not tag. Artifacts stay on disk; this is not a failure

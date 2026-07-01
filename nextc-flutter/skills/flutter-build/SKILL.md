@@ -97,6 +97,14 @@ Record the choice as `ios_lane` ∈ {`ad-hoc`, `app-store`, `testflight`}. Defau
 
 When `ios_fastlane = false`, skip this question entirely — iOS uses the current method.
 
+> **Fastlane signing preflight.** The nextc fastlane setup reads per-team secrets from
+> `~/.fastlane-nextc/config/teams.json` (override via `$IOS_SIGNING_CONFIG`) and the ASC key from
+> `~/.fastlane-nextc/private-keys/` — nothing secret lives in the repo, and the Fastfile self-seeds
+> `MATCH_PASSWORD`. The flutter-builder verifies this config exists in its Phase 1 and STOPS with
+> setup instructions (`setup-ios-signing.sh <team> <bundle-id>`) if it's missing. See the builder's
+> "Fastlane Signing & Env" section. For the `testflight` lane, pass the build's curated "What's new"
+> so external testers get real release notes (see Step 4 `Changelog` field).
+
 ### Secrets Guard (SECURITY — always enforce)
 
 `--dart-define-from-file` bakes every key/value into the compiled client binary.
@@ -158,6 +166,7 @@ Build the Flutter app with the following configuration:
 - Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
 - iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
+- Changelog: {curated "What's new" if lane=testflight and pre-resolved, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG)
 - Project root: {absolute path to project}
 
 Target artifact names:
@@ -237,6 +246,7 @@ Build the Flutter app with the following configuration:
 - Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
 - iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
+- Changelog: {curated "What's new" if lane=testflight and pre-resolved, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG)
 - Project root: {absolute path to project}
 
 Target artifact name: {appname}_{version}_{build}.ipa

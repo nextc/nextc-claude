@@ -3,7 +3,7 @@ name: team-builder
 description: Interactive agent picker for composing and dispatching parallel teams. Browse available agents across domains, pick a roster, dispatch in parallel.
 when_to_use: |
   Use when a task needs 2+ specialists working concurrently (parallel feature sprint, full-stack pipeline, investigation with cross-checking). Also when user says "spin up a team", "parallel agents", "who can help on this", "compose a team", "ad-hoc team", or "multiple specialists".
-allowed-tools: Agent AskUserQuestion Read Glob Grep TeamCreate TeamDelete SendMessage TaskCreate TaskUpdate TaskList
+allowed-tools: Agent AskUserQuestion Read Glob Grep SendMessage TaskCreate TaskUpdate TaskList
 ---
 
 # Team Builder
@@ -130,7 +130,7 @@ If only 1 agent was selected, skip synthesis and present the output directly.
 - **Dynamic discovery only.** Never hardcode agent lists. New files in the directory auto-appear in the menu.
 - **Max 5 agents per team.** More than 5 produces diminishing returns and excessive token usage. Enforce at selection time.
 - **Parallel dispatch.** All agents run simultaneously — use the Agent tool's parallel invocation pattern.
-- **Parallel Agent calls, not TeamCreate.** This skill uses parallel Agent tool calls for independent work. TeamCreate (a Claude Code tool for multi-agent dialogue) is only needed when agents must debate or respond to each other.
+- **Parallel Agent calls, not agent-teams orchestration.** This skill uses parallel Agent tool calls for independent work. Full agent-teams orchestration — teammates that share a task list and message each other, spawned via the `Agent` tool under the experimental flag (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) — is only needed when agents must debate or respond to each other.
 
 ## Examples
 

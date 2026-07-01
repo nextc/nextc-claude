@@ -5,7 +5,7 @@ description: >
   a feature that benefits from multiple agents working concurrently. You act as Product
   Director coordinating the team.
 user-invocable: true
-allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill TeamCreate TeamDelete SendMessage TaskCreate TaskUpdate TaskList TaskGet
+allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill SendMessage TaskCreate TaskUpdate TaskList TaskGet
 ---
 
 # /team-feature-dev
@@ -14,8 +14,11 @@ Team-orchestrated feature development pipeline. You are the **Product Director**
 you plan, decompose, spawn specialist teammates, coordinate their work via shared
 task lists, and verify the result. Teammates do the hands-on coding.
 
-Uses Claude Code's native team orchestration (TeamCreate, SendMessage, TaskCreate)
-for real parallel execution with inter-agent messaging.
+Uses Claude Code's native agent-teams orchestration — teammates spawned via the `Agent`
+tool, coordinated through `SendMessage` and a shared `TaskCreate` list — for real parallel
+execution. Requires the experimental agent-teams flag (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
+There is no `TeamCreate`/`TeamDelete` step (both removed in v2.1.178): the team forms on the
+first teammate spawn and cleans up on session exit.
 
 ## When to Use
 
@@ -189,7 +192,7 @@ ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max* 2>/dev/null
 # Repeat for any other design skill the project may install.
 ```
 
-- **If `ui-ux-pro-max` (or equivalent) is installed AND `docs/design.md` is missing or insufficient**: invoke the design skill first to generate or extend `design.md` (palette, typography, components, accessibility, stack-specific patterns). Do this *before* `TeamCreate` so workers inherit a real design system instead of inventing one in parallel.
+- **If `ui-ux-pro-max` (or equivalent) is installed AND `docs/design.md` is missing or insufficient**: invoke the design skill first to generate or extend `design.md` (palette, typography, components, accessibility, stack-specific patterns). Do this *before* spawning teammates so workers inherit a real design system instead of inventing one in parallel.
 - **If a design skill is installed AND `design.md` already exists**: assume `design.md` already encodes the skill's inventory — workers honor it via the injected `ui-ux-developer` persona. No re-invocation needed.
 - **If no design skill is installed AND no `design.md` exists**: surface this to the user before launching the team. Workers freelancing visual decisions in parallel produces drift that's expensive to reconcile later.
 
@@ -197,13 +200,16 @@ This mirrors `/feature-dev`'s Path D recommendation and the `ui-ux-developer` ag
 
 ## Phase 4: Create Team & Execute
 
-### Step 4a: Create Team
+### Step 4a: Form the Team
 
-```
-TeamCreate(team_name="{feature-slug}", description="Building {feature name}")
-```
+There is no setup call — the team forms automatically when you spawn the first teammate
+(Step 4c), with this session as the lead. Requires the experimental agent-teams flag
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in env or `settings.json`).
 
-You are now `team-lead@{feature-slug}`.
+> `TeamCreate`/`TeamDelete` were removed in v2.1.178. The `Agent` tool's `team_name` is accepted
+> but ignored (name derives from the session ID) — refer to teammates by the `name` you assign.
+
+You are now the team lead.
 
 ### Step 4b: Create Tasks
 
@@ -239,7 +245,7 @@ Spawn all teammates **in parallel**. Each teammate gets a worker preamble + thei
 | Simple rename, import fix, config change | general-purpose | — | haiku | Minimal reasoning, scripted steps |
 | L10n string extraction | general-purpose | — | haiku | Mechanical text processing |
 
-**ALL team workers spawn as `subagent_type: "general-purpose"`** — never as a custom file-based `subagent_type`. A general-purpose worker has `SendMessage` and the `Task*` family in its tools by default; those are required for team coordination (claim tasks, message the lead, send `shutdown_approved`). A custom file-based subagent_type whose hand-curated `tools:` list happens to omit those will silently hang at shutdown and force `TeamDelete` recovery.
+**Team workers spawn as `subagent_type: "general-purpose"`, with any specialist persona injected via the prompt (Step 4c)** rather than referencing a custom file-based `subagent_type`. This is a deliberate choice, **not** a tooling constraint — Claude Code keeps `SendMessage`/`Task*` available to every teammate even when a definition's `tools:` omits them, so referencing a subagent type as a teammate is fully supported. We standardize on general-purpose + injection to keep one spawn path and avoid the teammate/subagent gap: a definition's `skills`/`mcpServers` frontmatter are ignored as a teammate and its body is *appended* (not replacing) the system prompt, so it behaves differently than under `/feature-dev`. If you do use a custom `subagent_type`, set `model`/effort explicitly at spawn (its frontmatter would otherwise drive them).
 
 **Specialist behavior is delivered via prompt injection, not subagent_type.** When a task needs a specialist persona (e.g. UI screen implementation, security review, code archeology), the specialist agent's markdown file is read and its body (everything after the closing frontmatter `---`) is prepended into the worker prompt. The file's frontmatter (`tools:`, `model:`, `description:`) is ignored in this mode — only the body matters as instructions.
 
@@ -262,7 +268,6 @@ prompt =
 ```
 Agent(
   subagent_type="general-purpose",
-  team_name="{feature-slug}",
   name="worker-1",
   model="sonnet",
   prompt="<worker preamble>\n\nYour assigned tasks:\n- Task #1: Create GuildInvite model...\n- Task #2: Create repository (after #1)...\n\nProject context: Flutter app, see CLAUDE.md. Follow error-handling and coding-style rules."
@@ -277,7 +282,6 @@ persona = Read("nextc-core/agents/ui-ux-developer.md", from_line_after_second_--
 # Step 2: spawn as general-purpose with persona in the prompt
 Agent(
   subagent_type="general-purpose",
-  team_name="{feature-slug}",
   name="worker-3",
   model="sonnet",
   prompt="<worker preamble>\n\n<persona body>\n\nYour assigned tasks:\n- Task #4: Create invite screen + wire navigation...\n\nProject context: Flutter app, see CLAUDE.md and docs/design.md."
@@ -360,14 +364,13 @@ Re-run analyzer after cleanup. Revert cleanup changes that break the build.
 
 ## Phase 8: Shutdown Team
 
-1. **Send shutdown_request** to each active teammate:
-   ```
-   SendMessage(to="worker-1", message={type: "shutdown_request"})
-   SendMessage(to="worker-2", message={type: "shutdown_request"})
-   ```
-2. **Await shutdown_response** from each teammate (they approve and terminate)
-3. **Delete team**: `TeamDelete()` — cleans up team and task directories
-4. **Spawn doc-keeper** in background to update docs
+1. **Send shutdown_request** to each teammate (or ask it by name): `SendMessage(to="worker-1", message={type: "shutdown_request"})`.
+2. **Await shutdown_response with a bounded wait (~2 min/teammate), not indefinitely** — shutdown
+   "can be slow." If one never acknowledges, don't block: proceed and tell the user to kill it
+   manually (`x` in-process, or `tmux kill-session` in split-pane). Detail: `references/lead-conduct.md`.
+3. **No teardown call is needed** — `TeamCreate`/`TeamDelete` were removed in v2.1.178; the team
+   config is cleaned up automatically on session exit.
+4. **Spawn doc-keeper** in background to update docs.
 
 ## Phase 9: Report
 
@@ -426,7 +429,7 @@ Present the final summary to the user:
 ┌─────────────────▼───────────▼──────────────────────────────┐
 │ Phase 4: Create Team & Execute                             │
 │                                                            │
-│   TeamCreate → TaskCreate (with deps) → Spawn workers      │
+│   Spawn teammates (team forms) → TaskCreate (deps) → run    │
 │                                                            │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐                │
 │   │ worker-1 │  │ worker-2 │  │ worker-3 │  ...           │
@@ -474,13 +477,13 @@ Present the final summary to the user:
 | Phase 2a | `nextc-ecc:planner` | sonnet | Create implementation plan |
 | Phase 2b | `nextc-ecc:architect` | opus | Adversarial architecture review |
 | Phase 3 | User provides design assets | — | Core screen design (UI features) |
-| Phase 4 | `TeamCreate` + `TaskCreate` + `Agent` | — | Native team orchestration |
+| Phase 4 | `Agent` (spawn teammates) + `TaskCreate` | — | Native team orchestration (team forms on first spawn) |
 | Phase 4 | `ui-ux-developer` persona (injected into a `general-purpose` worker prompt) | sonnet | UI screen implementation — file body is the prompt, NOT a custom subagent_type |
 | Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
 | Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
-| Phase 8 | `TeamDelete` + `doc-keeper` agent | haiku | Clean shutdown + documentation |
+| Phase 8 | `shutdown_request` + `doc-keeper` agent | haiku | Graceful shutdown (auto-cleanup on session exit) + documentation |
 
 ## When to Use /team-feature-dev vs /feature-dev
 

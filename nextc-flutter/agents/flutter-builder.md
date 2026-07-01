@@ -24,6 +24,7 @@ You are spawned by the `/flutter-build` skill with a prompt containing:
 - **Dart-define-from-file:** path to a NON-SECRET build-config file or "none". NEVER `.env` or any secret-bearing file — see the Secrets Guard in Phase 1.
 - **iOS build method:** `fastlane` or `flutter` (may be absent in older skill versions — default `flutter`). Only relevant when building iOS. `fastlane` means run the project's fastlane lane (shared code-signing, builds on any laptop); `flutter` means the legacy `flutter build ipa` path.
 - **iOS fastlane lane:** `ad-hoc`, `app-store`, `testflight`, or `n/a`. Only meaningful when iOS build method = `fastlane`.
+- **Changelog:** (optional) the build's curated "What's new" text. When present AND the lane is `testflight`, it is exported as `FL_CHANGELOG` so external testers get real release notes. Ignored for other lanes.
 - **Project root:** absolute path to the Flutter project
 
 The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.0.0_7.apk`). When present, use it EXACTLY as the renamed output — do not derive your own.
@@ -40,7 +41,8 @@ The prompt may also include a "Target artifact name" line (e.g., `openjournal_1.
    - Resolve the lane name from the requested **iOS fastlane lane** using **convention first, discovery fallback**:
      - Convention map: `ad-hoc → build_adhoc`, `app-store → build_appstore`, `testflight → release_testflight`.
      - Verify the conventional lane exists: `cd ios && bundle exec fastlane lanes 2>/dev/null` (or `fastlane lanes` if there is no `ios/Gemfile`). If the conventional name is **not** listed, pick the lane whose name/description best matches the intent (a lane mentioning `adhoc`/`ad-hoc`, `appstore`/`app-store`/`release`, or `testflight`/`upload`). If no lane plausibly matches, **STOP** and report the available lanes so the user can choose.
-   - Decide the fastlane invocation prefix once: `bundle exec fastlane` when `ios/Gemfile` exists, else `fastlane`. All lane runs use `cd ios && <prefix> ios <lane>`.
+   - Decide the fastlane invocation prefix once: `bundle exec fastlane` when `ios/Gemfile` exists, else `fastlane`. All lane runs use `cd ios && <env exports> <prefix> ios <lane>`.
+   - **Run the signing preflight and build the env-export string** now — see the "Fastlane Signing & Env" section below. If the preflight says STOP (no signing config), stop; do not fall back to the `flutter` path, because a fastlane project's Xcode signing is wired for match, not automatic signing.
 5. Run `git status` — if there are uncommitted changes, **STOP** and ask the user to review:
    - Show the list of modified/untracked files
    - Ask: "You have uncommitted changes. Should I commit these first, or proceed with the build as-is?"
@@ -61,13 +63,15 @@ flutter build apk -t lib/main.dart --{mode} {dart_define_flag}
 
 **iOS (IPA) — fastlane path (when iOS build method = `fastlane`):**
 ```bash
-cd ios && {prefix} ios {resolved_lane}    # prefix = "bundle exec fastlane" or "fastlane" (Phase 1); lane resolved in Phase 1
+cd ios && {env_exports} {prefix} ios {resolved_lane}    # env_exports + prefix + lane all resolved in Phase 1
 ```
+
+`{env_exports}` is the space-separated `KEY=value` prefix built in Phase 1 (e.g. `IOS_SIGNING_CONFIG=... FL_CHANGELOG=... TESTFLIGHT_GROUPS=...`) — empty when none apply. It is an inline prefix to the fastlane command only; never write these into a file, never echo them, and never set `MATCH_PASSWORD` (the Fastfile seeds it from the signing config).
 
 - This is the cross-laptop path: the lane runs `match` to install the shared signing cert/profiles from the team git repo, so it builds on any machine without per-laptop cert setup.
 - **The lane controls the flutter build invocation**, so `{dart_define_flag}` is NOT passed to iOS here, and the build is always **release** regardless of the requested mode. (The skill warns the user about both at confirm time.)
 - If `ios/Gemfile` exists and the run fails with a bundler/"could not find gem" error, run `cd ios && bundle install` once, then retry the lane.
-- For `release_testflight`, the lane also uploads to TestFlight — there is no local IPA-rename step beyond what Phase 4 finds; report the upload in Phase 6.
+- For `release_testflight`, the lane also uploads to TestFlight — there is no local IPA-rename step beyond what Phase 4 finds; report the upload in Phase 6. The lane reads `FL_CHANGELOG` for the external-tester release notes: if a `Changelog` field was passed, export it (Phase 1 env string); otherwise it defaults to "Latest build". To give testers the real "What's new", resolve the Phase 5 entry (steps 5.1–5.6, including the review gate) BEFORE this lane and reuse that approved text as `FL_CHANGELOG` — then don't re-draft it in Phase 5. A cancel at the review gate aborts before the upload, which is the desired fail-safe.
 
 **iOS (IPA) — flutter path (when iOS build method = `flutter`, or fastlane was requested but no Fastfile/lane was found):**
 ```bash
@@ -333,6 +337,53 @@ The caller must not write on CANCELLED and must abort the build commit + tag.
 
 The review gate, date sanity checks, range rules, `--stat` reading, vague-subject diff rule, and post-write lint all apply. Nothing is skipped in this mode.
 
+## Fastlane Signing & Env
+
+Applies **only** when the iOS path is a fastlane lane. The nextc fastlane setup (generated by
+`setup-ios-signing.sh`) is **config-file-based, not dotenv-based**: per-team secrets live in
+`~/.fastlane-nextc/config/teams.json` (override via `$IOS_SIGNING_CONFIG`) and the ASC private key
+in `~/.fastlane-nextc/private-keys/AuthKey_<asc_key_id>.p8`. The Fastfile reads them at runtime and
+**self-seeds `MATCH_PASSWORD`** from that JSON — so there is nothing secret to prompt for, and the
+repo never holds a signing secret.
+
+### Preflight (run in Phase 1, before the lane)
+
+```bash
+cfg="${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}"
+```
+
+- If `cfg` does not exist → **STOP** (do not build, do not fall back to the `flutter` path):
+  "iOS signing config not found at `$cfg`. Run `setup-ios-signing.sh <team> <bundle-id>` (from the
+  fastlane-ios-signing project), or create it from `teams.example.json` and set `$IOS_SIGNING_CONFIG`."
+- Best-effort key check: the Fastfile expects `~/.fastlane-nextc/private-keys/AuthKey_<asc_key_id>.p8`.
+  If you can read `asc_key_id` for the baked team from `$cfg` and that `.p8` is absent, **warn** (the
+  lane will fail without it). **Never print `match_password` or any secret value read from `$cfg`.**
+
+### Env-export string (built in Phase 1, applied in Phase 3)
+
+Export **only** as an inline prefix to the `fastlane` command — never persist to a file, never echo:
+
+| Var | When to set | Value |
+|---|---|---|
+| `IOS_SIGNING_CONFIG` | only if the user's `teams.json` is NOT at the default path AND exists | that path |
+| `FL_CHANGELOG` | only when lane = `testflight` AND a `Changelog` field was passed | the curated "What's new" |
+| `TESTFLIGHT_GROUPS` | only when lane = `testflight` AND the user overrode the default | comma-separated group list |
+| `MATCH_PASSWORD` | **never** | — (Fastfile seeds it from the config) |
+
+### Generic fallback (non-nextc Fastfiles)
+
+If the `Fastfile`/`Appfile`/`Matchfile` reference `ENV['X']` vars beyond the table above:
+
+```bash
+grep -rhoE "ENV(\.fetch)?\(['\"][A-Z0-9_]+['\"]" ios/fastlane 2>/dev/null | grep -oE "[A-Z0-9_]+" | sort -u
+```
+
+Union those with keys declared in `ios/fastlane/.env` / `.env.default`. For any name NOT already
+satisfied by the process env or the nextc config, rely on fastlane's automatic dotenv loading
+(`.env`/`.env.default` in the Fastfile dir are loaded by fastlane itself) and **warn**, listing the
+unresolved names. Do **not** prompt for secret values — the nextc convention keeps them in
+`~/.fastlane-nextc`, not the repo.
+
 ## Rules
 
 - NEVER push to remote — only commit and tag locally
@@ -343,3 +394,4 @@ The review gate, date sanity checks, range rules, `--stat` reading, vague-subjec
 - The Phase 5.6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — Phase 5 describes the full procedure
 - On Cancel: do not write the entry, do not commit, do not tag. The artifact stays on disk. This is not a failure; it's an aborted bookkeeping step
 - SECURITY: NEVER feed `.env` or any secret-bearing file (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) to `--dart-define-from-file` — it embeds secrets into the shipped binary. Only a Phase-1-cleared non-secret config file may be used, and always with an absolute path.
+- SECURITY: fastlane signing secrets live in `~/.fastlane-nextc/` (the `teams.json` `match_password`, the `.p8` key) — NEVER read those values into the report, log, or commit, and NEVER set `MATCH_PASSWORD` yourself. These are build-time credentials, separate from `--dart-define-from-file`: they authenticate signing/upload and never enter the app binary.
