@@ -11,6 +11,7 @@ tools:
   - Write
   - Glob
   - Grep
+  - SendMessage
 ---
 
 # ASO Collision Analysis Specialist

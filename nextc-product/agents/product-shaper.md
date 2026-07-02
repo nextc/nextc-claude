@@ -15,6 +15,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # Product Shaper — Phase 4 Specialist

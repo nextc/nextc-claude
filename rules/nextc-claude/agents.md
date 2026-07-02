@@ -83,6 +83,7 @@ only succeeds if its brief is right:
 
 - Every `Agent()` call: `model` parameter required
 - Every agent definition: BOTH `model:` AND `effort:` fields in frontmatter
+- Every agent definition's `tools:` list MUST include `SendMessage` — without it a teammate cannot send `shutdown_approved`, so it parks as a zombie idle process after finishing and `shutdown_request` is a no-op. The `tools:` allowlist DOES gate this; the harness does not inject it. Task-claiming workers also need the `Task*` family. (Only omit for a definition that will never run as a teammate.)
 - When in doubt: `sonnet` + `high`
 - Never `low` effort
 - Team work uses agent-teams orchestration (teammates spawned via `Agent` under the experimental flag) — never silently downgrade to plain parallel `Agent()` calls. If you want to downgrade, ask first.

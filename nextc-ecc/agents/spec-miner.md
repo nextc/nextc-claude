@@ -1,7 +1,7 @@
 ---
 name: spec-miner
 description: Extracts behavioral specs (Requirements + Invariants with stable IDs) from an existing codebase. Use PROACTIVELY when onboarding a brownfield project to spec-driven work, or when the user says "extract specs", "mine the behavior", "what does this code actually guarantee", or "document the existing contract".
-tools: ["Read", "Grep", "Glob", "Bash", "Write"]
+tools: ["Read", "Grep", "Glob", "Bash", "Write", "SendMessage"]
 model: opus
 effort: high
 ---

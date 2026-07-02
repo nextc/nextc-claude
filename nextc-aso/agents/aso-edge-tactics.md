@@ -16,6 +16,7 @@ tools:
   - Grep
   - Bash
   - AskUserQuestion
+  - SendMessage
 ---
 
 # ASO Edge-Tactics Auditor

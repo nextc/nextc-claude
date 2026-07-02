@@ -6,7 +6,7 @@ description: >
   increments, artifact renaming, and post-build documentation.
 model: haiku
 effort: medium
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion", "SendMessage"]
 ---
 
 # Flutter Builder Agent

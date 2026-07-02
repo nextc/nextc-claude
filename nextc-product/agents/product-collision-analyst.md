@@ -12,6 +12,7 @@ tools:
   - Write
   - Glob
   - Grep
+  - SendMessage
 ---
 
 # Product Collision Analyst — Phase 5.5 Specialist

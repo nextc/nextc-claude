@@ -16,6 +16,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # Product Explorer — Thin Orchestrator

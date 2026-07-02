@@ -3,7 +3,7 @@ name: code-explorer
 description: Deeply analyzes existing codebase features by tracing execution paths, mapping architecture layers, and documenting dependencies to inform new development. Use PROACTIVELY when understanding unfamiliar code before modifying it, or when tracing how a feature works end-to-end.
 model: sonnet
 effort: high
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools: ["Read", "Grep", "Glob", "Bash", "SendMessage"]
 ---
 
 # Code Explorer Agent

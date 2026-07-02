@@ -16,6 +16,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # ASO Director — Pipeline Orchestrator

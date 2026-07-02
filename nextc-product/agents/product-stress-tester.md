@@ -15,6 +15,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # Product Stress Tester — Phase 5 Specialist

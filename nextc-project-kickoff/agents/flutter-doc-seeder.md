@@ -12,6 +12,7 @@ tools:
   - Write
   - Bash
   - Glob
+  - SendMessage
 ---
 
 # Flutter Doc Seeder

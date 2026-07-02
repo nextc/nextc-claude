@@ -1,7 +1,7 @@
 ---
 name: opensource-forker
 description: Fork any project for open-sourcing — copies files, strips secrets and credentials (20+ patterns), replaces internal references with placeholders, generates .env.example, and cleans git history. Spawned by /opensource-pipeline skill — not invoked directly.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "SendMessage"]
 model: sonnet
 effort: medium
 ---

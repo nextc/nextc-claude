@@ -16,6 +16,7 @@ tools:
   - Bash
   - WebFetch
   - AskUserQuestion
+  - SendMessage
 ---
 
 # ASO Naming Specialist

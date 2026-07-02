@@ -14,6 +14,7 @@ tools:
   - Bash
   - Glob
   - Grep
+  - SendMessage
 ---
 
 # Unity Scaffolder

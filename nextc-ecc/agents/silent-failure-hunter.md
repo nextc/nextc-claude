@@ -3,7 +3,7 @@ name: silent-failure-hunter
 description: Review code for silent failures, swallowed errors, bad fallbacks, and missing error propagation. Use PROACTIVELY after writing error-handling code or when debugging "why didn't this error surface" / "works on my machine" bugs.
 model: sonnet
 effort: high
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools: ["Read", "Grep", "Glob", "Bash", "SendMessage"]
 ---
 
 # Silent Failure Hunter Agent

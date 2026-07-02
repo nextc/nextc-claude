@@ -14,6 +14,7 @@ tools:
   - Bash
   - Grep
   - Glob
+  - SendMessage
 ---
 
 # Flutter L10n Agent

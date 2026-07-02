@@ -10,6 +10,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - SendMessage
 ---
 
 # Doc Keeper Agent

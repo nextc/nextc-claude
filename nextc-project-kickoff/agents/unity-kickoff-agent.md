@@ -16,6 +16,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - SendMessage
 ---
 
 # Unity Kickoff Agent

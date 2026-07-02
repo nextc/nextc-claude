@@ -8,7 +8,7 @@ description: >
   content-generation sub-tasks and serves as a fallback pipeline.
 model: haiku
 effort: medium
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion", "SendMessage"]
 ---
 
 # Unity Builder Agent

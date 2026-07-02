@@ -13,6 +13,9 @@ Rule additions distilled from a cross-session UI/layout failure (a screen "verif
 ### Changed
 - **`rules/nextc-claude/practices.md` → Think Before Coding** — two new guards: a vague instruction ("make it great", "clean this up", "fix it") is not a mandate to guess — surface your reading and confirm first; and "spending reasoning tokens is not thinking" — establish *which* problem you're solving before optimizing an artifact. New **"Substance Over Ceremony"** section: the rule-set's overhead (context blocks, docs, memory, changelog, lint gates) serves the deliverable and must never crowd out verifying the real output.
 
+### Fixed
+- **Agents couldn't complete the team-shutdown handshake — added `SendMessage` to every agent's `tools:`.** In practice the `tools:` allowlist gates coordination tools (contrary to the CC docs' "always available" claim): a teammate whose list omits `SendMessage` (e.g. `flutter-builder`/`unity-builder`, tools = Read/Write/Edit/Bash/Glob/Grep/AskUserQuestion) physically can't reply `shutdown_approved`, so after finishing it parks as idle and re-emits idle pings while `shutdown_request` is a no-op. Added `SendMessage` to all 50 agent definitions that were missing it (both inline-array and multi-line `tools:` formats; `ui-ux-developer` already had it; the 4 `references/` templates have no `tools:` field). Corrected the now-disproven claim in `team-feature-dev` SKILL (line ~248) that this is "not a tooling constraint," and added an `agents.md` enforcement rule so no new agent ships without `SendMessage`.
+
 ## 2026-07-01
 
 ### Added

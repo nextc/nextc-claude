@@ -13,6 +13,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # ASO Ratings & Reviews Specialist

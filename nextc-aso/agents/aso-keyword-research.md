@@ -14,6 +14,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # ASO Keyword Research Specialist

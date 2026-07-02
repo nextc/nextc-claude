@@ -15,6 +15,7 @@ tools:
   - Grep
   - Bash
   - Skill
+  - SendMessage
 ---
 
 # Product Researcher — Phase 2 Specialist

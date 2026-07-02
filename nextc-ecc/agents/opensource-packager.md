@@ -1,7 +1,7 @@
 ---
 name: opensource-packager
 description: Generate complete open-source packaging for a sanitized project — produces CLAUDE.md, setup.sh, README.md, LICENSE, CONTRIBUTING.md, and GitHub issue templates. Makes any repo immediately usable with Claude Code. Spawned by /opensource-pipeline skill — not invoked directly.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "SendMessage"]
 model: sonnet
 effort: medium
 ---
