@@ -49,11 +49,12 @@ Required prompt fields for `full`:
 ## Canonical Paths
 
 - Unity CLI: `/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity`
-- Android artifact: `{project_root}/Builds/Android/{appname}_{version}_{android_build}.apk`
-  (BuildScript.cs writes this name directly from custom args)
+- **Final artifacts (after Phase F5 move — the standard location):** `{project_root}/Builds/{appname}_{version}_{build}.{apk,ipa}`
+- Android build output: `{project_root}/Builds/Android/{appname}_{version}_{android_build}.apk`
+  (BuildScript.cs writes this name directly; Phase F5 moves it to `Builds/` root)
 - iOS Xcode project: `{project_root}/Builds/iOS/Unity-iPhone.xcodeproj`
 - iOS xcarchive: `{project_root}/Builds/iOS/archive.xcarchive`
-- iOS IPA dir: `{project_root}/Builds/iOS/ipa/`
+- iOS IPA output (pre-move): `{project_root}/Builds/iOS/ipa/`
 - ExportOptions.plist: `{project_root}/Builds/ExportOptions.plist` (outside
   `Builds/iOS/`, which Unity wipes)
 - Unity logs: `{project_root}/Builds/logs/{platform}.log`
@@ -487,19 +488,25 @@ exits 0. For each platform built, assert all of:
 
 If any check fails → treat as build failure even on exit 0.
 
-### Phase F5: Artifact Rename (iOS only)
+### Phase F5: Artifact Placement (move both to `Builds/` root)
 
-Android is already correctly named by BuildScript.cs. For iOS the exporter names the
-IPA after the scheme — rename in whichever directory it landed:
+Verify (Phase F4) at each artifact's build-output location first, then move the finals
+to the **root of `Builds/`** — the standard drop location — with `mv` (never `cp`):
 
 ```bash
-# xcodebuild method → Builds/iOS/ipa/ ; fastlane method → project root (Unity-iPhone.ipa)
+# Android — BuildScript.cs wrote Builds/Android/<name>.apk (correct name); move up
+mv "{project_root}/Builds/Android/{appname}_{version}_{android_build}.apk" \
+   "{project_root}/Builds/{appname}_{version}_{android_build}.apk"
+
+# iOS — rename + move to Builds/ root from wherever it landed
+#   (xcodebuild → Builds/iOS/ipa/ ; fastlane → project root, Unity-iPhone.ipa)
 ipa=$(ls -t "{project_root}/Builds/iOS/ipa/"*.ipa "{project_root}/"*.ipa 2>/dev/null | head -1)
-mv "$ipa" "$(dirname "$ipa")/{appname}_{version}_{ios_build}.ipa"
+mv "$ipa" "{project_root}/Builds/{appname}_{version}_{ios_build}.ipa"
 ```
 
-Always `mv` (not `cp`), always in the original directory. In Phase F4, verify this same
-resolved path (fastlane lands at the project root, not `Builds/iOS/ipa/`).
+Both finals end at `Builds/{appname}_{version}_{build}.{apk,ipa}`. Always `mv` (not `cp`),
+one canonical file per platform. (Supersedes the earlier "rename in the original directory"
+instruction.)
 
 ### Phase F6: Build Log
 

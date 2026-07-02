@@ -83,33 +83,31 @@ flutter build ipa --export-method ad-hoc {dart_define_flag}
 - Log build output — capture both stdout and stderr.
 - If a build fails, log the failure (Phase 5) and STOP. Do not continue to the next platform.
 
-### Phase 4: Artifact Rename
+### Phase 4: Artifact Placement
 
-After a successful build, rename output artifacts **in-place** using `mv` (never `cp`):
+After a successful build, **rename and move** each artifact to the **root of Flutter's `build/` directory** — the standard drop location — using `mv` (never `cp`), one file per platform:
 
 ```bash
-# APK — rename in the Gradle release output directory
-mv build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/{appname}_{version}_{build}.apk
+# APK — from the Gradle release output dir to build/ root
+mv build/app/outputs/apk/release/app-release.apk build/{appname}_{version}_{build}.apk
 
-# IPA (flutter path) — rename in the Xcode output directory
-mv build/ios/ipa/*.ipa build/ios/ipa/{appname}_{version}_{build}.ipa
+# IPA (flutter path) — from the Xcode output dir to build/ root
+mv build/ios/ipa/*.ipa build/{appname}_{version}_{build}.ipa
 ```
 
 **IPA — fastlane path:** `gym`/`build_app` does not write to `build/ios/ipa/`. By
 default it outputs to the directory the lane runs from (`ios/`, e.g. `ios/Runner.ipa`),
-and fastlane prints the exact path. Locate the produced IPA and rename it **in place** —
-do not assume `build/ios/ipa/`:
+and fastlane prints the exact path. Locate the produced IPA and move it to `build/` root:
 
 ```bash
 # Prefer the path fastlane printed ("exported and signed the ipa file: <path>").
 # If parsing that is impractical, pick the newest IPA across the likely locations:
 ipa=$(ls -t ios/*.ipa build/ios/ipa/*.ipa 2>/dev/null | head -1)
-mv "$ipa" "$(dirname "$ipa")/{appname}_{version}_{build}.ipa"
+mv "$ipa" "build/{appname}_{version}_{build}.ipa"
 ```
 
-Report the actual directory the renamed IPA lives in (Phase 6) — it may be `ios/` for
-the fastlane path, not `build/ios/ipa/`. For the `testflight` lane the IPA is also
-uploaded; still rename the local artifact if one was produced.
+For the `testflight` lane the IPA is also uploaded to TestFlight; still move the local
+artifact to `build/` root if one was produced.
 
 Resolving `{appname}` (canonical order — STOP at the first source that applies):
 1. If the spawn prompt contains a "Target artifact name" line, extract the basename and use it verbatim. Do NOT re-derive.
@@ -118,7 +116,7 @@ Resolving `{appname}` (canonical order — STOP at the first source that applies
 
 Both platforms MUST produce artifacts with the same `{appname}` stem. If you are in partial mode and cannot determine an authoritative `{appname}`, STOP and report — do not guess.
 
-CRITICAL: Rename in the **original build output directory** — never copy or move to a different directory (e.g., do NOT use `flutter-apk/`).
+CRITICAL: the final artifact lives at the **root of `build/`** (e.g. `build/{appname}_{version}_{build}.apk`) — the standard location. Use `mv` (never `cp`) so there is exactly one canonical artifact per platform; do not leave a copy in the nested output dir or use Flutter's legacy `flutter-apk/`. (This supersedes the earlier "rename in the original output directory, never move" rule.)
 
 ### Phase 5: Build Log
 
@@ -255,13 +253,14 @@ Report results in a table:
 ```
 | Platform | Status  | Artifact                        | Path                              |
 |----------|---------|---------------------------------|-----------------------------------|
-| Android  | success | {appname}_{version}_{build}.apk | build/app/outputs/apk/release/    |
-| iOS      | success | {appname}_{version}_{build}.ipa | build/ios/ipa/                    |
+| Android  | success | {appname}_{version}_{build}.apk | build/                            |
+| iOS      | success | {appname}_{version}_{build}.ipa | build/                            |
 ```
 
 - **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
 - **Artifact column shows the renamed filename**
-- Show paths relative to project root — use the **actual** iOS directory (the fastlane path lands in `ios/`, not `build/ios/ipa/`)
+- Both artifacts now live at the root of `build/` (Phase 4 moves them there regardless of the flutter/fastlane path), so the Path column is `build/` for both
+- For the `testflight` lane, add a line noting the build was uploaded to TestFlight
 - For the `testflight` lane, add a line noting the build was uploaded to TestFlight
 - If a platform fails, show `failed` status with a one-line error summary instead of artifact/path
 

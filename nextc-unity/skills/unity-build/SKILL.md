@@ -254,8 +254,8 @@ the skill's **main thread** (per the threading rule) — never in a sub-agent.
 
 The scaffolded `BuildScript.cs` reads the `-appname / -buildVersion /
 -buildNumber` custom args and writes
-`Builds/Android/{appname}_{version}_{android_build}.apk` directly — no rename
-step needed for Android.
+`Builds/Android/{appname}_{version}_{android_build}.apk` directly (correct name, no
+rename needed) — Step 8 then moves it up to `Builds/` root, the standard location.
 
 ### iOS: Unity invocation (Xcode project gen)
 
@@ -302,28 +302,23 @@ Where `$ARTIFACT` is:
 If ANY check fails, treat as build failure even if exit code was 0. Surface the
 log tail and the check that failed.
 
-## Step 8: Artifact Rename (iOS only)
+## Step 8: Artifact Placement (move both to `Builds/` root)
 
-Android is already named by `BuildScript.cs`. For iOS, the exporter names the file
-after the scheme, so rename it in-place — in whichever directory it landed:
-
-**xcodebuild path** — the IPA is in `Builds/iOS/ipa/`:
+After Step 7 verification, move each final artifact to the **root of `Builds/`** (the standard
+drop location) with `mv` (never `cp`) — one canonical file per platform:
 
 ```bash
-mv "{project_root}/Builds/iOS/ipa/"*.ipa \
-   "{project_root}/Builds/iOS/ipa/{appname}_{version}_{ios_build}.ipa"
+# Android — BuildScript.cs already named it; move up from Builds/Android/
+mv "{project_root}/Builds/Android/{appname}_{version}_{android_build}.apk" \
+   "{project_root}/Builds/{appname}_{version}_{android_build}.apk"
+
+# iOS — rename + move from wherever it landed (xcodebuild → Builds/iOS/ipa/ ; fastlane → project root)
+ipa=$(ls -t "{project_root}/Builds/iOS/ipa/"*.ipa "{project_root}/"*.ipa 2>/dev/null | head -1)
+mv "$ipa" "{project_root}/Builds/{appname}_{version}_{ios_build}.ipa"
 ```
 
-**fastlane path** — `gym` writes to the project root (`Unity-iPhone.ipa`); prefer the
-path fastlane printed, else pick the newest IPA and rename it **in its own directory**:
-
-```bash
-ipa=$(ls -t "{project_root}/"*.ipa "{project_root}/Builds/iOS/ipa/"*.ipa 2>/dev/null | head -1)
-mv "$ipa" "$(dirname "$ipa")/{appname}_{version}_{ios_build}.ipa"
-```
-
-Report the actual directory in Step 11 (it may be the project root for the fastlane path).
-Never `cp` — always `mv`, in the original output directory.
+Both finals end at `Builds/{appname}_{version}_{build}.{apk,ipa}` (Step 11 reports `Builds/`).
+This supersedes the earlier "rename in place, never move" instruction.
 
 ## Step 9: Build Log
 
@@ -445,11 +440,11 @@ Present a table plus diagnostics:
 ```
 | Platform | Status  | Size    | Artifact                                    | Path              |
 |----------|---------|---------|---------------------------------------------|-------------------|
-| Android  | success | {N MiB} | {appname}_{version}_{android_build}.apk     | Builds/Android/   |
-| iOS      | success | {N MiB} | {appname}_{version}_{ios_build}.ipa         | Builds/iOS/ipa/   |
+| Android  | success | {N MiB} | {appname}_{version}_{android_build}.apk     | Builds/           |
+| iOS      | success | {N MiB} | {appname}_{version}_{ios_build}.ipa         | Builds/           |
 ```
 
-- Path column = directory only (clickable in file explorer)
+- Path column = directory only (clickable in file explorer); both artifacts are moved to `Builds/` root in Step 8
 - Artifact column = renamed filename
 - Paths relative to project root
 - On failure: `failed` status, one-line error, and the log path

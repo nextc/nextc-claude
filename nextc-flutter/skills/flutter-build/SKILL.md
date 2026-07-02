@@ -306,10 +306,11 @@ After the agent completes, report:
 ```
 | Platform | Status  | Artifact                        | Path                              |
 |----------|---------|---------------------------------|-----------------------------------|
-| Android  | success | {appname}_{version}_{build}.apk | build/app/outputs/apk/release/    |
-| iOS      | success | {appname}_{version}_{build}.ipa | build/ios/ipa/                    |
+| Android  | success | {appname}_{version}_{build}.apk | build/                            |
+| iOS      | success | {appname}_{version}_{build}.ipa | build/                            |
 ```
 
+- Both artifacts live at the root of `build/` (the builder's Phase 4 moves them there — the standard drop location — regardless of the flutter/fastlane path)
 - **Path column shows the directory only** (no filename) — clickable in file explorer
 - **Artifact column shows the renamed filename**
 - Show paths relative to project root
@@ -325,7 +326,7 @@ After the agent completes, report:
 If the flutter-builder agent is unavailable, execute the build steps inline:
 1. Update pubspec.yaml version
 2. Run the build commands — `flutter build apk` for Android; for iOS use the selected fastlane lane (`cd ios && bundle exec fastlane ios {ios_lane-as-lane-name}`) when `ios_fastlane = true`, otherwise `flutter build ipa --export-method ad-hoc`
-3. Rename artifacts (the fastlane IPA lands in `ios/`, not `build/ios/ipa/` — see the flutter-builder Phase 4 fastlane rules)
+3. Rename **and move** each artifact to the root of `build/` — the standard location (`build/{appname}_{version}_{build}.{apk,ipa}`), regardless of the flutter/fastlane path — see flutter-builder Phase 4
 4. Update docs/buildlog.md (curated "What's new", not git log dump)
 5. Report in table format
 6. Commit and tag (tag only on success)
