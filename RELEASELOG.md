@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.3 (2026-07-02)
+
+**Standard build-artifact location.** `flutter-build` and `unity-build` now move the final APK/IPA to the **root of each stack's build directory** — `build/` for Flutter, `Builds/` for Unity — instead of leaving them nested in `build/app/outputs/apk/release/`, `build/ios/ipa/`, `Builds/Android/`, or `Builds/iOS/ipa/`. One predictable, canonical file per platform, across the flutter / xcodebuild / fastlane output paths, in both the builder agents and their `MODE: full` fallbacks. This supersedes the builders' prior "rename in the original output directory, never move" rule.
+
 ## v1.6.2 (2026-07-02)
 
 Team-shutdown reliability + a rule swap.
