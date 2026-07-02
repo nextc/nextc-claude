@@ -99,7 +99,7 @@ voice, no trademark misuse; regulated: required disclaimers, no unsubstantiated 
 
 ## Fix-and-converge
 
-- Fix **only the flagged issues** — do not refactor or add unrequested changes (`minimal-fix-scope.md`).
+- Fix **only the flagged issues** — do not refactor or add unrequested changes.
 - Re-review with **fresh** reviewers each round (no memory of prior rounds — prior context creates
   anchoring bias).
 - **Max 3 rounds.** Still failing → stop and escalate to the user with the outstanding issues.

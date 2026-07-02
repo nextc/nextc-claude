@@ -16,7 +16,7 @@ Stay **fully hands-off**. Do not write tests, do not scaffold a test harness or 
 
 **Automatically update the affected tests** so they stay in sync with the changed behavior — this is the one case where you touch tests without being asked. Then **run only those affected tests** to confirm they pass; do not run the rest of the suite.
 
-- Update tests to reflect the new *correct* behavior. **Never weaken, delete, or loosen an assertion merely to make a test pass.** If a change genuinely makes a test's intent obsolete, say so and ask — don't silently gut it. (See `minimal-fix-scope.md` and `latest-spec-wins.md`.)
+- Update tests to reflect the new *correct* behavior. **Never weaken, delete, or loosen an assertion merely to make a test pass.** If a change genuinely makes a test's intent obsolete, say so and ask — don't silently gut it. (See `latest-spec-wins.md`.)
 
 ## Case 3 — The project HAS tests, and your change touches code that NO existing test covers
 
@@ -25,7 +25,7 @@ Stay **fully hands-off**. Do not write tests, do not scaffold a test harness or 
 ## How this composes with related rules
 
 - `verify-before-claim.md` still governs runtime claims: you confirm a change works via the project's build/typecheck/lint/analyzer and manual acceptance — **not** by authoring new tests. Case 2 (updating + running already-covering tests) is the exception, not a license to write new tests for verification.
-- `minimal-fix-scope.md` and `latest-spec-wins.md` govern Case 2 updates: the test must track the new intended behavior, never be hollowed out to go green.
+- `latest-spec-wins.md` governs Case 2 updates: the test must track the new intended behavior, never be hollowed out to go green.
 
 ## Enforcement
 

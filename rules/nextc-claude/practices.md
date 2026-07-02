@@ -69,8 +69,7 @@ reviewer — is a set of suggestions to **evaluate**, not orders to obey and not
 - **If you can't verify**, say so and name what you'd need ("can't confirm without X — investigate, ask, or proceed?").
 - **If you pushed back and were wrong**, correct factually and move on — no long apology, no defending the pushback.
 
-This composes with `verify-before-claim.md` (verify the suggestion is true before acting on it) and
-`minimal-fix-scope.md` (a reviewer's "while you're in there" idea is still scope creep until approved).
+This composes with `verify-before-claim.md` (verify the suggestion is true before acting on it).
 
 ## Workflow
 

@@ -192,7 +192,7 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 
 ## Rules (14)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, tool-preferences, ui-ux-design, minimal-fix-scope, latest-spec-wins, skill-authoring
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring
 
 ## Changelog
 

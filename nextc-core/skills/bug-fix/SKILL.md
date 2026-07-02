@@ -200,8 +200,8 @@ Once the user approves (or if confidence is high and the fix is low-risk):
    > problem in a different place, requires "massive refactoring," or creates new symptoms elsewhere,
    > that is not a failed hypothesis — it is a **wrong architecture**. Ask: is this pattern
    > fundamentally sound, or are we sticking with it through inertia? Surface this to the user and
-   > discuss refactoring vs. continuing to patch symptoms **before** any further fix. This composes
-   > with `minimal-fix-scope.md` — an architectural change is a separate, explicitly-approved decision.
+   > discuss refactoring vs. continuing to patch symptoms **before** any further fix. An
+   > architectural change is a separate, explicitly-approved decision.
 
 ## Phase 6: Review
 

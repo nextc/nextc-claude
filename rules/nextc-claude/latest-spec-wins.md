@@ -72,7 +72,6 @@ If you can't update every echo in the same response (because the audit is huge),
 
 ## How This Differs From Related Rules
 
-- **`minimal-fix-scope.md`** forbids drifting *beyond* the reported problem. This rule *requires* drifting docs/comments/records *with* an authorized spec change. Keeping records current is **not** scope creep — it's part of fulfilling the new request. The two rules compose: the behavioral change stays minimal; the documentary sync of that change is complete.
 - **`project-docs.md`** mandates the `docs/` folder as source of truth. This rule defines *when* and *how* that source moves forward — and extends the obligation to comments, README, rules, and any other place behavior is recorded.
 - **`practices.md` → Think Before Coding** surfaces competing readings of a *single* request. This rule handles competing instructions *across time*.
 - **`verify-before-claim.md`** governs *not asserting* any fact (external or internal) without proof. This rule governs *which version* of the spec is canonical when there are competing versions across time.

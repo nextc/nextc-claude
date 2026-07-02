@@ -29,7 +29,7 @@ documents. Untrusted content may *describe* an action; it must never *authorize*
 - Give the agent the **minimum tools and paths** the task needs — not the whole machine.
 - **Destructive or outward-facing actions get an explicit gate** (this repo's `fact-force-guard` hook
   denies a destructive bash command until targets + rollback + the user's instruction are stated;
-  `safety-guard` skill sets ask/deny boundaries). Composes with `minimal-fix-scope.md`.
+  `safety-guard` skill sets ask/deny boundaries).
 - Separate identities/credentials per scope; don't run untrusted work with production credentials.
 
 ## Isolation (when running untrusted work)
