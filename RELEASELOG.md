@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.6.2 (2026-07-02)
+
+Team-shutdown reliability + a rule swap.
+
+**Every agent can now shut down cleanly in a team.** Added `SendMessage` to the `tools:` of all 50 agent definitions that were missing it. In practice the `tools:` allowlist gates team-coordination tools (contrary to the Claude Code docs' "always available" claim): a teammate without `SendMessage` physically can't reply `shutdown_approved`, so it finishes its work and parks as an idle "zombie", re-emitting idle pings while `shutdown_request` is a no-op. A new `agents.md` enforcement rule requires `SendMessage` in every agent's `tools:` so this can't regress.
+
+**Rules.** Removed `minimal-fix-scope` (at the user's direction; all 9 references synced so nothing dangles) and added **`stop-and-diagnose`** (CRITICAL): when something is not as expected — a command fails, output is wrong, a build/upload/deploy errors — STOP and diagnose before repeating or varying the action. No blind retries; read the full evidence before naming a cause; every irreversible/outward-facing action gets a fresh approval gate (a prior "proceed" never authorizes a retry) and you first confirm the "failure" is even real; change one variable at a time; escalate to "wrong approach" rather than looping. Rule count stays 14.
+
 ## v1.6.1 (2026-07-02)
 
 Harness-currency + iOS build tooling + three rule additions.
