@@ -32,14 +32,15 @@ Export **only** as an inline prefix to the `fastlane` command — never persist 
 | Var | When to set | Value |
 |---|---|---|
 | `IOS_SIGNING_CONFIG` | only if `teams.json` is NOT at the default path AND exists | that path |
-| `FL_CHANGELOG` | only when lane = `testflight` AND a curated "What's new" is available | the release notes |
+| `FL_CHANGELOG` | only when lane = `testflight` | the approved "What's new" from Step 4b (the release notes) |
 | `TESTFLIGHT_GROUPS` | only when lane = `testflight` AND the user overrode the default | comma-separated groups |
 | `MATCH_PASSWORD` | **never** | — (Fastfile seeds it from the config) |
 
-For the `testflight` lane, the upload happens **during** the lane (Step 6), before the Step 9
-"What's new" is drafted. To give testers real notes, resolve the Step 9 whats-new (including its
-review gate) BEFORE the lane and pass it as `FL_CHANGELOG`; otherwise the lane defaults to
-"Latest build". A cancel at that review gate aborts before the upload — the desired fail-safe.
+For the `testflight` lane, the upload happens **during** the lane (Step 6). The "What's new" is now
+drafted and approved in **Step 4b — before this build** — so its approved text is always available:
+pass it as `FL_CHANGELOG` so external testers get real notes (it only falls back to "Latest build"
+if no approved text exists). A cancel at the Step 4b review gate aborts before the upload — the
+desired fail-safe.
 
 ## Generic fallback (non-nextc Fastfiles)
 

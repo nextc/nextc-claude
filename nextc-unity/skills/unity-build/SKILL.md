@@ -15,7 +15,7 @@ Interactive Unity build pipeline: gather params, pre-flight, invoke Unity in
 batch mode, archive + export for iOS, verify artifacts, log, commit. Companion
 to `/flutter-build` — same UX + buildlog format.
 
-> **Threading rule.** Run Unity + xcodebuild on the skill's **main thread**; sub-agents only scaffold and log.
+> **Threading rule.** Run Unity + xcodebuild on the skill's **main thread**; sub-agents only scaffold and draft the buildlog. Spawn those helpers in the **foreground** (`run_in_background: false`, the default) so they return and terminate — never as background teammates. If you ever do background a helper, you MUST `shutdown_request` it and await `shutdown_response` once its result is consumed, or it parks as a zombie idle process. (Unlike `/flutter-build`, this skill has no parallel background builders — Unity can't build two targets on one project at once.)
 
 ## Step 1: Read Current State
 
@@ -207,6 +207,38 @@ Run BEFORE any build work — each failure aborts:
 
 5. **Secrets-in-bundle guard (SECURITY).** `Assets/` (esp. `Resources/`, `StreamingAssets/`) packs verbatim into the APK/IPA and is trivially extractable, so scan for secret-bearing files (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks` — the full runnable `find Assets ...` command lives in `unity-builder` Phase F1) and **STOP** if any match: list the paths, explain they would ship in the binary, and have the user move the secret out of `Assets/` before building.
 
+## Step 4b: Draft the buildlog "What's new" (before building)
+
+The "What's new" content comes from the git commit range, not from artifacts, so draft and approve it **now — before the version bump and the build**. A cancel at the review gate then aborts before anything is modified on disk (no slow Unity build wasted), and the approved text is available to feed the iOS `testflight` lane as `FL_CHANGELOG` — the upload happens *during* Step 6, so the notes must exist before it.
+
+Resolve the last tag, then delegate the draft + review to the unity-builder in `whats-new` mode (foreground — the agent owns date/tag sanity checks, full commit range, `--stat` reading, vague-subject diff reading, and the Approve / Edit / Cancel gate):
+
+```bash
+last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
+```
+
+```
+Agent(
+  subagent_type: "nextc-unity:unity-builder",
+  model: "haiku",
+  prompt: """
+  Mode: whats-new
+  Project root: {project_root}
+  Last build tag: {last_tag or empty}
+  Version: {version}
+  Android build: {android_build}        ← include when android in platforms
+  iOS build: {ios_build}                ← include when ios in platforms
+  Platforms: {android|ios|both}
+  Status: pending
+  """
+)
+```
+
+The agent returns either:
+
+- `STATUS: APPROVED` with the approved content between `===WHATSNEW_START===` / `===WHATSNEW_END===` delimiters — hold this as `approved_whatsnew`. Do NOT write it yet; Step 9 assembles and writes the full entry after the build. For the iOS `testflight` lane, pass this text as `FL_CHANGELOG` in Step 6 (see `references/fastlane-signing.md`).
+- `STATUS: CANCELLED` — STOP before the version bump. Do NOT bump, build, commit, or tag. Nothing has changed on disk. Report the cancellation; the user can re-run after fixing their concern.
+
 ## Step 5: Version Bump
 
 Edit `ProjectSettings/ProjectSettings.asset` in-place via the Edit tool
@@ -320,76 +352,42 @@ mv "$ipa" "{project_root}/Builds/{appname}_{version}_{ios_build}.ipa"
 Both finals end at `Builds/{appname}_{version}_{build}.{apk,ipa}` (Step 11 reports `Builds/`).
 This supersedes the earlier "rename in place, never move" instruction.
 
-## Step 9: Build Log
+## Step 9: Build Log (assemble & write)
 
-Update `docs/buildlog.md` (create with `# Build Log` header if missing).
+The "What's new" content was already drafted and approved in **Step 4b** (before the build). Here you only wrap it in the metadata that exists once the build ran (status, artifact sizes) and write it — do NOT re-draft or re-run the review gate.
 
-Entry format, prepended below the header (newest first):
+Stamp the write timestamp: `today=$(date +%Y-%m-%d)`, `time=$(date +%H:%M)`.
+
+**On success:** assemble the entry and prepend it below the `# Build Log` header in `docs/buildlog.md` (create with the header if missing; newest-first):
 
 ```markdown
-## Build — {version} (android {android_build}, ios {ios_build}) ({YYYY-MM-DD HH:MM})
+## Build — {version} (android {android_build}, ios {ios_build}) ({today} {time})
 
 - **Platforms:** {android, ios, or both}
 - **Mode:** {release or development}
 - **Unity:** {editor_version}
 - **Xcode:** {xcode_version} (iOS only)
-- **Signing method:** {export_method} (iOS only)
+- **Signing method:** {export_method or `fastlane match ({lane})`} (iOS only)
 - **Artifact sizes:** Android {N} MiB, iOS {N} MiB
-- **Status:** {success or failed}
+- **Status:** success
 
-### What's new
-
-- {human-readable summary}
-- {another}
+{approved_whatsnew — the block between the Step 4b delimiters, verbatim}
 ```
 
-**Delegate the entire draft + review procedure to the unity-builder agent in `whats-new` mode.** The agent owns: date/tag sanity checks, full commit range, `--stat` reading, vague-subject diff reading, organize/rewrite, user review gate (Approve / Edit / Cancel), and returns the approved entry to you. Do NOT draft inline.
+**On failure:** the pre-approved "What's new" describes changes that did not ship — do NOT write it. Use the same header + metadata with `**Status:** failed` and replace the "What's new" block with a one-line error summary.
 
-Resolve the last tag first:
-
-```bash
-last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
-```
-
-Then spawn:
-
-```
-Agent(
-  subagent_type: "nextc-unity:unity-builder",
-  model: "haiku",
-  prompt: """
-  Mode: whats-new
-  Project root: {project_root}
-  Last build tag: {last_tag or empty}
-  Version: {version}
-  Android build: {android_build}        ← include when android in platforms
-  iOS build: {ios_build}                ← include when ios in platforms
-  Platforms: {android|ios|both}
-  Status: {success or failed}
-  Artifacts:
-    android: {size} — {path}            ← one line per built platform
-    ios: {size} — {path}
-  """
-)
-```
-
-The agent returns either:
-
-- `STATUS: APPROVED` with the entry text between `===BUILDLOG_ENTRY_START===` / `===BUILDLOG_ENTRY_END===` delimiters — append the text below the `# Build Log` header in `docs/buildlog.md` (newest-first). Do not re-draft, re-render, or re-lint the content itself; the agent already reviewed it.
-- `STATUS: CANCELLED` — do NOT write to `docs/buildlog.md`, do NOT proceed to Step 10 (commit) or tag. Report the cancellation to the user and stop.
-
-**After appending on APPROVED, run the structural lint:**
+**Post-write lint** (both cases):
 
 - `# Build Log` header present
 - Entries ordered newest-first (entry dates monotone decreasing top-to-bottom)
 - Every entry date ≤ today (catches future-dated bugs — `git checkout -- docs/buildlog.md` to revert if any fail, then abort)
-- Current entry has all required fields (Platforms / Mode / Unity / Status / What's new non-empty)
+- Current entry has all required fields (Platforms / Mode / Unity / Status / a non-empty "What's new" or error line)
 
 Never delete or modify past entries.
 
 ## Step 10: Commit + Tag
 
-**Precondition:** Step 9 returned `STATUS: APPROVED` and the buildlog lint passed. If Step 9 returned `STATUS: CANCELLED` or the lint failed, skip Step 10 entirely — no commit, no tag.
+**Precondition:** the "What's new" was approved in Step 4b and the Step 9 buildlog lint passed. If the user cancelled at the Step 4b review gate, the build never ran; if the Step 9 lint failed, skip Step 10 entirely — no commit, no tag.
 
 ### 10a. Reset Unity re-serialization noise
 

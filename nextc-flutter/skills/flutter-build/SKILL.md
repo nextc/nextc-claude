@@ -5,13 +5,23 @@ when_to_use: |
   Use when building the app, cutting a release, or producing a test build. Triggers: "build the app", "make a release", "ship it", "build APK", "build IPA", "release build", "test build", "/flutter-build".
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash Read Glob Agent
+allowed-tools: Bash Read Glob Agent SendMessage
 paths: ["**/pubspec.yaml"]
 ---
 
 # /flutter-build
 
 Interactive build pipeline: gather build parameters, spawn the flutter-builder agent to build, log, and commit.
+
+> **Buildlog is drafted BEFORE the build.** The "What's new" content is derived from the git
+> commit range, not from artifacts, so it is drafted and approved *first* — before any build runs.
+> This makes the approved text available to feed a TestFlight upload as `FL_CHANGELOG`, and makes a
+> cancel at the review gate abort *before* wasting a build. Only the mechanical metadata (status,
+> artifact sizes) is filled in after the build. See Step 4 (Single) / Step 4b (Both).
+>
+> **Background builders MUST be shut down.** The parallel (both-platforms) path spawns two
+> background teammates. After their results are consumed, the skill sends each a `shutdown_request`
+> and waits for `shutdown_response` — an idle-but-un-reaped builder is a zombie process. See Step 4e.
 
 ## Step 1: Read Current State
 
@@ -173,7 +183,7 @@ Target artifact names:
 - Android: {appname}_{version}_{build}.apk
 - iOS:     {appname}_{version}_{build}.ipa
 
-Follow your full process: validate, bump version, build, rename artifacts, update buildlog, report, commit, and tag.
+Follow your full process in phase order: validate, bump version, DRAFT & APPROVE the buildlog "What's new" (Phase 5A — before the build, so the review gate can abort early and the approved text can feed a TestFlight upload), build, rename artifacts, WRITE the buildlog entry (Phase 5B), report, commit, and tag.
 """
 )
 ```
@@ -184,17 +194,54 @@ When building both platforms, the skill orchestrates shared steps and spawns two
 
 **Step 4a: Pre-build validation (in skill)**
 
-Run these checks before spawning agents:
+Run these checks before drafting the buildlog or spawning agents:
 1. Read `pubspec.yaml` — confirm version line exists
 2. If a dart-defines file was specified, verify it exists AND re-run the Step 2 Secrets Guard against its path — if it matches a blocked secret pattern, STOP and refuse (do not build with it)
 3. Run `flutter --version` — verify Flutter is available
 4. Run `git status` — if uncommitted changes, ask user before proceeding
 
-**Step 4b: Version bump (in skill)**
+Validation runs before the review gate on purpose: don't ask the user to review a "What's new" draft only to discover Flutter is missing.
 
-Update `pubspec.yaml` version line to `version: {version}+{build}` using the Edit tool. This happens once, before agents are spawned.
+**Step 4b: Draft the buildlog "What's new" (in skill, review gate — BEFORE building)**
 
-**Step 4c: Spawn two agents in parallel**
+The "What's new" content comes from the git commit range, not from artifacts, so draft and approve it now — before the build. A cancel here aborts before any build work; an approve makes the text available to feed the iOS TestFlight lane as `FL_CHANGELOG`.
+
+Resolve the last tag first:
+
+```bash
+last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
+```
+
+Then spawn the flutter-builder in `whats-new` mode (foreground) to draft the content and run the review gate. There are no artifacts yet, so pass `Status: pending` and no sizes:
+
+```
+Agent(
+  subagent_type: "nextc-flutter:flutter-builder",
+  model: "haiku",
+  run_in_background: false,
+  prompt: """
+  Mode: whats-new
+  Project root: {cwd}
+  Last build tag: {resolved tag, or empty string}
+  Version: {version from Step 2}
+  Build number: {build}
+  Platforms: both
+  Mode (build): {release/profile/debug}
+  Dart defines: {non-secret config file or "none"}
+  Status: pending
+  """
+)
+```
+
+The agent returns either:
+- `STATUS: APPROVED` with the approved content between `===WHATSNEW_START===` / `===WHATSNEW_END===` delimiters — hold this as `approved_whatsnew`. Do NOT write it to disk yet; Step 4f assembles and writes the full entry after the build.
+- `STATUS: CANCELLED` — STOP. Do NOT bump the version, do NOT build, do NOT commit or tag. Nothing has changed on disk yet. Report the cancellation and stop.
+
+**Step 4c: Version bump (in skill)**
+
+Only after `STATUS: APPROVED`. Update `pubspec.yaml` version line to `version: {version}+{build}` using the Edit tool. This happens once, before agents are spawned.
+
+**Step 4d: Spawn two agents in parallel**
 
 Launch BOTH agents in a single message (parallel tool calls). Both run in background:
 
@@ -222,9 +269,10 @@ Target artifact name: {appname}_{version}_{build}.apk
 PARTIAL MODE — the skill is orchestrating a parallel build:
 - SKIP Phase 1 (pre-build validation) — already done by skill
 - SKIP Phase 2 (version bump) — already done by skill
+- SKIP Phase 5A (draft "What's new") — skill already drafted & approved it (Step 4b)
 - DO Phase 3 (build) — Android only
 - DO Phase 4 (artifact rename) — Android only, rename to the target artifact name above
-- SKIP Phase 5 (build log) — skill will handle
+- SKIP Phase 5B (write build log) — skill will handle
 - DO Phase 6 (build report) — report Android results
 - SKIP Phase 7 (git commit & tag) — skill will handle
 """
@@ -246,7 +294,7 @@ Build the Flutter app with the following configuration:
 - Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
 - iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
 - iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
-- Changelog: {curated "What's new" if lane=testflight and pre-resolved, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG)
+- Changelog: {approved_whatsnew from Step 4b if lane=testflight, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG; always available now because Step 4b drafts before the build)
 - Project root: {absolute path to project}
 
 Target artifact name: {appname}_{version}_{build}.ipa
@@ -254,48 +302,62 @@ Target artifact name: {appname}_{version}_{build}.ipa
 PARTIAL MODE — the skill is orchestrating a parallel build:
 - SKIP Phase 1 (pre-build validation) — already done by skill
 - SKIP Phase 2 (version bump) — already done by skill
+- SKIP Phase 5A (draft "What's new") — skill already drafted & approved it (Step 4b)
 - DO Phase 3 (build) — iOS only
 - DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
-- SKIP Phase 5 (build log) — skill will handle
+- SKIP Phase 5B (write build log) — skill will handle
 - DO Phase 6 (build report) — report iOS results
 - SKIP Phase 7 (git commit & tag) — skill will handle
 """
 )
 ```
 
-**Step 4d: Post-build (in skill)**
+**Step 4e: Consume results, then shut down the background builders**
 
-After BOTH agents complete:
+After BOTH agents report their Phase 6 results:
 
-1. **Build log** — Delegate to the flutter-builder agent in `whats-new` mode. Do NOT draft inline here; the agent owns the procedure (tag/date sanity checks, full commit range, `--stat` reading, vague-commit diff reading, user review gate, post-write lint). Resolve the last tag first via `git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null`, then spawn:
+1. Record each platform's status (success/failed), renamed artifact path, and size — you need these for the buildlog metadata (Step 4f) and the report (Step 5).
+2. **Shut down both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`, so an idle "done" builder keeps running until reaped. As soon as its results are consumed, send each a `shutdown_request` and wait for its `shutdown_response`:
 
    ```
-   Agent(
-     subagent_type: "nextc-flutter:flutter-builder",
-     model: "haiku",
-     prompt: """
-     Mode: whats-new
-     Project root: {cwd}
-     Last build tag: {resolved tag, or empty string}
-     Version: {version from pubspec.yaml}
-     Build number: {build}
-     Platforms: both
-     Mode (build): {release/profile/debug}
-     Dart defines: {non-secret config file or "none"}
-     Status: {success — or failed, if either platform failed}
-     Artifacts:
-       android: {size} — {path}
-       ios: {size} — {path}
-     """
-   )
+   SendMessage(to="build-android", message={type: "shutdown_request"})
+   SendMessage(to="build-ios",     message={type: "shutdown_request"})
    ```
 
-   The agent returns either:
-   - `STATUS: APPROVED` with the entry text between `===BUILDLOG_ENTRY_START===` / `===BUILDLOG_ENTRY_END===` delimiters — append the text below the `# Build Log` header in `docs/buildlog.md` (newest-first). Do not re-draft, re-render, or re-lint; the agent already did.
-   - `STATUS: CANCELLED` — do NOT write to `docs/buildlog.md`, do NOT proceed to Step 2 (commit) or Step 3 (tag). Report the cancellation to the user and stop.
+   Await each `shutdown_response` with a **bounded** wait (~2 min per builder), not indefinitely — a teammate finishes its current tool call before it can exit, so shutdown can be slow. If one never acknowledges, don't block: proceed and tell the user to kill it manually (`x` in-process, or `tmux kill-session` in split-pane). Reap them here, not at the end of the run — an idle-but-un-reaped builder is a zombie process.
 
-2. **Git commit** — Only on `STATUS: APPROVED` from step 1. Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`.
-3. **Git tag** — Only if BOTH builds succeeded AND the buildlog was approved: `git tag build/{version}+{build}`. If either platform failed, do NOT tag — report which failed.
+**Step 4f: Write the buildlog entry (in skill, post-build assembly)**
+
+The content was already drafted and approved in Step 4b; here you only assemble the mechanical metadata around it and write. Do NOT re-draft or re-run the review gate.
+
+Resolve the write timestamp:
+
+```bash
+today=$(date +%Y-%m-%d)
+now=$(date +%H:%M)
+```
+
+**On success (both platforms built):** assemble the entry and append it below the `# Build Log` header in `docs/buildlog.md` (newest-first — never edit past entries):
+
+```markdown
+## Build #{build} — {version}+{build} ({today} {now})
+
+- **Platforms:** both
+- **Mode:** {mode}
+- **Dart defines:** {non-secret config file or none}
+- **Status:** success
+
+{approved_whatsnew — the block between the Step 4b delimiters, verbatim}
+```
+
+**On failure (either platform failed):** the pre-approved "What's new" describes changes that did not ship, so do NOT write it. Instead write the same header + metadata with `**Status:** failed` and replace the "What's new" block with a one-line error summary of the platform that failed.
+
+**Post-write lint** (both cases): read `docs/buildlog.md` back and verify — `# Build Log` header present at top; entries newest-first (dates monotone decreasing); every entry date ≤ `$today`; current entry has all required fields (version, build, platforms, mode, status, and a non-empty "What's new" or error line). If any check fails: `git checkout -- docs/buildlog.md` to revert, report, and abort (no commit, no tag).
+
+**Step 4g: Git commit & tag**
+
+1. **Git commit** — Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`. (Committed on both success and failure — the failed entry keeps the buildlog history intact.)
+2. **Git tag** — Only if BOTH builds succeeded: `git tag build/{version}+{build}`. If either platform failed, do NOT tag — report which failed.
 
 ## Step 5: Report
 
@@ -324,9 +386,10 @@ After the agent completes, report:
 ## Fallback
 
 If the flutter-builder agent is unavailable, execute the build steps inline:
-1. Update pubspec.yaml version
-2. Run the build commands — `flutter build apk` for Android; for iOS use the selected fastlane lane (`cd ios && bundle exec fastlane ios {ios_lane-as-lane-name}`) when `ios_fastlane = true`, otherwise `flutter build ipa --export-method ad-hoc`
-3. Rename **and move** each artifact to the root of `build/` — the standard location (`build/{appname}_{version}_{build}.{apk,ipa}`), regardless of the flutter/fastlane path — see flutter-builder Phase 4
-4. Update docs/buildlog.md (curated "What's new", not git log dump)
-5. Report in table format
-6. Commit and tag (tag only on success)
+1. Draft & approve the "What's new" content first (curated from the `last_tag..HEAD` range, not a git-log dump) — before building, so a cancel aborts early and the approved text can seed a TestFlight `FL_CHANGELOG`
+2. Update pubspec.yaml version
+3. Run the build commands — `flutter build apk` for Android; for iOS use the selected fastlane lane (`cd ios && bundle exec fastlane ios {ios_lane-as-lane-name}`) when `ios_fastlane = true`, otherwise `flutter build ipa --export-method ad-hoc`
+4. Rename **and move** each artifact to the root of `build/` — the standard location (`build/{appname}_{version}_{build}.{apk,ipa}`), regardless of the flutter/fastlane path — see flutter-builder Phase 4
+5. Write docs/buildlog.md — the approved "What's new" plus the resolved status/sizes metadata
+6. Report in table format
+7. Commit and tag (tag only on success)

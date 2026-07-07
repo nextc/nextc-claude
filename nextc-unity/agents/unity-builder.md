@@ -193,11 +193,9 @@ Spawn prompt additionally contains:
 - **Version:** semantic version
 - **Android build / iOS build:** build numbers (one or both, matching platforms)
 - **Platforms:** `android`, `ios`, or `both`
-- **Status:** `success` or `failed`
-- **Artifacts:** one line per built platform with `{size}` and `{path}`
-  (or the failure reason if status=failed)
+- **Status:** `pending` — this mode runs **before** the build (Step 4b of the skill), so there is no build result yet (no artifact sizes/paths)
 
-This mode owns the entire buildlog procedure — drafting, review, write, and lint — so the caller only needs to spawn this agent and handle the return value.
+This mode is the **pre-build draft**: it drafts the "What's new" content and runs the review gate, then returns the approved text. It does NOT write `docs/buildlog.md` and does NOT run the post-write lint — the caller assembles the metadata (real status/sizes) and writes the entry after the build. Running it before the build lets a cancel abort early and makes the approved text available as `FL_CHANGELOG` for a `testflight` upload.
 
 **Audience:** end users of the built app (or stakeholders reading "What's new"). Plain language, no commit hashes / subjects / file paths / class or method names. Covers every change in the range — refactors, chore, perf, docs included (phrased for end users, e.g. "Stability improvements"). On failed builds, replace "What's new" with a one-line error summary. Entries are newest-first under a single `# Build Log` header; past entries are never edited.
 
@@ -261,21 +259,23 @@ Write the bullet based on what the diff actually does, not what the subject says
 
 ### Step 6 — Present the draft to the user for review — required
 
-Use `AskUserQuestion` with the draft entry rendered in full:
+Use `AskUserQuestion` with the drafted "What's new" content rendered in full. The build has not run yet, so the metadata (status, artifact sizes) is added by the caller after the build — the user is reviewing the **content**:
 
 ```
-Proposed buildlog entry:
+Proposed "What's new" for {version} (the status/sizes are added automatically after the build):
 
 ---
-[full draft entry including header, metadata fields, and What's new bullets]
+### What's new
+
+[What's new bullets]
 ---
 
 A) Approve
 B) Edit (paste corrections — I'll re-render and ask again)
-C) Cancel (abort the build commit — no tag, no log entry)
+C) Cancel (abort the build before it starts — no build, no tag, no log entry)
 ```
 
-On **Edit**: accept the user's free-text corrections, re-render the entry, re-present. Loop until Approve or Cancel.
+On **Edit**: accept the user's free-text corrections, re-render, re-present. Loop until Approve or Cancel.
 
 ### Step 7 — First-build fallback (when `Last build tag` is empty)
 
@@ -283,16 +283,17 @@ Do NOT dump `git log -20` as bullets. Instead, glance at top-level structure: `A
 
 ### Step 8 — Return the result to the caller
 
-**Do not write to `docs/buildlog.md`** in this mode. Return the approved entry text between delimiters so the caller (the `/unity-build` skill or the `full` fallback mode) can append it to the file. Return format:
+**Do not write to `docs/buildlog.md`** in this mode. Return **only the approved `### What's new` block** between delimiters — the caller (the `/unity-build` skill or the `full` fallback mode) wraps it in the header + metadata (with real status/sizes) and writes it after the build. Return format:
 
 On Approve:
 
 ```
-===BUILDLOG_ENTRY_START===
-## Build — {version} (android {android_build}, ios {ios_build}) ({today} {time})
+===WHATSNEW_START===
+### What's new
 
-[approved entry body]
-===BUILDLOG_ENTRY_END===
+- {approved bullet}
+- {approved bullet}
+===WHATSNEW_END===
 STATUS: APPROVED
 ```
 
@@ -303,11 +304,11 @@ STATUS: CANCELLED
 REASON: [short user reason or "user cancelled"]
 ```
 
-The caller must not write on CANCELLED and must abort the build commit + tag.
+The caller must not build, write, commit, or tag on CANCELLED.
 
-### Step 9 — Post-write lint (caller runs this after appending)
+### Step 9 — Post-write lint (caller runs this after the build, when it writes)
 
-After the caller appends the entry to `docs/buildlog.md`, the caller reads the file back and verifies:
+The write and lint are deferred to the caller (skill Step 9, or `MODE: full` Phase F6b). After the caller assembles the entry (approved "What's new" + real metadata) and appends it to `docs/buildlog.md`, it reads the file back and verifies:
 
 - `# Build Log` header present at top
 - Newest-first ordering (entry dates monotone decreasing top-to-bottom)
@@ -316,8 +317,6 @@ After the caller appends the entry to `docs/buildlog.md`, the caller reads the f
 
 If any check fails: `git -C {project_root} checkout -- docs/buildlog.md` to revert, report the failure, abort the build (no commit, no tag).
 
-This agent may also run the lint itself in `MODE: full` (since it owns the write in that mode — see Phase F6).
-
 ---
 
 ## Mode: `full` (fallback pipeline)
@@ -325,6 +324,13 @@ This agent may also run the lint itself in `MODE: full` (since it owns the write
 Only reachable when the skill cannot orchestrate directly. Walk the same
 phases the skill normally runs; the key differences are that you invoke
 Unity + xcodebuild yourself.
+
+> **Execution order — draft the buildlog "What's new" BEFORE the build.** Its content comes from the
+> git commit range, not from artifacts, so run the review-gated draft first: a cancel then aborts
+> before any (slow) Unity build, and the approved text can feed a `testflight` upload as
+> `FL_CHANGELOG`. Order: **F1 → F2 → F6a (draft + approve) → F3 → F4 → F5 → F6b (write + lint) → F7 →
+> F8.** Phase F6 is split — **F6a** is the review-gated draft (before F3), **F6b** is the mechanical
+> write (after F5, once real status/sizes exist).
 
 ### Phase F1: Pre-Flight Validation
 
@@ -405,8 +411,8 @@ the IPA — replacing ExportOptions.plist + xcodebuild archive + export. Run fro
 # prefix = "bundle exec fastlane" when a root ./Gemfile exists, else "fastlane"
 # lane   = build_adhoc | build_appstore | release_testflight  (from iOS fastlane lane)
 # env    = inline KEY=value prefix: IOS_SIGNING_CONFIG only if non-default+exists;
-#          FL_CHANGELOG only for the testflight lane when a Changelog was passed;
-#          TESTFLIGHT_GROUPS only if overridden. NEVER set MATCH_PASSWORD (Fastfile seeds it).
+#          FL_CHANGELOG for the testflight lane = the F6a-approved "What's new" (or the passed
+#          Changelog field); TESTFLIGHT_GROUPS only if overridden. NEVER set MATCH_PASSWORD.
 {env} {prefix} ios {lane}
 ```
 
@@ -508,12 +514,22 @@ Both finals end at `Builds/{appname}_{version}_{build}.{apk,ipa}`. Always `mv` (
 one canonical file per platform. (Supersedes the earlier "rename in the original directory"
 instruction.)
 
-### Phase F6: Build Log
+### Phase F6a: Draft & approve the "What's new" (run BEFORE Phase F3)
 
-Append to `docs/buildlog.md` (create with `# Build Log` header if missing):
+Run Steps 1 through 6 from `Mode: whats-new` above — the date sanity checks (Step 1), full commit range (Step 2), `--stat` reading (Step 3), vague-subject diff rule (Step 4), organize (Step 5), and the review gate (Step 6), plus the Step 7 first-build fallback when `Last build tag` is empty. No shortcuts.
+
+On **Approve**: hold the approved `### What's new` block for F6b, and — for a `testflight` iOS lane — use it as `FL_CHANGELOG` in the F3 fastlane run.
+
+On **Cancel**: STOP before F3. Do NOT build, do NOT write, do NOT commit or tag. Nothing has changed on disk beyond the F2 version bump (leave it for the user to keep or discard).
+
+### Phase F6b: Assemble & write the entry (run AFTER Phase F5)
+
+Now that the build ran and artifacts exist, assemble the full entry and write it. Do NOT re-draft or re-review — reuse the F6a-approved content.
+
+Stamp the timestamp: `today=$(date +%Y-%m-%d)`, `time=$(date +%H:%M)`. Append below the `# Build Log` header (create with the header if missing; newest-first):
 
 ```markdown
-## Build — {version} (android {android_build}, ios {ios_build}) ({YYYY-MM-DD HH:MM})
+## Build — {version} (android {android_build}, ios {ios_build}) ({today} {time})
 
 - **Platforms:** ...
 - **Mode:** ...
@@ -523,14 +539,12 @@ Append to `docs/buildlog.md` (create with `# Build Log` header if missing):
 - **Artifact sizes:** Android {N} MiB, iOS {N} MiB
 - **Status:** success / failed
 
-### What's new
-
-- ...
+{approved "What's new" block from F6a}
 ```
 
-Run Steps 1 through 7 from `Mode: whats-new` above — all of them, including the date sanity checks (Step 1), full commit range (Step 2), `--stat` reading (Step 3), vague-subject diff rule (Step 4), organize (Step 5), and the review gate (Step 6). No shortcuts — the same rigor applies here as in `whats-new` mode; the only difference is that in `MODE: full` you also own the write.
+**On a failed build:** do NOT write the approved "What's new" (it describes changes that did not ship). Set `Status: failed` and replace the "What's new" block with a one-line error summary.
 
-On Approve: append the entry below the `# Build Log` header, then lint:
+After writing, lint:
 
 - `# Build Log` header present at top
 - Entries newest-first (entry dates monotone decreasing top-to-bottom)
@@ -538,8 +552,6 @@ On Approve: append the entry below the `# Build Log` header, then lint:
 - Current entry has all required fields
 
 If any lint check fails: `git checkout -- docs/buildlog.md` to revert, report, and abort the build (skip F7 and F8).
-
-On Cancel: do NOT write, do NOT proceed to F7 (commit) or beyond. Report the cancellation. The artifacts stay on disk; the user can re-run after fixing their concern.
 
 ### Phase F7: Commit-scope cleanup + commit + tag
 
@@ -598,8 +610,9 @@ signing info, absolute log paths, and phase timings. On failure, show
 - SECURITY: NEVER build with secret-bearing files under `Assets/` (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) — they pack into the shipped binary. The Phase F1 secrets-in-bundle guard must pass first
 - SECURITY (fastlane method): signing secrets live in `~/.fastlane-nextc/` (`teams.json` `match_password`, the `.p8` key) — NEVER read those values into the report, log, or commit, and NEVER set `MATCH_PASSWORD` yourself. They authenticate signing/upload and never enter the binary
 - Always update the build log, even on failure (mark status "failed") — skipping breaks the tag-range history used by the next build
-- The Step 6 user review gate (Approve / Edit / Cancel) is required before writing the log entry — `Mode: whats-new` describes the full procedure
-- On Cancel: do not write the entry, do not commit, do not tag. Artifacts stay on disk; this is not a failure
+- Draft the "What's new" (whats-new mode / Phase F6a) BEFORE the build and write the entry (Phase F6b) after — never re-draft the content when writing; a cancel at the review gate aborts before any build work
+- The Step 6 user review gate (Approve / Edit / Cancel) is required before the build and before writing the log — `Mode: whats-new` describes the full procedure
+- On Cancel: do not build, do not write the entry, do not commit, do not tag. Artifacts are never produced; this is not a failure, it's an aborted build
 - When a build log points to `read only` / `licensing mutex` / `permission denied`, report sandbox restriction — do not recommend Unity reinstalls or license cache clears
 - Exit code 0 + fresh, reasonably-sized artifact is the success bar — Phase F4 verifies mtime and size because the editor-already-open case also exits 0
 - Unity batch mode can take 5–20+ min on cold script compile; use `timeout: 1800000` (30 min) or `run_in_background: true` with log tailing

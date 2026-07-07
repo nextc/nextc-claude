@@ -2,7 +2,17 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
-## 2026-07-02
+## 2026-07-07
+
+Hardened the Flutter/Unity build pipelines against two failure modes surfaced in a build session: background builders left parked as zombies after finishing, and the buildlog being drafted too late to feed a TestFlight upload.
+
+### Changed
+- **`flutter-build` / `flutter-builder` — buildlog "What's new" is now drafted BEFORE the build.** The "What's new" content is git-range-derived (independent of artifacts), so it is drafted and approved *first*; only the mechanical metadata (status, artifact sizes) is filled in after. This makes the approved text available to seed a TestFlight `FL_CHANGELOG`, and makes a cancel at the review gate abort *before* wasting a build. The builder's Phase 5 is split into **5A** (review-gated draft, before the build) and **5B** (mechanical write, after artifacts exist); explicit execution order `1 → 2 → 5A → 3 → 4 → 5B → 6 → 7`. The `whats-new` mode now returns only the approved `### What's new` block (delimiters renamed `===BUILDLOG_ENTRY_*===` → `===WHATSNEW_*===`) and no longer writes/lints — the caller assembles metadata and writes. Partial mode generalized to cover single-platform builds (not just parallel).
+- **`unity-build` / `unity-builder` — same buildlog-before-build reorder.** New **Step 4b** (draft + review, before the version bump and build); **Step 9** is now assemble-and-write only. The `MODE: full` fallback splits Phase F6 into **F6a** (draft, before build) and **F6b** (write, after), with explicit order `F1 → F2 → F6a → F3 → F4 → F5 → F6b → F7 → F8`. `whats-new` return contract aligned to the `===WHATSNEW_*===` block. `references/fastlane-signing.md` updated: the `testflight` `FL_CHANGELOG` now always comes from the Step 4b-approved notes.
+
+### Fixed
+- **`flutter-build` — parallel background builders are now shut down after their results are consumed.** The both-platforms path spawns `build-android` / `build-ios` as background teammates; a new **Step 4e** sends each a `shutdown_request` and awaits `shutdown_response` (bounded ~2 min) as soon as their Phase 6 reports are read, so an idle-but-un-reaped builder no longer parks as a zombie process. Added `SendMessage` to the skill's `allowed-tools`; added a builder rule to acknowledge shutdown cleanly. `unity-build` gained a defensive threading rule requiring its helper agents to run foreground (or be shut down if ever backgrounded) — Unity can't build two targets on one project at once, so it has no parallel background builders.
+
 
 Rule additions distilled from a cross-session UI/layout failure (a screen "verified" via `flutter analyze` + tests — proxies for code correctness — while its actual rendered layout was never checked).
 

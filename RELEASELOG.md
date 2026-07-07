@@ -1,5 +1,13 @@
 # Release Log
 
+## v1.6.4 (2026-07-07)
+
+Hardened the Flutter/Unity build pipelines against two build-session failure modes.
+
+**Buildlog "What's new" is now drafted BEFORE the build.** Its content is git-range-derived (independent of artifacts), so it's drafted and approved first — only the mechanical metadata (status, artifact sizes) is filled in after. This makes the approved text available to seed a TestFlight `FL_CHANGELOG`, and makes a cancel at the review gate abort *before* wasting a (slow) build. Flutter builder Phase 5 splits into 5A (draft) / 5B (write); Unity gains a pre-build draft step (Step 4b) with Step 9 becoming write-only, and the `MODE: full` fallback splits F6 into F6a/F6b. The `whats-new` return contract now yields just the approved `### What's new` block (`===WHATSNEW_*===`), with the caller owning metadata assembly.
+
+**Parallel background builders are now reaped.** `flutter-build`'s both-platforms path spawns `build-android`/`build-ios` as background teammates; it now sends each a `shutdown_request` and awaits `shutdown_response` as soon as their reports are consumed, so an idle-but-un-reaped builder no longer parks as a zombie. `unity-build` gained a defensive threading rule (helpers run foreground, or must be shut down if ever backgrounded).
+
 ## v1.6.3 (2026-07-02)
 
 **Standard build-artifact location.** `flutter-build` and `unity-build` now move the final APK/IPA to the **root of each stack's build directory** — `build/` for Flutter, `Builds/` for Unity — instead of leaving them nested in `build/app/outputs/apk/release/`, `build/ios/ipa/`, `Builds/Android/`, or `Builds/iOS/ipa/`. One predictable, canonical file per platform, across the flutter / xcodebuild / fastlane output paths, in both the builder agents and their `MODE: full` fallbacks. This supersedes the builders' prior "rename in the original output directory, never move" rule.
