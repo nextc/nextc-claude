@@ -2,6 +2,14 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-07-14
+
+### Changed
+- **`rules/nextc-claude/git-workflow.md`** — added new "No Auto-Branch (CRITICAL)" section directly after "No Auto-Commit", forbidding creation, switching, or splitting off git branches or worktrees without explicit user approval. Rationale: an unrequested branch silently relocates the user's work. Clarifies that when the current branch is `main`/`master`, work stays on and commits to it, and explicitly overrides any default harness guidance that says to branch before committing to the default branch.
+
+### Fixed
+- **`nextc-core/skills/finishing-branch/SKILL.md`** (Step 4, "Push + PR" bullet) — removed stale echo citing `git-workflow.md` as saying "branch off main, never push to a protected branch directly" (that guidance does not exist in the rule and now contradicts the new No Auto-Branch section). Step 4 now correctly points to `git-workflow.md` → Pull Request Workflow section.
+
 ## 2026-07-07
 
 Hardened the Flutter/Unity build pipelines against two failure modes surfaced in a build session: background builders left parked as zombies after finishing, and the buildlog being drafted too late to feed a TestFlight upload.

@@ -4,6 +4,16 @@
 
 NEVER commit automatically. Only commit when the user explicitly asks (e.g., "commit", "/commit", "commit this"). Completing a task, fixing a bug, or finishing a feature is NOT implicit permission to commit.
 
+## No Auto-Branch (CRITICAL)
+
+NEVER create, switch, or split off a git branch without asking the user first. This includes worktrees and any "let me branch before committing" reflex.
+
+- **If the current branch is `main` or `master`, keep working on it** — including committing to it. Being on the default branch is NOT a reason to branch.
+- Only branch when the user explicitly asks for one, or when they approve after you propose it.
+- This **overrides** any default harness/tooling guidance that says to branch before committing on the default branch.
+
+**Why:** an unrequested branch silently relocates the user's work — they come back expecting their commits on `main` and find a branch they never asked for.
+
 ## Commit Message Format
 ```
 <type>: <description>

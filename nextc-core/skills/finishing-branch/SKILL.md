@@ -57,8 +57,8 @@ or ask if ambiguous.
   <branch>`; re-verify (Step 1) on the merged result; then clean up the worktree (Step 5); then
   `git branch -d <branch>`. Merge BEFORE removing anything.
 - **Push + PR** — `git push -u origin <branch>`. **Do NOT clean up the worktree** — the user needs it
-  to iterate on PR feedback. (Follow `git-workflow.md`: branch off main, never push to a protected
-  branch directly; PR body ends with the Claude Code footer.)
+  to iterate on PR feedback. (Follow `git-workflow.md` → Pull Request Workflow; PR body ends with the
+  Claude Code footer.)
 - **Keep as-is** — report the branch + worktree path, change nothing.
 - **Discard** — require a typed `discard` confirmation showing exactly what will be deleted (branch,
   commits, worktree). Only then: `cd` to main root, clean up worktree (Step 5), `git branch -D <branch>`.
