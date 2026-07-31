@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.5 (2026-07-31)
+
+**TestFlight distribution no longer gets killed mid-flight on parallel builds.** The v1.6.4 builder-reaping logic had a hole: `upload_to_testflight(distribute_external: true)` keeps running *after* the upload transmits — polling Apple processing (5–15 min), then setting the `FL_CHANGELOG` release notes and submitting the build to the external tester group. The `flutter-build` both-platforms path reaped the iOS builder as soon as it reported "done", killing that fastlane process, so testers got neither the build nor the notes. Fixes: `flutter-builder` now defines `release_testflight` as complete ONLY when the fastlane process exits (run in background — foreground Bash's 10-min cap is shorter than Apple's processing wait), never reports Phase 6 or approves shutdown while the lane runs, and reports post-upload failures as "upload transmitted, distribution UNCONFIRMED" instead of blindly retrying; the `flutter-build` skill gained a Step 4e TestFlight completion gate that withholds `shutdown_request` until the builder's final (lane-exited) report.
+
 ## v1.6.4 (2026-07-07)
 
 Hardened the Flutter/Unity build pipelines against two build-session failure modes.
