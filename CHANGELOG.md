@@ -2,6 +2,12 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-07-31
+
+### Fixed
+- **`nextc-flutter/agents/flutter-builder.md` (Phase 3, Phase 6, and Fastlane Signing section)** — iOS TestFlight distribution now waits for fastlane process completion. `upload_to_testflight(distribute_external: true)` continues running after upload transmits to poll Apple processing (5–15 min), set release notes, and submit to external testers. Foreground Bash's 10-min timeout is shorter than this window, so the fastlane lane now runs via `run_in_background: true` with a bounded wait for exit. Phase 3 marks release complete only when the process exits; post-upload lane failure (e.g., DNS drop during polling) is not retried — builder reports "upload transmitted, distribution UNCONFIRMED" instead. Phase 6 report and shutdown gate are forbidden while any fastlane process still runs; Phase 6 must report the full TestFlight distribution outcome before taking shutdown approval. Removed a doubled Phase 6 bullet.
+- **`nextc-flutter/skills/flutter-build/SKILL.md` (header note, Step 4d iOS prompt, Step 4e)** — added TestFlight completion gate: iOS report counts as final only when fastlane lane process has exited. Never send shutdown_request to a builder whose fastlane is still polling Apple.
+
 ## 2026-07-14
 
 ### Changed

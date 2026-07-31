@@ -19,9 +19,12 @@ Interactive build pipeline: gather build parameters, spawn the flutter-builder a
 > cancel at the review gate abort *before* wasting a build. Only the mechanical metadata (status,
 > artifact sizes) is filled in after the build. See Step 4 (Single) / Step 4b (Both).
 >
-> **Background builders MUST be shut down.** The parallel (both-platforms) path spawns two
-> background teammates. After their results are consumed, the skill sends each a `shutdown_request`
-> and waits for `shutdown_response` — an idle-but-un-reaped builder is a zombie process. See Step 4e.
+> **Background builders MUST be shut down — but never mid-lane.** The parallel (both-platforms)
+> path spawns two background teammates. After their FINAL results are consumed, the skill sends each
+> a `shutdown_request` and waits for `shutdown_response` — an idle-but-un-reaped builder is a zombie
+> process. For an iOS `testflight` lane, "final" means the fastlane process exited: it keeps running
+> after the upload to distribute the build to external testers, and shutting the builder down while
+> it polls kills that step. See the Step 4e completion gate.
 
 ## Step 1: Read Current State
 
@@ -303,10 +306,10 @@ PARTIAL MODE — the skill is orchestrating a parallel build:
 - SKIP Phase 1 (pre-build validation) — already done by skill
 - SKIP Phase 2 (version bump) — already done by skill
 - SKIP Phase 5A (draft "What's new") — skill already drafted & approved it (Step 4b)
-- DO Phase 3 (build) — iOS only
+- DO Phase 3 (build) — iOS only. For the testflight lane the build is complete ONLY when the fastlane process exits — it keeps running after the upload to poll Apple processing, set release notes, and distribute to the external tester group
 - DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
 - SKIP Phase 5B (write build log) — skill will handle
-- DO Phase 6 (build report) — report iOS results
+- DO Phase 6 (build report) — report iOS results, ONLY after the fastlane process has fully exited (your report triggers your shutdown; reporting while fastlane polls gets the distribution step killed)
 - SKIP Phase 7 (git commit & tag) — skill will handle
 """
 )
@@ -316,8 +319,9 @@ PARTIAL MODE — the skill is orchestrating a parallel build:
 
 After BOTH agents report their Phase 6 results:
 
-1. Record each platform's status (success/failed), renamed artifact path, and size — you need these for the buildlog metadata (Step 4f) and the report (Step 5).
-2. **Shut down both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`, so an idle "done" builder keeps running until reaped. As soon as its results are consumed, send each a `shutdown_request` and wait for its `shutdown_response`:
+1. **TestFlight completion gate (iOS `testflight` lane only):** an iOS report counts as a Phase 6 result ONLY if it states the fastlane lane process exited. `upload_to_testflight(distribute_external: true)` keeps running after the upload transmits — it polls Apple processing (5–15 min), then sets the release notes and submits to the external tester group. A report like "build done, fastlane still polling/uploading" is an in-progress status, not a result: do not record it, and above all do NOT shut that builder down — killing it kills the polling fastlane process, so the release notes and external-tester submission never happen and the user must submit manually in App Store Connect. Wait for the builder's final report.
+2. Record each platform's status (success/failed), renamed artifact path, and size — you need these for the buildlog metadata (Step 4f) and the report (Step 5). For the `testflight` lane, also record the distribution outcome (distributed to external group, or "upload transmitted, distribution unconfirmed").
+3. **Shut down both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`, so an idle "done" builder keeps running until reaped. As soon as its results are consumed, send each a `shutdown_request` and wait for its `shutdown_response`:
 
    ```
    SendMessage(to="build-android", message={type: "shutdown_request"})

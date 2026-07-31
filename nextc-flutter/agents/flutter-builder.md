@@ -79,6 +79,10 @@ cd ios && {env_exports} {prefix} ios {resolved_lane}    # env_exports + prefix +
 - **The lane controls the flutter build invocation**, so `{dart_define_flag}` is NOT passed to iOS here, and the build is always **release** regardless of the requested mode. (The skill warns the user about both at confirm time.)
 - If `ios/Gemfile` exists and the run fails with a bundler/"could not find gem" error, run `cd ios && bundle install` once, then retry the lane.
 - For `release_testflight`, the lane also uploads to TestFlight — there is no local IPA-rename step beyond what Phase 4 finds; report the upload in Phase 6. The lane reads `FL_CHANGELOG` for the external-tester release notes. Because **Phase 5A always drafts and approves the "What's new" before this build**, that approved text is the `FL_CHANGELOG`: export it in the Phase 1 env string (or use the `Changelog` field the skill passed on the parallel path). It only falls back to "Latest build" if no approved text exists. The Phase 5A cancel aborts before this upload runs — the desired fail-safe. Do not re-draft the content in Phase 5B; 5B only writes the reviewed text plus the resolved status/sizes.
+- **`release_testflight` is NOT complete when the upload transmits.** `upload_to_testflight(distribute_external: true)` keeps running after the binary reaches Apple: it polls App Store Connect until processing finishes (typically 5–15 min), and only then sets the `FL_CHANGELOG` release notes and submits the build to the external tester group. Those post-processing steps are the point of the lane — if the fastlane process dies first, testers get no build and no notes, and the user must submit manually in App Store Connect. Therefore:
+  - The lane is complete ONLY when the fastlane process has exited (zero exit code). Never treat "Successfully uploaded" console output, or the upload transmission finishing, as completion.
+  - EXTERNAL: foreground Bash calls time out at 10 minutes — shorter than Apple's processing wait. For the `testflight` lane, run the lane with `run_in_background: true` and wait for the process to exit before starting Phase 4 or reporting Phase 6. Never describe your state as "done, fastlane still polling" — while fastlane runs, the build is IN PROGRESS, nothing else.
+  - If the lane fails AFTER the upload transmitted (e.g. a network/DNS drop during the processing poll): do NOT retry the lane — the binary is likely already on TestFlight, and a re-upload would collide on the build number. Report a distinct status: "upload transmitted; processing / release notes / external-group distribution UNCONFIRMED — verify the build's test notes and group assignment in App Store Connect."
 
 **iOS (IPA) — flutter path (when iOS build method = `flutter`, or fastlane was requested but no Fastfile/lane was found):**
 ```bash
@@ -277,8 +281,7 @@ Report results in a table:
 - **Path column shows the directory only** (no filename) — so the user can click it to open the folder in their file explorer
 - **Artifact column shows the renamed filename**
 - Both artifacts now live at the root of `build/` (Phase 4 moves them there regardless of the flutter/fastlane path), so the Path column is `build/` for both
-- For the `testflight` lane, add a line noting the build was uploaded to TestFlight
-- For the `testflight` lane, add a line noting the build was uploaded to TestFlight
+- For the `testflight` lane, add a line reporting the full TestFlight outcome — uploaded, processed, release notes set, and distributed to the external group (i.e. the lane process exited cleanly) — or the "upload transmitted, distribution UNCONFIRMED" status from Phase 3 if it did not
 - If a platform fails, show `failed` status with a one-line error summary instead of artifact/path
 
 ### Phase 7: Git Commit & Tag
@@ -306,6 +309,7 @@ When the prompt includes `PARTIAL MODE`, the skill is orchestrating the build (a
 - Only execute the phases explicitly marked as `DO` in the prompt
 - Skip all phases marked as `SKIP` — the skill handles them. In particular the skill owns the buildlog: it drafts the "What's new" (Phase 5A) via `whats-new` mode BEFORE spawning you, and writes the entry (Phase 5B) after you return — so you do NEITHER
 - Still report build results (Phase 6) so the skill can aggregate them
+- ORDER: your Phase 6 report is the skill's trigger to reap you (shutdown_request) — for an iOS `testflight` lane, send it only AFTER the fastlane process has exited (upload + Apple processing + release notes + external-group distribution). A report while fastlane is still polling gets you killed mid-distribution
 - If the build fails, report the failure clearly — the skill needs to know
 
 This mode exists because shared steps (version bump, buildlog draft + write, commit) must happen exactly once, not once per platform.
@@ -410,6 +414,6 @@ unresolved names. Do **not** prompt for secret values — the nextc convention k
 - Draft the "What's new" (Phase 5A) BEFORE the build and write the entry (Phase 5B) after — never re-draft the content in 5B; a cancel at the 5A review gate aborts before any build work
 - The Phase 5.6 user review gate (Approve / Edit / Cancel) is required before the build and before writing the log — Phase 5A describes the full procedure
 - On Cancel: do not build, do not write the entry, do not commit, do not tag. Nothing changes on disk. This is not a failure; it's an aborted build
-- When spawned as a background teammate (the parallel both-platforms path), you will receive a `shutdown_request` from the skill once it has consumed your Phase 6 report — acknowledge it with `shutdown_response` (via SendMessage) so you don't park as a zombie idle process
+- When spawned as a background teammate (the parallel both-platforms path), you will receive a `shutdown_request` from the skill once it has consumed your Phase 6 report — acknowledge it with `shutdown_response` (via SendMessage) so you don't park as a zombie idle process. Never send that Phase 6 report — and never approve a shutdown — while a build or fastlane process is still running (including TestFlight post-upload polling): your exit kills every child process, aborting the distribution step
 - SECURITY: NEVER feed `.env` or any secret-bearing file (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) to `--dart-define-from-file` — it embeds secrets into the shipped binary. Only a Phase-1-cleared non-secret config file may be used, and always with an absolute path.
 - SECURITY: fastlane signing secrets live in `~/.fastlane-nextc/` (the `teams.json` `match_password`, the `.p8` key) — NEVER read those values into the report, log, or commit, and NEVER set `MATCH_PASSWORD` yourself. These are build-time credentials, separate from `--dart-define-from-file`: they authenticate signing/upload and never enter the app binary.
