@@ -128,7 +128,7 @@ const VALID_MEMORY_SCOPES = new Set(['user', 'project', 'local']);
 
 // --- Repo-specific: model tier assignments from rules/nextc-claude/agents.md ---
 const MODEL_TIER_TABLE = {
-  'doc-keeper': 'haiku',
+  'doc-keeper': 'sonnet',
   'flutter-builder': 'haiku',
   'flutter-l10n-agent': 'sonnet',
   'ui-ux-developer': 'sonnet',

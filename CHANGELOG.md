@@ -2,6 +2,18 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-08-05
+
+### Changed
+- **`nextc-core/agents/doc-keeper.md`** — upgraded from haiku/medium to sonnet/high. Description no longer says "Use PROACTIVELY": doc-keeper now spawns only with the user's explicit approval (via `/update-docs`, or after the user accepts a suggestion at a completion point). Added a "Real Data Only (CRITICAL)" section: every fact written to docs must be verified in-session against actual git output/file contents/command output — no invented numbers, dates, versions, paths, API shapes, or behavior; unverifiable values are marked `*(unverified — needs check)*` or omitted. Also updated the embedded CLAUDE.md rules-reminder template ("Spawn doc-keeper after code changes" → suggest with approval).
+- **`rules/nextc-claude/project-docs.md`** — replaced the "Auto-Update" section (auto-spawn doc-keeper at the end of any code-changing response) with an approval-gated flow: suggest a doc sync only at proper completion points (feature completely built, milestone done, fix confirmed, architecture decision finalized), spawn only after the user approves, and otherwise leave doc updates to the user's own `/update-docs`. Added a "Real Data Only (CRITICAL)" mandate binding doc-keeper, `/update-docs`, and inline doc edits.
+- **`nextc-core/skills/update-docs/SKILL.md`** — documented the skill as the user-driven path (invocation = approval), added the Real Data Only rule, added the required `model: "sonnet"` parameter to the Agent call, and threaded the no-fabrication instruction into both the doc-keeper prompt and the inline fallback.
+- **`nextc-core/skills/feature-dev/SKILL.md`, `bug-fix/SKILL.md`, `cleanup/SKILL.md`, `team-feature-dev/SKILL.md`** — Phase 8 / doc steps no longer auto-spawn doc-keeper; they now suggest the doc sync at the completion point and spawn (sonnet, background) only on user approval, pointing to `/update-docs` if declined. Model tables updated haiku → sonnet.
+- **`rules/nextc-claude/git-workflow.md`** (Pre-Commit Check #3) — when the changelog is stale, update it inline or ask the user to approve a doc-keeper spawn; never spawn unasked.
+- **`rules/nextc-claude/references/agents-roster.md`** — `doc-keeper` row updated to sonnet/high.
+- **`CLAUDE.md`** — nextc-core agent listing updated: `doc-keeper` (sonnet).
+- **`nextc-claude-toolbox/scripts/schema.js`** — `MODEL_TIER_TABLE` (used by `/validate` to check agent frontmatter against the roster) updated: `doc-keeper` haiku → sonnet. The `nextc-ecc` hooks themselves contain no doc-keeper or model-tier logic — audited, nothing else to sync.
+
 ## 2026-07-31
 
 ### Fixed

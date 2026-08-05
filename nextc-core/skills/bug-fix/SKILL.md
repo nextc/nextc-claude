@@ -238,7 +238,7 @@ overhead isn't justified for surgical fixes.
 
 ## Phase 8: Documentation
 
-Spawn **doc-keeper** agent in the background to update:
+The fix is now confirmed working — this is the proper moment to sync docs. **Suggest spawning doc-keeper and wait for the user's approval** (per `project-docs.md` — never auto-spawn). If approved, spawn it in the background (`model: "sonnet"`); if declined, remind the user they can run `/update-docs` later. When spawned, it updates:
 - `docs/tasks.md` — remove from known bugs section (or add if newly discovered)
 - `docs/spec/{feature}.md` — update if the fix changes documented behavior
 - `docs/changelog.md` — add bug fix entry
@@ -330,7 +330,8 @@ Present the final report:
                        │
               ┌────────▼─────────┐
               │ Phase 8: Docs    │
-              │   doc-keeper (bg)│
+              │ suggest doc-keeper│
+              │ (user approves)  │
               └────────┬─────────┘
                        │
               ┌────────▼─────────┐
@@ -348,7 +349,7 @@ Present the final report:
 - Cite file:line when referencing code evidence so findings are traceable and the review phase can verify them directly
 - NEVER expand the fix beyond what the root cause requires — no drive-by refactoring, no "while I'm here" changes; scope creep in a fix introduces new risk and obscures the minimal change
 - Run the analyzer and build check after the fix (Phase 5) — a fix that breaks the build is worse than no fix
-- Spawn doc-keeper to update docs after the fix (Phase 8) — regression cases belong in `docs/qc/` so the same bug doesn't re-enter undetected
+- Suggest a doc-keeper doc sync after the fix is confirmed (Phase 8, spawn only with user approval) — regression cases belong in `docs/qc/` so the same bug doesn't re-enter undetected
 - If the same root cause was investigated before and the fix didn't work, say so and escalate
 - If confidence is low after Phase 4, recommend the discriminating probe instead of guessing
 - If a phase fails 3 times on the same issue, stop and present the problem to the user
@@ -383,6 +384,6 @@ Explicitly down-rank hypotheses that depend on tier 5-6 evidence when stronger c
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Always |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Auth/payments/user data |
 | Phase 7 | `/cleanup` skill | — | Fix touched 3+ files |
-| Phase 8 | `doc-keeper` agent | haiku | Always (background) |
+| Phase 8 | `doc-keeper` agent | sonnet | Suggest; spawn on user approval (background) |
 
 Task: {{ARGUMENTS}}

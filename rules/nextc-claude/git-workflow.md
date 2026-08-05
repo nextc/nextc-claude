@@ -36,7 +36,7 @@ Before running `git commit`, in this order:
 
 2. **Verify docs are current.** If `doc-keeper` was spawned this session, confirm it completed. If docs are stale or doc-keeper hasn't run, update docs first. Never commit with outdated docs.
 
-3. **Verify the changelog is current.** `CHANGELOG.md` maintenance (audience, grouping, completeness rule) lives in the `doc-keeper` agent definition — if doc-keeper hasn't run, spawn it or update the changelog inline following its rules. Never commit with a stale changelog.
+3. **Verify the changelog is current.** `CHANGELOG.md` maintenance (audience, grouping, completeness rule) lives in the `doc-keeper` agent definition — if doc-keeper hasn't run, update the changelog inline following its rules, or ask the user to approve a doc-keeper spawn (never spawn it unasked — see `project-docs.md`). Never commit with a stale changelog.
 
 ## Gitignore Rules
 

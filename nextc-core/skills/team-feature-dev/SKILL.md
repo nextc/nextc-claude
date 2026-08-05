@@ -370,7 +370,7 @@ Re-run analyzer after cleanup. Revert cleanup changes that break the build.
    manually (`x` in-process, or `tmux kill-session` in split-pane). Detail: `references/lead-conduct.md`.
 3. **No teardown call is needed** — `TeamCreate`/`TeamDelete` were removed in v2.1.178; the team
    config is cleaned up automatically on session exit.
-4. **Spawn doc-keeper** in background to update docs.
+4. **Suggest a doc-keeper doc sync** — the feature is complete, so offer it and spawn in background only after the user approves (per `project-docs.md`); if declined, point them to `/update-docs`.
 
 ## Phase 9: Report
 
@@ -483,7 +483,7 @@ Present the final summary to the user:
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
 | Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
-| Phase 8 | `shutdown_request` + `doc-keeper` agent | haiku | Graceful shutdown (auto-cleanup on session exit) + documentation |
+| Phase 8 | `shutdown_request` + `doc-keeper` agent | sonnet | Graceful shutdown (auto-cleanup on session exit) + doc sync suggestion (spawn on user approval) |
 
 ## When to Use /team-feature-dev vs /feature-dev
 

@@ -352,7 +352,7 @@ breaks the build is worse than no cleanup at all.
 
 ## Phase 8: Documentation
 
-Spawn **doc-keeper** agent in the background to update:
+The feature is now completely built and verified — this is the proper moment to sync docs. **Suggest spawning doc-keeper and wait for the user's approval** (per `project-docs.md` — never auto-spawn). If approved, spawn it in the background (`model: "sonnet"`); if declined, remind the user they can run `/update-docs` later. When spawned, it updates:
 - `docs/tasks.md` — mark the feature as done
 - `docs/spec/{feature}.md` — update or create the feature spec
 - `docs/changelog.md` — add user-facing changelog entry
@@ -422,7 +422,8 @@ Spawn **doc-keeper** agent in the background to update:
                         │
               ┌─────────▼─────────┐
               │ Phase 8: Docs     │
-              │   doc-keeper (bg) │
+              │ suggest doc-keeper│
+              │ (user approves)   │
               └───────────────────┘
 ```
 
@@ -434,7 +435,7 @@ Spawn **doc-keeper** agent in the background to update:
 - When you discover new work mid-implementation, note it and finish the current plan first rather than expanding scope in-flight. Mid-stream scope expansion produces a half-finished feature and a half-started one.
 - Present the plan for user approval before coding — the plan gate exists so the user can redirect before time is spent on the wrong approach
 - Run the analyzer after each logical implementation group, not just at the end — catching errors early prevents them from cascading
-- Spawn doc-keeper at the end to update docs — skipping it means the next session starts with stale context
+- Suggest a doc-keeper doc sync at the end (spawn only with user approval) — skipping the suggestion means the next session starts with stale context; skipping the approval gate violates `project-docs.md`
 - Run cleanup after implementation — AI-generated code accumulates slop; the `/cleanup` pass keeps the codebase maintainable
 - If the user says "faster" or "skip reviews" — skip Phase 6 (review) and Phase 7 (cleanup), but NEVER skip Phase 5 (verify) — shipping unverified code is worse than shipping unreviewed code
 - If a phase fails 3 times on the same issue, stop and present the problem to the user
@@ -456,7 +457,7 @@ This skill composes other skills and agents. Here's what it invokes:
 | Phase 6 | `nextc-ecc:code-reviewer` agent | sonnet | Always |
 | Phase 6 | `nextc-ecc:security-reviewer` agent | sonnet | Auth/payments/user data |
 | Phase 7 | `/cleanup` skill | — | Always (re-verify after) |
-| Phase 8 | `doc-keeper` agent | haiku | Always (background) |
+| Phase 8 | `doc-keeper` agent | sonnet | Suggest; spawn on user approval (background) |
 
 ## Quick Mode
 

@@ -167,7 +167,7 @@ After all passes complete:
 - {anything that needs a broader refactor beyond cleanup scope}
 ```
 
-Spawn **doc-keeper** in background if cleanup changed behavior documented in `docs/`.
+If cleanup changed behavior documented in `docs/`, suggest spawning **doc-keeper** to sync them — spawn in background only after the user approves (per `project-docs.md`); otherwise point them to `/update-docs`.
 
 ## Review Mode
 

@@ -15,6 +15,12 @@ allowed-tools:
 
 Gather context about recent changes and spawn the doc-keeper agent to update project documentation.
 
+This skill is the **user-driven** doc-update path: the user invoking it IS the approval to spawn doc-keeper. Unsolicited doc updates outside this skill are governed by the `project-docs.md` rule — suggest at completion points, spawn only after the user approves.
+
+## Real Data Only (CRITICAL)
+
+Docs must reflect verified, real state — never invented, remembered, or plausible-sounding content. Every fact written (numbers, dates, versions, file paths, API shapes, behavior) must come from the actual git output, actual file contents, or actual command output gathered in-session. Anything unverifiable is written as `*(unverified — needs check)*` or omitted — never fabricated. This binds both the spawned doc-keeper and the inline fallback below.
+
 ## When to Update
 
 After ANY response that:
@@ -55,6 +61,7 @@ Use the Agent tool:
 Agent(
   subagent_type: "doc-keeper",
   description: "Update project docs",
+  model: "sonnet",
   run_in_background: true,
   prompt: <see below>
 )
@@ -65,7 +72,7 @@ Build the prompt by combining:
 2. The mode instruction:
    - Bootstrap: "Bootstrap the full docs structure by reading the codebase. Create CLAUDE.md, docs/proposal.md, docs/design.md, docs/tasks.md, and docs/spec/ files as needed."
    - Update: "Update existing docs to reflect the changes shown above. Only modify files that are affected by the changes."
-3. End with: "Follow the structure and content guidelines in your agent definition."
+3. End with: "Follow the structure and content guidelines in your agent definition. Real data only: verify every fact against the actual repo state before writing it — never invent numbers, dates, paths, or behavior; mark anything unverifiable as `*(unverified — needs check)*`."
 
 ## Step 4: Report
 
@@ -73,4 +80,4 @@ Tell the user the doc-keeper is running in the background. Mention which files a
 
 ## Fallback
 
-If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from the doc-keeper agent definition.
+If the doc-keeper agent is unavailable (e.g., not installed), update the docs inline yourself following the same guidelines from the doc-keeper agent definition — including its Real Data Only rules: verify every fact in-session, fabricate nothing.

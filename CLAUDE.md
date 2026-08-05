@@ -67,7 +67,7 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 | finishing-branch | `/finishing-branch` | Structured merge / PR / keep / discard menu with safe worktree cleanup. Adapted from obra/Superpowers. |
 | interface-polish | `/interface-polish` | Concrete web/CSS polish recipes (radius, type, motion, hit areas). Adapted from affaan-m/ecc; governed by the ui-ux-design rule. |
 
-Agents: `doc-keeper` (haiku), `ui-ux-developer` (sonnet)
+Agents: `doc-keeper` (sonnet), `ui-ux-developer` (sonnet)
 
 ### nextc-product
 

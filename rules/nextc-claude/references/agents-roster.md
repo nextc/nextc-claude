@@ -54,7 +54,7 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | `opensource-forker` | sonnet | medium |
 | `opensource-sanitizer` | sonnet | medium |
 | `opensource-packager` | sonnet | medium |
-| `doc-keeper` | haiku | medium |
+| `doc-keeper` | sonnet | high |
 | `flutter-builder` | haiku | medium |
 | `unity-builder` | haiku | medium |
 | `flutter-scaffolder` | haiku | medium |
