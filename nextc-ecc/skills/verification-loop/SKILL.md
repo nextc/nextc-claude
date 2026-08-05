@@ -43,6 +43,8 @@ Detect project type and select appropriate tools:
 
 ### Phase 1: Build Verification
 
+Build commands are approval-gated (`heavy-commands.md`): the user invoking `/verification-loop` (or asking "check the build") IS the approval. If this loop was reached programmatically — from another skill or agent, without the user's own request — ask before building (and before Phase 4's test run).
+
 Run the appropriate build command for the detected project type. For JavaScript/TypeScript projects:
 
 ```bash

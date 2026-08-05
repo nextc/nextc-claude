@@ -230,7 +230,7 @@ Invoke `/cleanup` on the files changed during this fix:
 
 **After cleanup:**
 1. Re-run the project analyzer — must be zero errors
-2. Re-run build check — must succeed
+2. Re-run build check — only if the user approved a build for this fix (`heavy-commands.md`); a re-run within that approved task is covered
 3. If re-verification fails, revert the cleanup change that broke it
 
 **Skip cleanup** if the fix was a 1-2 line change in a single file — cleanup
@@ -348,7 +348,7 @@ Present the final report:
 - Run the rebuttal round even when one hypothesis seems obvious — the rebuttal exists precisely for cases where the obvious answer is wrong
 - Cite file:line when referencing code evidence so findings are traceable and the review phase can verify them directly
 - NEVER expand the fix beyond what the root cause requires — no drive-by refactoring, no "while I'm here" changes; scope creep in a fix introduces new risk and obscures the minimal change
-- Run the analyzer and build check after the fix (Phase 5) — a fix that breaks the build is worse than no fix
+- Run the analyzer after the fix (Phase 5); build checks need the user's approval first per `heavy-commands.md` — a fix that breaks the build is worse than no fix, but an unapproved build is a rule violation
 - Suggest a doc-keeper doc sync after the fix is confirmed (Phase 8, spawn only with user approval) — regression cases belong in `docs/qc/` so the same bug doesn't re-enter undetected
 - If the same root cause was investigated before and the fix didn't work, say so and escalate
 - If confidence is low after Phase 4, recommend the discriminating probe instead of guessing

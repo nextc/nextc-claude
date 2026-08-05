@@ -172,7 +172,7 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 8 plugins)
-├── rules/nextc-claude/               (14 rules, symlinked via setup-rules.sh)
+├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh)
 ├── setup-rules.sh
 ├── nextc-core/                       (9 skills, 2 agents)
 ├── nextc-ecc/                        (21 skills, 15 agents, 8 hooks)
@@ -183,9 +183,9 @@ nextc-claude/                         (marketplace root)
 └── nextc-aso/                        (1 skill, 9 agents)
 ```
 
-### Rules (14, shared across all plugins)
+### Rules (15, shared across all plugins)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring, heavy-commands
 
 ---
 

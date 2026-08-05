@@ -308,7 +308,7 @@ After each step:
 After all implementation steps complete:
 
 1. **Run analyzer** — `flutter analyze` or project equivalent. Zero errors before proceeding — accumulated errors compound quickly once you move past this phase.
-2. **Build check** — verify the project builds successfully
+2. **Build check (approval-gated per `heavy-commands.md`)** — ask the user before running a build; if they decline, the analyzer must be green and the report notes the build as unverified. Never launch simulators/emulators or dev servers in this phase without their own explicit approval.
 3. **Acceptance criteria** — walk through each criterion from the plan:
    - Can it be verified by reading the code? → verify by reading
    - Does it need a runtime check? → note it for the user to test manually
@@ -343,7 +343,7 @@ This runs the slop cleaner: dead code removal, duplicate consolidation, abstract
 
 If cleanup made any changes:
 1. Re-run the project analyzer (`flutter analyze`, `tsc`, etc.) — must be zero errors
-2. Re-run build check — must succeed
+2. Re-run build check — only if the user approved a build in Phase 5 (`heavy-commands.md`); a re-run within that approved task is covered
 3. Spot-check acceptance criteria that touch cleaned files — ensure behavior preserved
 4. If re-verification fails, revert the cleanup change that broke it and re-run analyzer
 

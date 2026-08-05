@@ -44,7 +44,7 @@ This is a **hard rule. It applies in every mode — interactive, `--auto`, auton
 
 ## 7. Layout is scientific; structure before polish; use the design skill
 
-- **Scientific layout.** Ground every layout decision in a measured system — a spacing scale, an alignment grid, a type scale, actual rendered measurements — not eyeballing or vibes. Positions, gaps, and sizes come from the system and are verified against the **rendered screen** (per `verify-before-claim.md` #9), not asserted from the code or the analyzer.
+- **Scientific layout.** Ground every layout decision in a measured system — a spacing scale, an alignment grid, a type scale, actual rendered measurements — not eyeballing or vibes. Positions, gaps, and sizes come from the system and are verified against the **rendered screen** (per `verify-before-claim.md` #9), not asserted from the code or the analyzer. If rendering requires a build or a simulator/emulator launch, get the user's approval first (`heavy-commands.md`) — if declined, tag the visual claim as unverified rather than launching anyway.
 - **Structure before polish.** Get layout, spacing, and position correct *first*; only then touch motion, color, and finish. Polishing an animation or easing curve before the element sits in the right place is wasted work in the wrong order.
 - **Use the installed design skill.** For any design / layout / UI task, check for and use the relevant design skill (e.g. `ui-ux-pro-max`) for palette, type pairing, spacing systems, and stack-specific patterns — don't hand-roll what the skill already systematizes. (Skill selection in general is governed by `agentic-awareness.md`.) These rules still override the skill's output on conflict.
 

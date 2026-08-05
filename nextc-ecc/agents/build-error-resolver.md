@@ -37,6 +37,7 @@ Detect project type and use appropriate tools:
 - Run the appropriate diagnostic command for the detected project type
 - Categorize: type/compile errors, missing imports, config issues, dependencies
 - Prioritize: build-blocking first, then type errors, then warnings
+- You exist inside a user-approved build task — re-running that same build to verify fixes is covered, but NEVER escalate to simulators/emulators, device installs, or dev servers (`heavy-commands.md`: fresh heavy action needs a fresh user ask)
 
 ### 2. Fix Strategy (MINIMAL CHANGES)
 For each error:

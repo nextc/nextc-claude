@@ -38,7 +38,7 @@ nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO pipeline (3 skills, 11 agents)
 nextc-ecc/                        — Core agents + quality tools (21 skills, 15 agents, 8 hooks)
 nextc-claude-toolbox/             — Utility toolkit (4 skills)
-rules/nextc-claude/               — Shared rules (14 rules, symlinked via setup-rules.sh)
+rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh)
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
 ```
 
@@ -190,9 +190,9 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```
 
-## Rules (14)
+## Rules (15)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring, heavy-commands
 
 ## Changelog
 
