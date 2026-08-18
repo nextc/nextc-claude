@@ -109,11 +109,17 @@ the org question. Otherwise use `AskUserQuestion` to confirm:
    Accept either a bare segment (`mgvlabs` → org `com.mgvlabs`) or a full reverse-domain
    (`com.mgvlabs`).
 3. **Confirm the result** — show the derived values and have the user approve:
-   - Package name (`--project-name`): product name lowercased, non-alphanumerics → `_` (e.g. `tend`)
-   - Application ID / bundle ID (`--org`): `[org].[package_name]` (e.g. `com.mgvlabs.tend`)
+   - Dart package name (`--project-name`): product name lowercased, non-alphanumerics → `_` (e.g. `my_cool_app`)
+   - App ID (`app_id`) — the single identifier used as BOTH the Android application ID
+     and the iOS bundle ID: `[org].[product name lowercased, alphanumerics only — no
+     underscores or hyphens]` (e.g. `com.mgvlabs.mycoolapp`). Apple bundle IDs forbid
+     underscores, so the shared id's final segment must drop them entirely — never show
+     the user an Android id with `_` and an iOS id without.
 
-Write `product_name`, `org`, and `pkg` into `decisions.json` from this gate. The
-flutter-scaffolder consumes `org` and `pkg` directly in `flutter create`.
+Write `product_name`, `org`, `pkg`, and `app_id` into `decisions.json` from this gate.
+The flutter-scaffolder consumes `org` and `pkg` in `flutter create`, then overrides both
+platforms' identifiers with `app_id` — `flutter create` alone produces DIVERGENT ids for
+any multi-word `pkg` (Android keeps `com.org.my_app`, iOS camelCases to `com.org.myApp`).
 
 #### Auto Mode
 
@@ -219,6 +225,7 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 |--------|--------|
 | Directory | [dir]/ |
 | Package | [pkg] |
+| App ID (Android + iOS) | [app_id] |
 | Platforms | [platforms] |
 | State | [choice] |
 | Routing | [choice] |

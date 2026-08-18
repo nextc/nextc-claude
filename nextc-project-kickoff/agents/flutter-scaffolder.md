@@ -44,6 +44,32 @@ flutter create --empty --org [org] --project-name [pkg] --platforms [platforms] 
 
 If FVM: use `fvm flutter create`.
 
+## Step 1b: Unify the application ID and bundle ID (REQUIRED)
+
+`flutter create` derives the platform identifiers with different rules — Android keeps
+underscores (`com.org.my_app`) while iOS/macOS camelCases them away (`com.org.myApp`) —
+so for any multi-word project name the store identifiers diverge. `decisions.json`
+provides the single canonical `app_id`; stamp it onto every platform:
+
+- **Android** — in `android/app/build.gradle` or `build.gradle.kts`, set
+  `applicationId` to `[app_id]`. Leave `namespace` unchanged (it maps to the Kotlin
+  source path and is internal-only; changing it would require moving `MainActivity`).
+- **iOS** — in `ios/Runner.xcodeproj/project.pbxproj`, replace every
+  `PRODUCT_BUNDLE_IDENTIFIER` value: the app target becomes `[app_id]`, and
+  `RunnerTests` becomes `[app_id].RunnerTests` (preserve the suffix).
+- **macOS** (if in platforms) — same replacement in
+  `macos/Runner.xcodeproj/project.pbxproj`.
+
+Verify before moving on — both greps must show only `[app_id]`-prefixed values:
+
+```bash
+grep -rn "applicationId" android/app/build.gradle*
+grep -rn "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj
+```
+
+If either still shows a diverged id, fix it before Step 2 — a wrong store identifier
+shipped once is painful to rotate.
+
 ## Step 2: Install dependencies
 
 Run `flutter pub add` for each group based on decisions:

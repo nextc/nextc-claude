@@ -2,6 +2,12 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-08-18
+
+### Fixed
+- **`nextc-project-kickoff/agents/flutter-kickoff-agent.md` (Identity Gate, final summary table)** — Flutter kickoff no longer produces a diverging Android application ID and iOS bundle ID for multi-word product names. Root cause (verified against Flutter SDK 3.44.0 `flutter_tools/lib/src/commands/create_base.dart`): `flutter create` derives the two identifiers with different functions — Android keeps underscores (`com.org.my_app`) while iOS/macOS camelCases the name because Apple bundle IDs forbid underscores (`com.org.myApp`). The Identity Gate now derives and confirms a single `app_id` (`[org].[product name, lowercased alphanumerics only — no underscores]`) alongside the Dart package name, writes it to `decisions.json`, and shows it in the final summary. The Dart package name itself still uses underscores (required by Dart; not store-facing).
+- **`nextc-project-kickoff/agents/flutter-scaffolder.md` (new Step 1b)** — after `flutter create`, the scaffolder now stamps `app_id` onto every platform: `applicationId` in `android/app/build.gradle(.kts)` and every `PRODUCT_BUNDLE_IDENTIFIER` in the iOS (and macOS, if targeted) pbxproj including the `.RunnerTests` suffix, then greps both files to verify before installing dependencies. Android's `namespace` is deliberately left unchanged (internal-only; maps to the Kotlin source path). Unity kickoff is unaffected — it already writes one shared `applicationIdentifier`.
+
 ## 2026-08-05
 
 ### Added
