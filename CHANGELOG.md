@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-09-20
+
+### Added
+- **`rules/nextc-claude/ui-ux-design.md` (new §1b under rule 1, plus an Enforcement bullet)** — a categorical/semantic colour palette (by type, family, status, owner, tier) must now pass three tests before it is proposed, and a "no" on any one is a no: (1) **does the accent already mean something else** — a palette that assigns the accent to a category makes it mean two things at once on every screen where that category is common; (2) **does every hue clear the text-contrast floor at the size it will actually be read** — a hue picked for a fill is usually illegible as small text, so expect to need lightened variants and treat "this needs new tokens" as a signal the change is bigger than it looks; (3) **could the colour answer a question the screen is asking** — a diagram, shape, chart mark or icon that *is* the question must never be coloured by its own answer, and this one is a hard stop rather than a trade-off, fixed by pulling the encoding off that element everywhere rather than by a per-screen exception (an exception is a rule someone has to keep remembering). When a palette fails, say what carries the category instead — usually a suffix, a label, a shape or an ordering already in the content. Rationale: encoding a category as a hue is the most tempting way to make a dense screen legible and the most common way to break rule 1; it is also a system rather than a screen, committing every surface that draws the category. Test 3 comes from a real case — an ear-training quiz that draws one chord shape and asks the learner to name it, where colour-coding the diagram by chord family answered the question before the shape could be read.
+
 ## 2026-08-18
 
 ### Fixed
