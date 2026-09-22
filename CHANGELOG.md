@@ -2,6 +2,17 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-09-22
+
+### Fixed
+- **`nextc-ecc/hooks/hooks.json`** — Claude Code was warning `unknown keys "description" ... "id" in hooks.PreToolUse[0] ... and 11 more ignored` on plugin load. Per the official hooks docs, a matcher group accepts only `matcher`, `hooks`, and `timeout`; the only supported `description` is a single top-level one. Removed the per-group `description` and `id` keys (8 groups, 16 keys) and added the one supported top-level `description`. Hook behavior is unchanged — the keys were being ignored, not applied.
+
+### Added
+- **`nextc-ecc/hooks/README.md`** — per-hook table (event, matcher, script, purpose, tunables/disable env vars) carrying the notes that used to live in the now-unsupported `hooks.json` keys.
+
+### Changed
+- **`nextc-claude-toolbox/scripts/validate.js` (H04–H07 labels)** — hook findings were labeled by the `id` key, which no longer exists. Labels are now derived as `<event>/<matcher>/<script file>` so two groups sharing a matcher (e.g. the two `Bash` PreToolUse hooks) stay distinguishable.
+
 ## 2026-08-18
 
 ### Fixed

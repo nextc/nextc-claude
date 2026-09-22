@@ -1,4 +1,5 @@
 {
+  "description": "Guardrail hooks: block hook-bypass flags, protect lint config, gate destructive commands, scan commits, and surface loops, tool spawns, and unverified claims. Per-hook details in hooks/README.md.",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,9 +9,7 @@
             "type": "command",
             "command": "npx block-no-verify@1.1.5"
           }
-        ],
-        "description": "Block git hook-bypass flags to protect pre-commit, commit-msg, and pre-push hooks from being skipped",
-        "id": "pre:bash:block-no-verify"
+        ]
       },
       {
         "matcher": "Write|Edit",
@@ -19,9 +18,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/config-protection.js\""
           }
-        ],
-        "description": "Block modifications to linter/formatter config files — fix code, not config",
-        "id": "pre:write-edit:config-protection"
+        ]
       },
       {
         "matcher": "Bash|Edit|Write",
@@ -30,9 +27,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/fact-force-guard.js\""
           }
-        ],
-        "description": "Fact-forcing gate: deny a destructive bash command once until targets+rollback+instruction are stated (retry then allowed). Optional first-touch edit gate via FACT_FORCE_EDITS=1. Disable: FACT_FORCE_GUARD=off.",
-        "id": "pre:bash-edit:fact-force-guard"
+        ]
       },
       {
         "matcher": "Bash",
@@ -41,9 +36,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-commit-quality.js\""
           }
-        ],
-        "description": "On `git commit`, scan staged content: block (exit 2) on secrets/debugger; warn on console.log and non-conventional subject. No external linters. Disable: PRECOMMIT_QUALITY=off.",
-        "id": "pre:bash:pre-commit-quality"
+        ]
       },
       {
         "matcher": "Write|Edit",
@@ -52,9 +45,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/suggest-compact.js\""
           }
-        ],
-        "description": "Suggest /compact after every N (default 50) Edit/Write tool calls. Note: counter-based, not task-boundary-aware.",
-        "id": "pre:write-edit:suggest-compact"
+        ]
       },
       {
         "matcher": "Agent|Skill",
@@ -63,9 +54,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/tool-awareness.js\""
           }
-        ],
-        "description": "Log agent and skill invocations so the user sees what is being spawned in real time",
-        "id": "pre:agent-skill:tool-awareness"
+        ]
       },
       {
         "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob",
@@ -74,9 +63,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/loop-scope-guard.js\""
           }
-        ],
-        "description": "Notice stuck tool loops (same tool+input >=3x in a window) and scope creep (>20 distinct files edited). stderr-only, never blocks. Tunables: LOOP_THRESHOLD, LOOP_WINDOW, SCOPE_THRESHOLD; disable via LOOP_SCOPE_GUARD=off.",
-        "id": "pre:multi:loop-scope-guard"
+        ]
       }
     ],
     "Stop": [
@@ -87,9 +74,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/verify-before-claim-scan.js\""
           }
-        ],
-        "description": "Scan the final assistant message for unverified/hedge language (verify-before-claim.md) and surface a reminder to verify-or-tag. Catches hedged inference only, NOT confidently-stated wrong facts. Modes via VERIFY_HOOK_MODE: context (default, model-facing) | warn (user-facing) | block | off.",
-        "id": "stop:verify-before-claim-scan"
+        ]
       }
     ]
   }

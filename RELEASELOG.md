@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.9 (2026-09-22)
+
+**nextc-ecc hooks.json no longer trips a plugin-load warning.** Claude Code was reporting `unknown keys "description" ... "id" in hooks.PreToolUse[0] ... and 11 more ignored` on every load. Per the official hooks docs, a matcher group accepts only `matcher`, `hooks`, and `timeout`, and the only supported `description` is a single top-level one — so the per-group `description` and `id` keys (8 groups, 16 keys) were being silently dropped. They are removed, the one supported top-level `description` is added, and hook behavior is unchanged. The per-hook notes (purpose, tunables, disable env vars) now live in a new `nextc-ecc/hooks/README.md`. `validate.js` used to label hook findings by the removed `id`; labels are now `<event>/<matcher>/<script file>` so the two `Bash` PreToolUse hooks stay distinguishable.
+
 ## v1.6.8 (2026-08-24)
 
 **Flutter kickoff now produces one store identifier for both platforms.** `flutter create` derives the Android application ID and the iOS bundle ID with different rules — Android keeps underscores (`com.org.my_app`) while iOS/macOS camelCases them away because Apple bundle IDs forbid underscores (`com.org.myApp`) — so any multi-word product name shipped diverged identifiers (verified against Flutter SDK 3.44.0 `create_base.dart`). The `flutter-kickoff-agent` Identity Gate now derives and confirms a single `app_id` (`[org].[product name, lowercased alphanumerics only]`) alongside the Dart package name and writes it to `decisions.json`; a new `flutter-scaffolder` Step 1b stamps that id onto `applicationId` in `android/app/build.gradle(.kts)` and every `PRODUCT_BUNDLE_IDENTIFIER` in the iOS/macOS pbxproj (preserving the `.RunnerTests` suffix), then greps both files to verify before installing dependencies. Android's internal `namespace` and the underscored Dart package name are deliberately unchanged; Unity kickoff was already unaffected.

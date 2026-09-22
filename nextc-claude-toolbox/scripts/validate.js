@@ -484,11 +484,12 @@ function validateHooks(pluginName, pluginDir) {
     if (!Array.isArray(entries)) continue;
 
     for (const entry of entries) {
-      const hookId = entry.id || `${eventName}/${entry.matcher || '*'}`;
-
       if (!Array.isArray(entry.hooks)) continue;
 
       for (const handler of entry.hooks) {
+        const scriptName = (handler.command || '').match(/([\w.-]+\.(?:js|sh|py))/)?.[1] || handler.command || handler.type;
+        const hookId = `${eventName}/${entry.matcher || '*'}/${scriptName}`;
+
         // H04: Valid hook type
         if (!VALID_HOOK_TYPES.has(handler.type)) {
           results.push(warn(pluginName, 'hook', hookId, 'H04', `Unknown hook handler type: "${handler.type}"`));
