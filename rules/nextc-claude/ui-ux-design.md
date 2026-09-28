@@ -8,6 +8,18 @@ Never use accent, vibrant, highlight, or otherwise outstanding colors for border
 
 **Why:** if everything is emphasized, nothing is. Loud borders compete with the one thing that should draw the eye.
 
+### 1b. A semantic palette must pass three tests before it exists
+
+Encoding a *category* as a hue — a type, a family, a status, an owner, a tier — is the most tempting way to make a dense screen legible, and the most common way to break rule 1. Before proposing one, answer all three. A "no" on any is a no.
+
+1. **Does the accent already mean something else?** If the accent means *the way forward*, a palette that assigns it to a category makes it mean two things at once on every screen where that category is common. Either the palette takes hues the accent does not use, or the accent stops being the accent.
+2. **Does every hue clear the text-contrast floor at the size it will actually be read?** A brand or status colour picked for a fill is usually *not* legible as small text: check each one at its real size against its real background, and expect to need a lightened variant. A palette that needs new tokens is a bigger change than it looks.
+3. **Could the colour answer a question the screen is asking?** A diagram, a shape, a chart mark or an icon that is *itself the question* must never be coloured by its own answer. A quiz that draws the thing and asks the learner to name it gives the answer away the moment the drawing is colour-coded by category. **This one is a hard stop, not a trade-off** — and the fix is never a per-screen exception, because an exception is a rule someone has to keep remembering. Pull the encoding off that element everywhere.
+
+**If the palette fails, say what the category is carried by instead.** Usually it is already in the content — a suffix, a label, a shape, an ordering — and the honest answer is that colour was going to restate something the screen already said.
+
+**Why:** a categorical palette is a system, not a screen. It commits every surface that draws the category, it competes with whatever the accent meant, and — where the product teaches or tests — it can quietly answer the very question the interface exists to ask.
+
 ## 2. Glass / frost styles stay translucent
 
 When the design style is liquid glass, glass, frosted, or similar, never use solid fills. If color is required, apply it only as a **low-opacity tint layered into the glass material** (tint over blur) — never an opaque block.
@@ -53,6 +65,7 @@ This is a **hard rule. It applies in every mode — interactive, `--auto`, auton
 ## Enforcement
 
 - Before implementing any UI: confirm the screen obeys #1–#4. Treat a vibrant border, a solid fill in a glass style, an italic serif, or a 4th font / 5th size as a defect to fix, not ship.
+- Before proposing or implementing a categorical/semantic colour encoding: run #1b's three tests and state the answers. A palette whose hue could answer a question the screen is asking is a defect regardless of how well it reads. When a palette is rejected, record *why* beside the rule it would have changed, so it is not re-proposed.
 - Before applying a design change (interactive): propose and confirm per #5.
 - After any design change (every mode): run the #6 whole-product audit — apply the change everywhere, deduplicate the design code, verify consistency.
 - Before touching motion / color / finish: confirm the layout and structure are correct and verified against the rendered screen (#7). Polishing before the layout is right is an ordering defect. For a design/layout task, confirm the relevant design skill (e.g. `ui-ux-pro-max`) was consulted (#7).
