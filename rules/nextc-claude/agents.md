@@ -51,7 +51,7 @@ See `references/agents-roster.md` for the full per-agent and per-team-worker mod
 4. **Opus sparingly** — most coding is sonnet-tier
 5. **Never fable or opus for chores** — docs, builds, scanning, dashboards
 6. **Escalate on failure one tier at a time** — haiku → sonnet → opus. Never escalate to fable on failure
-7. **Plan-aware fallback** — if Fable is unavailable on the user's plan or their Fable usage limit is hit, run the same agent on `opus` for that invocation (pass `model: "opus"`) and say so; don't stall the pipeline
+7. **Plan-aware fallback** — if Fable is unavailable on the user's plan or their Fable usage limit is hit, run the same agent on `opus` for that invocation (pass `model: "opus"`) and say so; don't stall the pipeline. On plans where Fable is billed to usage credits instead of plan limits (Pro, Team standard seats), pass `model: "opus"` for Fable-tier agents by default — use Fable only after the user opts in to paying for it in this session
 8. **Never `effort: low`** — `medium` is the floor, no exceptions
 
 ## Agent Teams

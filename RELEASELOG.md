@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.11 (2026-09-29)
+
+**Fable-tier agents default to Opus on plans that bill Fable to usage credits.** On Pro and Team standard seats, Fable isn't part of plan limits — every use is charged to usage credits after a consent prompt. The `agents` rule's plan-aware fallback now has Fable-tier agents (`planner`, `architect`, `ie-team-lead`, `product-collision-analyst`) run on Opus by default on those plans, switching to Fable only after the user opts in for the session. Max and premium seats, where Fable is included, are unaffected.
+
 ## v1.6.10 (2026-09-29)
 
 **Leadership agents run on Fable, pipeline orchestrators on Opus — with system-wide cost guardrails.** `planner`, `architect`, `ie-team-lead` and `product-collision-analyst` — the roles that plan, architect, or synthesize many agents' output — now run on `model: fable` (effort stays `xhigh`). `product-explorer` and `aso-director`, which direct whole pipelines and make their scope calls, move from Sonnet to Opus. Because the `agents` rule applies to every project and Fable is the most expensive tier (API bill and subscription usage limits), the rule now treats Fable as a closed list: only roster-listed agents use it, never fanned out or used as workers, never an escalation target on failure, and falls back to Opus when Fable is unavailable on the user's plan or its usage limit is hit. The roster, `CLAUDE.md`, `blueprint`, `feature-dev`, `team-feature-dev`, `idea-explore` and `product-explore` (whose cost table now counts "Premium calls (Fable/Opus)") are synced, and `/validate` accepts `fable` as a model shorthand.
