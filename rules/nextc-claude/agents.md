@@ -6,23 +6,26 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 
 | Model | Use When | Examples |
 |-------|----------|----------|
-| **Opus** | Deep reasoning, creative design, architecture, multi-file coordination | Architecture review, complex state management, root cause synthesis |
+| **Fable** | Leadership roles ONLY — high-level planning, system architecture, team-lead synthesis of many agents' output | `planner`, `architect`, `ie-team-lead`, `product-collision-analyst` |
+| **Opus** | Deep reasoning, creative design, pipeline direction, multi-file coordination | Pipeline orchestrators (`product-explorer`, `aso-director`), complex state management, root cause synthesis |
 | **Sonnet** | Standard dev work, orchestration, implementation, analysis | Feature impl, code review, l10n, planning — handles 80% of tasks |
 | **Haiku** | Chore tasks, scanning, docs, config, scripted steps | Doc updates, build scripts, renames, import fixes, file scanning |
 
-**Decision rule:** "How much reasoning?" Deep → Opus. Standard → Sonnet. Minimal → Haiku.
+**Decision rule:** "How much reasoning?" Leads the whole effort → Fable. Deep → Opus. Standard → Sonnet. Minimal → Haiku.
+
+**Fable is a closed list.** Only the agents marked `fable` in `references/agents-roster.md` run on Fable. Never assign Fable to a new agent, a dynamic team worker, or an ad-hoc `Agent()` call without the user's explicit approval — Fable-tier usage is the most expensive line on the bill (API) and drains plan usage limits fastest (subscription). When unsure, use Opus.
 
 ## Effort Tiers
 
 | Effort | Use When |
 |--------|----------|
-| **xhigh** | Opus agents doing multi-artifact synthesis, architecture, deep planning (`planner`, `architect`, `product-collision-analyst`) |
+| **xhigh** | Fable/Opus agents doing multi-artifact synthesis, architecture, deep planning (`planner`, `architect`, `product-collision-analyst`, `ie-team-lead`) |
 | **high** | Sophisticated coding, reasoning, orchestration, review — default for sonnet; default for haiku agents doing structured work |
 | **medium** | Mechanical, templating, scripted, scaffolding, regex-driven, file-copy work. This is the FLOOR — never go below |
 
 **Effort floor:** NEVER use `low`. Minimum effort is `medium`. Even chore agents need enough reasoning to produce correct structured output.
 
-**Sophistication downgrade rule:** When an agent's typical work matches one of the mechanical categories above, downgrade one level (sonnet `high` → `medium`, opus `xhigh` → `high`), but never below `medium`.
+**Sophistication downgrade rule:** When an agent's typical work matches one of the mechanical categories above, downgrade one level (sonnet `high` → `medium`, opus/fable `xhigh` → `high`), but never below `medium`.
 
 **Resolution order:**
 1. Per-invocation override if `Agent()` exposes an `effort` parameter
@@ -42,12 +45,14 @@ See `references/agents-roster.md` for the full per-agent and per-team-worker mod
 
 ## Cost Rules
 
-1. **Default to lowest sufficient tier** — don't use opus when sonnet works
+1. **Default to lowest sufficient tier** — don't use opus when sonnet works, don't use fable when opus works
 2. **Haiku for volume** — parallel scanning/searching agents always use haiku
-3. **Opus sparingly** — most coding is sonnet-tier
-4. **Never opus for chores** — docs, builds, scanning, dashboards
-5. **Escalate on failure** — haiku fails → retry with sonnet (not opus)
-6. **Never `effort: low`** — `medium` is the floor, no exceptions
+3. **Fable only for leaders** — one Fable agent per pipeline run, never fanned out in parallel, never as a worker
+4. **Opus sparingly** — most coding is sonnet-tier
+5. **Never fable or opus for chores** — docs, builds, scanning, dashboards
+6. **Escalate on failure one tier at a time** — haiku → sonnet → opus. Never escalate to fable on failure
+7. **Plan-aware fallback** — if Fable is unavailable on the user's plan or their Fable usage limit is hit, run the same agent on `opus` for that invocation (pass `model: "opus"`) and say so; don't stall the pipeline
+8. **Never `effort: low`** — `medium` is the floor, no exceptions
 
 ## Agent Teams
 

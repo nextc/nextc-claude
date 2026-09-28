@@ -36,10 +36,10 @@ so the plan builds on what's there rather than reinventing it.
 
 ### 2. Design (decompose)
 
-Delegate decomposition to the **planner** agent (opus) for multi-file/architectural objectives:
+Delegate decomposition to the **planner** agent (fable) for multi-file/architectural objectives:
 
 ```
-Agent(subagent_type: "nextc-ecc:planner", model: "opus",
+Agent(subagent_type: "nextc-ecc:planner", model: "fable",
       description: "Decompose objective into PR-sized steps",
       prompt: "<objective> + repo context. Return PR-sized steps with dependency edges, parallel/serial ordering, model tier per step, and a rollback strategy per step.")
 ```
@@ -55,7 +55,7 @@ Write `docs/plans/<slug>.md`. **Every step must be executable cold** — it carr
 brief, so it declares what it consumes and what it produces:
 
 ```markdown
-## Step N — <title>   [depends: Step K] [parallel-with: Step M] [model: opus|sonnet|haiku]
+## Step N — <title>   [depends: Step K] [parallel-with: Step M] [model: fable|opus|sonnet|haiku]
 
 **Context brief:** what a fresh agent needs to know to do ONLY this step (the relevant files,
 the invariant to preserve, the prior decision it builds on).
@@ -77,7 +77,7 @@ instead of re-reading the whole plan.
 ### 4. Review (adversarial gate)
 
 Do not ship the plan unreviewed. Run the **`adversarial-review`** skill on it, or delegate to the
-**architect** agent (opus) against this checklist:
+**architect** agent (fable) against this checklist:
 
 - Completeness — does executing all steps actually achieve the objective?
 - Dependency correctness — no cycles; every `depends` references a real earlier step; parallel steps

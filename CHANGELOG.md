@@ -2,6 +2,16 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-09-29
+
+### Changed
+- **Leadership agents moved to Fable** — `planner`, `architect` (`nextc-ecc`), `ie-team-lead` and `product-collision-analyst` (`nextc-product`) now run on `model: fable` (effort unchanged at `xhigh`). These are the roles that lead a whole effort: high-level planning, architecture, and synthesizing many agents' output.
+- **Pipeline orchestrators moved up to Opus** — `product-explorer` (`nextc-product`) and `aso-director` (`nextc-aso`) now run on `model: opus` (was `sonnet`), since they direct a whole pipeline and make its scope calls.
+- **`rules/nextc-claude/agents.md`** — added a Fable tier above Opus with cost guardrails, because these rules apply system-wide and Fable is the most expensive tier (API bill and subscription usage limits): Fable is a closed list of agents from the roster, never fanned out or used for workers, never an escalation target on failure, and falls back to Opus when Fable is unavailable on the user's plan or its usage limit is hit. Updated the decision rule, xhigh effort row, downgrade rule, and cost rules.
+- **`rules/nextc-claude/references/agents-roster.md`**, **`CLAUDE.md`** — synced to the new model assignments.
+- **Skills** — `blueprint` (planner/architect calls and the per-step `[model: …]` tag now include `fable`), `feature-dev` and `team-feature-dev` (Phase 2b architect = fable), `idea-explore` (team lead = fable/xhigh), `product-explore` ("Opus calls" cost column is now "Premium calls (Fable/Opus)": collision = Fable, vision synthesis = Opus).
+- **`nextc-claude-toolbox/scripts/schema.js`** — `fable` added as a valid model shorthand so `/validate` accepts it; the tier table now expects `planner`/`architect` = fable and `aso-director` = opus.
+
 ## 2026-09-22
 
 ### Fixed

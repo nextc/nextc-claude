@@ -124,7 +124,7 @@ After team lead completes, give a short summary:
 - **No clarifying questions** about framework methodology — each agent owns its own approach.
 - **Output location:** `docs/idea-explorations/<slug>.md`. Create the directory if it doesn't exist.
 - **Don't run framework agents inside the team lead.** Team lead is a synthesizer, not an orchestrator.
-- **Models are agent-pinned.** Framework agents = sonnet/high. Team lead = opus/xhigh.
+- **Models are agent-pinned.** Framework agents = sonnet/high. Team lead = fable/xhigh.
 - **If the user gave only a problem (no product),** all 8 agents still apply — they shift to opportunity-space analysis instead of product-space analysis.
 
 ## Failure modes to avoid

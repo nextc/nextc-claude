@@ -76,9 +76,9 @@ Agents: `doc-keeper` (sonnet), `ui-ux-developer` (sonnet)
 | product-explore | `/product-explore` | Raw idea to validated proposal. Phase 1 pairs `/clarify` with a 6-question demand probe; Phase 6 runs a CEO-level scope review (EXPANSION / SELECTIVE EXPANSION / HOLD / REDUCTION) and writes "The Assignment." Supports --auto/--quick/--no-collision. |
 | idea-explore | `/idea-explore` | Multi-framework idea exploration. Spawns 8 framework analysts in parallel (JTBD, Opportunity Solution Tree, Morphological Analysis, Assumption Reversal, Blue Ocean, Wardley Mapping, 7 Powers, Mom Test), then a synthesizer that writes a single convergence/divergence report to `docs/idea-explorations/<slug>.md`. Use for deep multi-lens analysis of a problem or product concept. |
 
-Agents (proposal pipeline): `product-explorer` orchestrator (sonnet), `product-researcher` (sonnet), `product-shaper` (sonnet), `product-stress-tester` (sonnet), `product-collision-analyst` (opus)
+Agents (proposal pipeline): `product-explorer` orchestrator (opus), `product-researcher` (sonnet), `product-shaper` (sonnet), `product-stress-tester` (sonnet), `product-collision-analyst` (fable)
 
-Agents (idea-explore frameworks): `ie-jtbd`, `ie-ost`, `ie-morphological`, `ie-assumption-reversal`, `ie-blue-ocean`, `ie-wardley`, `ie-seven-powers`, `ie-mom-test` (all sonnet/high). Synthesizer: `ie-team-lead` (opus/xhigh).
+Agents (idea-explore frameworks): `ie-jtbd`, `ie-ost`, `ie-morphological`, `ie-assumption-reversal`, `ie-blue-ocean`, `ie-wardley`, `ie-seven-powers`, `ie-mom-test` (all sonnet/high). Synthesizer: `ie-team-lead` (fable/xhigh).
 
 ### nextc-project-kickoff
 
@@ -131,7 +131,7 @@ Specs (project-level source of truth, in `specs/aso-pipeline/`):
 - `strategic-product-naming.md` — naming framework; powers `aso-naming` and informs `aso-metadata` title policy.
 - `smart-aso-techniques.md` — advanced ASO playbook; powers `aso-edge-tactics` and is referenced by `aso-keyword-research`, `aso-localization`, `aso-creative`, `aso-tracking`, and `aso-director`.
 
-Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet), `aso-naming` (sonnet), `aso-edge-tactics` (sonnet)
+Agents: `aso-director` (opus), `aso-competitive` (sonnet), `aso-keyword-research` (sonnet), `aso-metadata` (sonnet), `aso-creative` (sonnet), `aso-localization` (sonnet), `aso-ratings-reviews` (sonnet), `aso-tracking` (sonnet), `aso-collision` (sonnet), `aso-naming` (sonnet), `aso-edge-tactics` (sonnet)
 
 ### nextc-ecc
 
@@ -159,7 +159,7 @@ Agents: `aso-director` (sonnet), `aso-competitive` (sonnet), `aso-keyword-resear
 | code-tour | `/code-tour` | Generate persona-targeted CodeTour `.tour` walkthroughs with verified anchors. Adapted from affaan-m/ecc. |
 | canary-watch | `/canary-watch` | Post-deploy verification of a live URL (health, errors, assets, vitals) vs baseline. Adapted from affaan-m/ecc. |
 
-Agents: `planner` (opus), `architect` (opus), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `spec-miner` (opus), `a11y-architect` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
+Agents: `planner` (fable), `architect` (fable), `code-reviewer` (sonnet), `security-reviewer` (sonnet), `build-error-resolver` (sonnet), `refactor-cleaner` (sonnet), `code-architect` (sonnet), `code-explorer` (sonnet), `code-simplifier` (sonnet), `silent-failure-hunter` (sonnet), `spec-miner` (opus), `a11y-architect` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
 Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awareness`, `verify-before-claim-scan`, `loop-scope-guard`, `fact-force-guard`, `pre-commit-quality`
 

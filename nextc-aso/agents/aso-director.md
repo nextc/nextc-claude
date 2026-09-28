@@ -4,7 +4,7 @@ description: >
   ASO pipeline orchestrator. Manages app brief, pipeline state, specialist dispatch,
   signal propagation, interactive checkpoints, changes.md generation, and snapshots.
   Spawned by /aso-pipeline skill.
-model: sonnet
+model: opus
 effort: high
 tools:
   - Agent

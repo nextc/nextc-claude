@@ -94,6 +94,7 @@ const VALID_HOOK_TYPES = new Set([
 const VALID_MODEL_SHORTHANDS = new Set([
   'sonnet',
   'opus',
+  'fable',
   'haiku',
   'inherit',
 ]);
@@ -132,9 +133,9 @@ const MODEL_TIER_TABLE = {
   'flutter-builder': 'haiku',
   'flutter-l10n-agent': 'sonnet',
   'ui-ux-developer': 'sonnet',
-  'aso-director': 'sonnet',
-  'planner': 'opus',
-  'architect': 'opus',
+  'aso-director': 'opus',
+  'planner': 'fable',
+  'architect': 'fable',
   'code-reviewer': 'sonnet',
   'security-reviewer': 'sonnet',
   'code-architect': 'sonnet',

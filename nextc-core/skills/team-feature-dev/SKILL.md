@@ -475,7 +475,7 @@ Present the final summary to the user:
 | Gate 0 | `/clarify` skill | — | Vague request → clear spec |
 | Phase 1 | Existing `docs/spec/` | — | Skip planning if spec exists |
 | Phase 2a | `nextc-ecc:planner` | sonnet | Create implementation plan |
-| Phase 2b | `nextc-ecc:architect` | opus | Adversarial architecture review |
+| Phase 2b | `nextc-ecc:architect` | fable | Adversarial architecture review |
 | Phase 3 | User provides design assets | — | Core screen design (UI features) |
 | Phase 4 | `Agent` (spawn teammates) + `TaskCreate` | — | Native team orchestration (team forms on first spawn) |
 | Phase 4 | `ui-ux-developer` persona (injected into a `general-purpose` worker prompt) | sonnet | UI screen implementation — file body is the prompt, NOT a custom subagent_type |

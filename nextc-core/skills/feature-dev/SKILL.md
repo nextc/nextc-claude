@@ -450,7 +450,7 @@ This skill composes other skills and agents. Here's what it invokes:
 | Gate 0 | `/clarify` skill | — | Request too vague |
 | Phase 1 | Existing `docs/spec/` | — | Spec exists from prior `/clarify` — skip Phase 2a |
 | Phase 2a | `nextc-ecc:planner` agent | sonnet | No existing spec |
-| Phase 2b | `nextc-ecc:architect` agent | opus | Always |
+| Phase 2b | `nextc-ecc:architect` agent | fable | Always |
 | Phase 3 | User provides design assets | — | UI feature, core screen needed |
 | Phase 4 | `ui-ux-developer` agent | sonnet | UI feature, screen implementation |
 | Phase 4 | `/flutter-l10n-extract` skill | — | Flutter UI feature, l10n enabled |

@@ -2,7 +2,7 @@
 name: planner
 description: Expert planning specialist for complex features and refactoring. Use PROACTIVELY when the work spans multiple files, requires architectural decisions, or when the user says "plan this", "what's the approach", "how should we tackle this", "before I start coding", or "break this down".
 tools: ["Read", "Grep", "Glob", "SendMessage"]
-model: opus
+model: fable
 effort: xhigh
 ---
 

@@ -8,12 +8,12 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 
 | Agent | Model | Effort |
 |---|---|---|
-| `planner` | opus | xhigh |
-| `architect` | opus | xhigh |
-| `product-collision-analyst` | opus | xhigh |
-| `ie-team-lead` | opus | xhigh |
+| `planner` | fable | xhigh |
+| `architect` | fable | xhigh |
+| `product-collision-analyst` | fable | xhigh |
+| `ie-team-lead` | fable | xhigh |
 | `ui-ux-developer` | sonnet | high |
-| `product-explorer` | sonnet | high |
+| `product-explorer` | opus | high |
 | `product-researcher` | sonnet | high |
 | `product-shaper` | sonnet | high |
 | `product-stress-tester` | sonnet | high |
@@ -27,7 +27,7 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | `ie-mom-test` | sonnet | high |
 | `flutter-kickoff-agent` | sonnet | high |
 | `unity-kickoff-agent` | sonnet | high |
-| `aso-director` | sonnet | high |
+| `aso-director` | opus | high |
 | `aso-competitive` | sonnet | high |
 | `aso-keyword-research` | sonnet | high |
 | `aso-metadata` | sonnet | high |

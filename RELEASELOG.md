@@ -1,5 +1,11 @@
 # Release Log
 
+## v1.6.10 (2026-09-29)
+
+**Leadership agents run on Fable, pipeline orchestrators on Opus — with system-wide cost guardrails.** `planner`, `architect`, `ie-team-lead` and `product-collision-analyst` — the roles that plan, architect, or synthesize many agents' output — now run on `model: fable` (effort stays `xhigh`). `product-explorer` and `aso-director`, which direct whole pipelines and make their scope calls, move from Sonnet to Opus. Because the `agents` rule applies to every project and Fable is the most expensive tier (API bill and subscription usage limits), the rule now treats Fable as a closed list: only roster-listed agents use it, never fanned out or used as workers, never an escalation target on failure, and falls back to Opus when Fable is unavailable on the user's plan or its usage limit is hit. The roster, `CLAUDE.md`, `blueprint`, `feature-dev`, `team-feature-dev`, `idea-explore` and `product-explore` (whose cost table now counts "Premium calls (Fable/Opus)") are synced, and `/validate` accepts `fable` as a model shorthand.
+
+**UI/UX rule: semantic colour palettes must pass three tests.** `ui-ux-design` gains §1b — a categorical colour encoding is rejected if the accent already means something else, if any hue fails text contrast at its real size, or (a hard stop) if the colour could answer a question the screen is asking.
+
 ## v1.6.9 (2026-09-22)
 
 **nextc-ecc hooks.json no longer trips a plugin-load warning.** Claude Code was reporting `unknown keys "description" ... "id" in hooks.PreToolUse[0] ... and 11 more ignored` on every load. Per the official hooks docs, a matcher group accepts only `matcher`, `hooks`, and `timeout`, and the only supported `description` is a single top-level one — so the per-group `description` and `id` keys (8 groups, 16 keys) were being silently dropped. They are removed, the one supported top-level `description` is added, and hook behavior is unchanged. The per-hook notes (purpose, tunables, disable env vars) now live in a new `nextc-ecc/hooks/README.md`. `validate.js` used to label hook findings by the removed `id`; labels are now `<event>/<matcher>/<script file>` so the two `Bash` PreToolUse hooks stay distinguishable.

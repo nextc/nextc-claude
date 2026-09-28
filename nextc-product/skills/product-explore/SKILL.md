@@ -26,7 +26,7 @@ concrete real-world action the founder commits to before next session.
 - `product-researcher` agent: Phase 2 research (facts + hypotheses)
 - `product-shaper` agent: Phase 4 creative (vision, naming, canvas, positioning)
 - `product-stress-tester` agent: Phase 5 adversarial (assumptions, experiments)
-- `product-collision-analyst` agent: Phase 5.5 cross-referencing (Opus)
+- `product-collision-analyst` agent: Phase 5.5 cross-referencing (Fable)
 
 ## Flag Parsing
 
@@ -166,14 +166,14 @@ Estimated run:
   Flags: [auto, quick, no-collision — or none]
   Tokens: ~[N]K
   Time: ~[N] min
-  Opus calls: [N] (collision analysis[, vision synthesis])
+  Premium calls: [N] (collision analysis = Fable[, vision synthesis = Opus])
 ```
 
-| Mode + Flags | Tokens | Time | Opus Calls |
+| Mode + Flags | Tokens | Time | Premium Calls (Fable/Opus) |
 |-------------|--------|------|------------|
-| deep | ~150K | ~20 min | 2 (collision + vision) |
+| deep | ~150K | ~20 min | 2 (collision = Fable + vision = Opus) |
 | deep --auto | ~130K | ~15 min | 2 |
-| deep --quick | ~110K | ~15 min | 1 (collision only) |
+| deep --quick | ~110K | ~15 min | 1 (collision only = Fable) |
 | deep --auto --quick | ~90K | ~12 min | 1 |
 | deep --auto --quick --no-collision | ~70K | ~10 min | 0 |
 | fast | ~50K | ~8 min | 0 |

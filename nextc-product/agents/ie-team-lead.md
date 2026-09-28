@@ -1,7 +1,7 @@
 ---
 name: ie-team-lead
 description: Team-lead synthesizer for the idea-explore pipeline. Receives outputs from 8 framework analyst agents, synthesizes convergence vs. divergence, identifies highest-leverage actions, and writes the final markdown report to disk. Spawned by the idea-explore skill — not invoked directly.
-model: opus
+model: fable
 effort: xhigh
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "SendMessage"]
 ---
