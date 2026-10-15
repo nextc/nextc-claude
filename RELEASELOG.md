@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.12 (2026-10-15)
+
+**Orchestrators now stop their teammates once the work is in.** A background teammate does not exit when it finishes — it parks at an idle prompt (by design, so it can take follow-up work) and keeps its full context and process alive until something stops it. Orchestrations consumed teammates' reports and moved on without stopping them; in one run eleven idle teammates held ~1.9M tokens for hours. The `agents` rule gains a **Teammate Teardown** section: whoever spawns a teammate stops it with `TaskStop` as soon as its final report is consumed, confirms with `ListAgents` that none of its spawns is still listed, and never stops a teammate mid-work. `team-feature-dev` (Phase 8, lead conduct, worker preamble), `flutter-build` + `flutter-builder` (Step 4e — the TestFlight "only after fastlane exits" gate is kept) and `unity-build` now use `TaskStop` in place of the legacy `shutdown_request` handshake. The rule's old explanation — that teammates linger because their `tools:` lacks `SendMessage` — was wrong and is corrected; `SendMessage` stays required because a teammate's plain-text output never reaches the lead.
+
 ## v1.6.11 (2026-09-29)
 
 **Fable-tier agents default to Opus on plans that bill Fable to usage credits.** On Pro and Team standard seats, Fable isn't part of plan limits — every use is charged to usage credits after a consent prompt. The `agents` rule's plan-aware fallback now has Fable-tier agents (`planner`, `architect`, `ie-team-lead`, `product-collision-analyst`) run on Opus by default on those plans, switching to Fable only after the user opts in for the session. Max and premium seats, where Fable is included, are unaffected.

@@ -20,9 +20,9 @@ Interactive build pipeline: gather build parameters, spawn the flutter-builder a
 > artifact sizes) is filled in after the build. See Step 4 (Single) / Step 4b (Both).
 >
 > **Background builders MUST be shut down — but never mid-lane.** The parallel (both-platforms)
-> path spawns two background teammates. After their FINAL results are consumed, the skill sends each
-> a `shutdown_request` and waits for `shutdown_response` — an idle-but-un-reaped builder is a zombie
-> process. For an iOS `testflight` lane, "final" means the fastlane process exited: it keeps running
+> path spawns two background teammates. A finished teammate parks idle rather than exiting, so after
+> their FINAL results are consumed the skill stops each with `TaskStop` — otherwise they keep running,
+> holding their context, long after the build. For an iOS `testflight` lane, "final" means the fastlane process exited: it keeps running
 > after the upload to distribute the build to external testers, and shutting the builder down while
 > it polls kills that step. See the Step 4e completion gate.
 
@@ -309,7 +309,7 @@ PARTIAL MODE — the skill is orchestrating a parallel build:
 - DO Phase 3 (build) — iOS only. For the testflight lane the build is complete ONLY when the fastlane process exits — it keeps running after the upload to poll Apple processing, set release notes, and distribute to the external tester group
 - DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
 - SKIP Phase 5B (write build log) — skill will handle
-- DO Phase 6 (build report) — report iOS results, ONLY after the fastlane process has fully exited (your report triggers your shutdown; reporting while fastlane polls gets the distribution step killed)
+- DO Phase 6 (build report) — report iOS results, ONLY after the fastlane process has fully exited (your report triggers the skill to stop you; reporting while fastlane polls gets the distribution step killed)
 - SKIP Phase 7 (git commit & tag) — skill will handle
 """
 )
@@ -321,14 +321,14 @@ After BOTH agents report their Phase 6 results:
 
 1. **TestFlight completion gate (iOS `testflight` lane only):** an iOS report counts as a Phase 6 result ONLY if it states the fastlane lane process exited. `upload_to_testflight(distribute_external: true)` keeps running after the upload transmits — it polls Apple processing (5–15 min), then sets the release notes and submits to the external tester group. A report like "build done, fastlane still polling/uploading" is an in-progress status, not a result: do not record it, and above all do NOT shut that builder down — killing it kills the polling fastlane process, so the release notes and external-tester submission never happen and the user must submit manually in App Store Connect. Wait for the builder's final report.
 2. Record each platform's status (success/failed), renamed artifact path, and size — you need these for the buildlog metadata (Step 4f) and the report (Step 5). For the `testflight` lane, also record the distribution outcome (distributed to external group, or "upload transmitted, distribution unconfirmed").
-3. **Shut down both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`, so an idle "done" builder keeps running until reaped. As soon as its results are consumed, send each a `shutdown_request` and wait for its `shutdown_response`:
+3. **Stop both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`; a finished teammate parks idle instead of exiting, so it keeps running until stopped. As soon as a builder's final results are consumed (step 1's gate passed), stop it:
 
    ```
-   SendMessage(to="build-android", message={type: "shutdown_request"})
-   SendMessage(to="build-ios",     message={type: "shutdown_request"})
+   TaskStop(task_id="build-android")
+   TaskStop(task_id="build-ios")
    ```
 
-   Await each `shutdown_response` with a **bounded** wait (~2 min per builder), not indefinitely — a teammate finishes its current tool call before it can exit, so shutdown can be slow. If one never acknowledges, don't block: proceed and tell the user to kill it manually (`x` in-process, or `tmux kill-session` in split-pane). Reap them here, not at the end of the run — an idle-but-un-reaped builder is a zombie process.
+   `TaskStop` kills the builder and its child processes immediately — which is why step 1's TestFlight gate must pass first. Stop them here, not at the end of the run, then confirm with `ListAgents` that neither is still listed.
 
 **Step 4f: Write the buildlog entry (in skill, post-build assembly)**
 

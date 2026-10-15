@@ -15,7 +15,7 @@ Interactive Unity build pipeline: gather params, pre-flight, invoke Unity in
 batch mode, archive + export for iOS, verify artifacts, log, commit. Companion
 to `/flutter-build` — same UX + buildlog format.
 
-> **Threading rule.** Run Unity + xcodebuild on the skill's **main thread**; sub-agents only scaffold and draft the buildlog. Spawn those helpers in the **foreground** (`run_in_background: false`, the default) so they return and terminate — never as background teammates. If you ever do background a helper, you MUST `shutdown_request` it and await `shutdown_response` once its result is consumed, or it parks as a zombie idle process. (Unlike `/flutter-build`, this skill has no parallel background builders — Unity can't build two targets on one project at once.)
+> **Threading rule.** Run Unity + xcodebuild on the skill's **main thread**; sub-agents only scaffold and draft the buildlog. Spawn those helpers in the **foreground** (`run_in_background: false`, the default) so they return and terminate — never as background teammates. If you ever do background a helper, you MUST stop it with `TaskStop` once its result is consumed — a finished background teammate parks idle instead of exiting. (Unlike `/flutter-build`, this skill has no parallel background builders — Unity can't build two targets on one project at once.)
 
 ## Step 1: Read Current State
 

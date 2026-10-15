@@ -55,5 +55,5 @@ Send a progress message via SendMessage to "team-lead" when each task completes,
 or immediately when you hit a blocker. The lead cannot coordinate what it cannot see.
 
 When all your assigned tasks are done, notify the lead that you are standing by.
-New tasks may arrive, or the lead will send a shutdown_request.
+New tasks may arrive, or the lead will stop you once your work is consumed.
 ```

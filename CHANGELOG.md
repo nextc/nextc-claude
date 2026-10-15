@@ -2,6 +2,18 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-15
+
+### Fixed
+- **Background teammates were never stopped after finishing** — a teammate does not exit when its task is done; it parks at an idle prompt (by design, so it can take follow-up work) and keeps its full context and process alive until the orchestrator stops it. Orchestrations consumed teammates' reports and moved on without stopping them; in one run eleven idle teammates held ~1.9M tokens for hours. Teardown is now an explicit `TaskStop(task_id="<teammate name>")` step, done as soon as each teammate's final report is consumed, followed by a `ListAgents` check that none of the orchestrator's spawns is still listed.
+  - **`rules/nextc-claude/agents.md`** — new **Teammate Teardown (CRITICAL)** section plus an enforcement bullet: whoever spawns a background teammate owns stopping it; `shutdown_request` is the legacy handshake (it waits on the teammate to answer); never stop a teammate mid-work.
+  - **`nextc-core/skills/team-feature-dev`** — Phase 8, the tool table, `references/lead-conduct.md` (Shutdown Rules) and `references/worker-preamble.md` now use `TaskStop` instead of `shutdown_request` and bounded waits.
+  - **`nextc-flutter/skills/flutter-build`** (Step 4e + threading note) and **`nextc-flutter/agents/flutter-builder.md`** — builders are stopped with `TaskStop`; the TestFlight "final report only after fastlane exits" gate is kept and now guards `TaskStop`, which kills child processes immediately.
+  - **`nextc-unity/skills/unity-build`** — a backgrounded helper is stopped with `TaskStop`.
+
+### Changed
+- **`rules/nextc-claude/agents.md`, `team-feature-dev/SKILL.md`** — corrected the claim that teammates park as "zombies" because their `tools:` lacks `SendMessage`. Both agents in the incident (`ui-ux-developer`, `build-error-resolver`) list `SendMessage`; parking is normal teammate behavior. `SendMessage` is still required in every agent's `tools:`, now for the real reason: a teammate's plain-text output is not visible to the lead, so it needs `SendMessage` to report.
+
 ## 2026-09-29
 
 ### Changed

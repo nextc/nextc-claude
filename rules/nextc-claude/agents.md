@@ -66,6 +66,17 @@ Plain parallel `Agent()` is the right default only when the user did **not** inv
 
 Examples that REQUIRE agent-teams orchestration: `/team-feature-dev`, `/team-builder`, "spin up a team of …", "run these as a team", "I want to watch them in panes", multi-feature sprints, full-stack features where frontend/backend need to sync, parallel investigations with cross-checking.
 
+## Teammate Teardown (CRITICAL)
+
+**Whoever spawns a background teammate owns its shutdown.** A teammate does not exit when it finishes — it parks at an idle prompt waiting for follow-up work. That is by design (it keeps its context for the next task), not a hang and not a zombie. It also keeps holding its full context and a live process until something stops it.
+
+- **Stop each teammate with `TaskStop(task_id="<teammate name>")` as soon as its final report is consumed and no follow-up task is planned for it.** Reap at that point — not "at the end of the pipeline", and never left for the user to find.
+- **Before ending the turn that closes out an orchestration, account for every teammate you spawned** (`ListAgents`): each one is either stopped or deliberately kept with a stated reason. Rows that are other Claude sessions, not your spawns, are not yours to stop.
+- **`shutdown_request` is the legacy handshake** — it depends on the teammate answering, so it can stall. Use `TaskStop`; the orchestrator does not need the teammate's cooperation.
+- **Never stop a teammate mid-work.** `TaskStop` kills the teammate and every child process it owns. Wait for a *final* report (e.g. a TestFlight lane is final only once fastlane has exited).
+
+**Why:** an orchestrator consumed eleven teammates' reports and kept working without stopping any of them; they sat idle for hours holding ~1.9M tokens of context, one left over from a build two days earlier. The earlier diagnosis — that teammates lingered because their `tools:` lacked `SendMessage` — was wrong; the missing step was the orchestrator's teardown.
+
 ## Parallel Execution (CRITICAL)
 
 ALWAYS launch independent agent operations in parallel, never sequentially.
@@ -88,7 +99,8 @@ only succeeds if its brief is right:
 
 - Every `Agent()` call: `model` parameter required
 - Every agent definition: BOTH `model:` AND `effort:` fields in frontmatter
-- Every agent definition's `tools:` list MUST include `SendMessage` — without it a teammate cannot send `shutdown_approved`, so it parks as a zombie idle process after finishing and `shutdown_request` is a no-op. The `tools:` allowlist DOES gate this; the harness does not inject it. Task-claiming workers also need the `Task*` family. (Only omit for a definition that will never run as a teammate.)
+- Every agent definition's `tools:` list MUST include `SendMessage` — a teammate's plain-text output is not visible to the lead, so without it a teammate cannot report results, blockers, or completion. The `tools:` allowlist DOES gate this; the harness does not inject it. Task-claiming workers also need the `Task*` family. (Only omit for a definition that will never run as a teammate.)
+- Every orchestration that spawns background teammates MUST stop them with `TaskStop` once their final reports are consumed (see Teammate Teardown). An idle teammate left running after its work is consumed is a defect in the orchestrator, not in the teammate.
 - When in doubt: `sonnet` + `high`
 - Never `low` effort
 - Team work uses agent-teams orchestration (teammates spawned via `Agent` under the experimental flag) — never silently downgrade to plain parallel `Agent()` calls. If you want to downgrade, ask first.

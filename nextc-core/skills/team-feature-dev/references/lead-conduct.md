@@ -35,13 +35,17 @@ task so two workers never write to the same file simultaneously.
 
 ## Shutdown Rules
 
-- **Send each teammate a `shutdown_request` and wait for their `shutdown_response`
-  before ending the session.** A teammate finishes its current request or tool call
-  before it can exit, so shutdown can be slow — wait, but bound the wait (~2 min per
-  teammate) rather than blocking forever. If one never acknowledges, proceed and have
-  the user kill it manually (`x` in-process, or `tmux kill-session` in split-pane).
-  There is no `TeamDelete` step (removed in v2.1.178); the team config is cleaned up
-  automatically when the session ends.
+- **A finished teammate parks idle — it does not exit.** That is normal teammate
+  behavior, not a hang. It keeps its full context and process alive until you stop it.
+- **Stop each teammate with `TaskStop(task_id="<teammate name>")` as soon as its final
+  report is consumed and you have no follow-up task for it.** Don't wait for the end
+  of the run, and don't rely on the legacy `shutdown_request` handshake, which depends
+  on the teammate answering.
+- **Never stop a teammate that is mid-task** — `TaskStop` kills it and its child
+  processes immediately. Check TaskList: only `completed` work is safe to reap.
+- **Before reporting to the user, confirm with `ListAgents` that none of your spawns
+  is still listed.** There is no `TeamDelete` step (removed in v2.1.178); the team
+  config is cleaned up automatically when the session ends.
 
 ## Coordination Heuristics
 

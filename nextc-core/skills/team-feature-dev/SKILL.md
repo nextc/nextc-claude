@@ -46,7 +46,7 @@ You are the **lead orchestrator**. You do NOT write implementation code yourself
 - Monitor progress via TaskList and incoming messages
 - Coordinate: unblock, reassign, resolve conflicts
 - Verify the final result
-- Shut down the team cleanly
+- Stop every teammate with `TaskStop` once its work is consumed (Phase 8)
 
 **You don't:**
 - Write implementation code (teammates do this)
@@ -245,7 +245,7 @@ Spawn all teammates **in parallel**. Each teammate gets a worker preamble + thei
 | Simple rename, import fix, config change | general-purpose | — | haiku | Minimal reasoning, scripted steps |
 | L10n string extraction | general-purpose | — | haiku | Mechanical text processing |
 
-**Team workers spawn as `subagent_type: "general-purpose"`, with any specialist persona injected via the prompt (Step 4c)** rather than referencing a custom file-based `subagent_type`. This **is** a tooling constraint (verified in practice, not just docs): a teammate whose `tools:` omits `SendMessage` physically cannot send `shutdown_approved`, so it finishes its work then parks as idle, re-emitting idle pings, and your `shutdown_request` is a no-op. `general-purpose` has `SendMessage`/`Task*` by default; our shipped agents now include `SendMessage` too (enforced in `agents.md`), but general-purpose + injection stays the standard path — it also avoids the teammate/subagent gap: a definition's `skills`/`mcpServers` frontmatter are ignored as a teammate and its body is *appended* (not replacing) the system prompt. If you do use a custom `subagent_type`, confirm its `tools:` include `SendMessage` and set `model`/effort explicitly at spawn.
+**Team workers spawn as `subagent_type: "general-purpose"`, with any specialist persona injected via the prompt (Step 4c)** rather than referencing a custom file-based `subagent_type`. A teammate needs `SendMessage` to report to you (its plain-text output never reaches the lead) and `Task*` to claim work. `general-purpose` has both by default; our shipped agents include `SendMessage` too (enforced in `agents.md`), but general-purpose + injection stays the standard path — it also avoids the teammate/subagent gap: a definition's `skills`/`mcpServers` frontmatter are ignored as a teammate and its body is *appended* (not replacing) the system prompt. If you do use a custom `subagent_type`, confirm its `tools:` include `SendMessage` and set `model`/effort explicitly at spawn.
 
 **Specialist behavior is delivered via prompt injection, not subagent_type.** When a task needs a specialist persona (e.g. UI screen implementation, security review, code archeology), the specialist agent's markdown file is read and its body (everything after the closing frontmatter `---`) is prepended into the worker prompt. The file's frontmatter (`tools:`, `model:`, `description:`) is ignored in this mode — only the body matters as instructions.
 
@@ -364,13 +364,13 @@ Re-run analyzer after cleanup. Revert cleanup changes that break the build.
 
 ## Phase 8: Shutdown Team
 
-1. **Send shutdown_request** to each teammate (or ask it by name): `SendMessage(to="worker-1", message={type: "shutdown_request"})`.
-2. **Await shutdown_response with a bounded wait (~2 min/teammate), not indefinitely** — shutdown
-   "can be slow." If one never acknowledges, don't block: proceed and tell the user to kill it
-   manually (`x` in-process, or `tmux kill-session` in split-pane). Detail: `references/lead-conduct.md`.
-3. **No teardown call is needed** — `TeamCreate`/`TeamDelete` were removed in v2.1.178; the team
-   config is cleaned up automatically on session exit.
-4. **Suggest a doc-keeper doc sync** — the feature is complete, so offer it and spawn in background only after the user approves (per `project-docs.md`); if declined, point them to `/update-docs`.
+Mandatory — a finished teammate parks idle with its full context until you stop it.
+
+1. **Stop each teammate with `TaskStop(task_id="<teammate name>")`** once its tasks are `completed`
+   and its report is consumed (not mid-task — it kills immediately). Detail: `references/lead-conduct.md`.
+2. **Confirm with `ListAgents`** that none of your spawns is still listed (other sessions aren't yours).
+   No team-delete call exists (`TeamDelete` removed in v2.1.178).
+3. **Suggest a doc-keeper doc sync** — the feature is complete, so offer it and spawn in background only after the user approves (per `project-docs.md`); if declined, point them to `/update-docs`.
 
 ## Phase 9: Report
 
@@ -483,7 +483,7 @@ Present the final summary to the user:
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
 | Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
-| Phase 8 | `shutdown_request` + `doc-keeper` agent | sonnet | Graceful shutdown (auto-cleanup on session exit) + doc sync suggestion (spawn on user approval) |
+| Phase 8 | `TaskStop` per teammate + `doc-keeper` agent | sonnet | Stop every teammate (they park idle, not exit) + doc sync suggestion (spawn on user approval) |
 
 ## When to Use /team-feature-dev vs /feature-dev
 
