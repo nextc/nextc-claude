@@ -1,6 +1,6 @@
 ---
 name: canary-watch
-description: Verify a deployed URL after a release by checking health, errors, assets, streams, and performance against a baseline.
+description: Verify a deployed URL against a baseline after a release. Use when you have just deployed, after merging a risky PR, or to confirm a fix in the live environment.
 when_to_use: |
   Use after deploying to production/staging, after merging a risky PR, after a dependency upgrade, or to confirm a fix actually fixed it in the live environment. Triggers: "canary", "smoke test the deploy", "is prod healthy", "check the site after deploy", "post-deploy verification", "did the release break anything". Skip pre-deploy (that's local verification) and when there's no reachable URL.
 allowed-tools: Bash Read

@@ -1,9 +1,9 @@
 ---
 name: flutter-l10n-verify
 description: >
-  Post-translation verification for Flutter ARB files. Use after translating to catch
-  cross-locale inconsistencies, untranslated domain terms, code-switching, mismatched
-  verbs, and dead keys.
+  Post-translation verification for Flutter ARB files. Use when translations are done, to
+  catch cross-locale inconsistencies, untranslated domain terms, code-switching, and dead
+  keys.
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
 paths: ["**/pubspec.yaml", "**/l10n/*.arb"]

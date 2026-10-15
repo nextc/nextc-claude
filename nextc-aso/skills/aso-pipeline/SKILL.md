@@ -55,7 +55,8 @@ Provides: `competitor-analysis`, `competitor-tracking`, `market-pulse`, `market-
 
 ### Optional Checks
 
-- **DataForSEO MCP:** Check if `mcp__plugin_ecc_dataforseo__*` tools exist.
+- **DataForSEO MCP:** Check if any tool whose name contains `dataforseo` exists, in any MCP
+  namespace (a user-configured `mcp__dataforseo__*` or a plugin-provided `mcp__plugin_<plugin>_dataforseo__*`).
   If absent, warn: no verified keyword volumes — qualitative tiering mode only.
 - **`docs/proposal.md`:** If exists, product context available for brief seeding.
 

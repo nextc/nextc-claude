@@ -1,6 +1,6 @@
 ---
 name: writing-skills
-description: Author or revise a skill by pressure-testing it against real agent behavior before deploying, so the skill actually changes what agents do.
+description: Author or revise a skill by pressure-testing it against real agent behavior so it actually changes what agents do. Use when creating or editing a skill, or when an agent ignores one.
 when_to_use: |
   Use when creating a new skill, editing an existing skill, or deciding whether a skill is ready to ship. Triggers: "write a skill", "create a skill", "improve this skill", "why isn't this skill working", "the agent ignores this skill", "make this skill bulletproof". Pairs with the `skill-authoring.md` rule (frontmatter discipline) and the `/validate` and `skill-audit` skills.
 allowed-tools: Read Write Edit Agent Bash Grep Glob
@@ -76,6 +76,10 @@ conventions (those go in `CLAUDE.md`), or anything enforceable by regex/validati
 instead — that's what a hook or `/validate` is for). Per our Golden Rule, skills here must be
 project-agnostic.
 
+## Evals
+
+Measure changes with the convention in `references/eval-convention.md`: tasks from real failures, deterministic graders first, outcomes over tool-call paths, baseline vs with-change stored with date and model, and a user go-ahead before running (evals cost model calls).
+
 ## Checklist
 
 - [ ] Baseline scenario run WITHOUT the skill; failures + rationalizations captured verbatim
@@ -83,6 +87,7 @@ project-agnostic.
 - [ ] Skill addresses the *specific* baseline failures; guidance form matches the failure type
 - [ ] One excellent example (not multi-language filler); keywords present for discovery
 - [ ] Re-run WITH the skill — agent complies; loopholes closed and re-tested
+- [ ] For a high-traffic skill or a rule change: eval task from a real failure, baseline vs with-change stored per `references/eval-convention.md` (running evals needs the user's go-ahead)
 - [ ] `/validate` passes; consider `skill-audit` for a quality pass
 
 ## Relationship to other skills/rules

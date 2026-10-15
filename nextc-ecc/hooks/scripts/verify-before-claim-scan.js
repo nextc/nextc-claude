@@ -13,20 +13,20 @@
  * sails straight through. This raises the floor; it is NOT a guarantee. The
  * discipline in verify-before-claim.md is the real guard.
  *
- * Contract (verified in-session against https://code.claude.com/docs/en/hooks.md):
- *   stdin  : JSON with a `messages` array; the last `role:"assistant"` entry
- *            holds the text (string, or array of content blocks with `.text`).
- *   output : exit 0 + optional JSON {hookSpecificOutput:{hookEventName:"Stop",
- *            decision:"block"|omitted, reason, additionalContext}} for the
- *            model-facing modes; a non-zero exit with one stderr line for the
- *            user-facing "warn" mode. Stop takes NO matcher. There is no
- *            `stop_hook_active` field — the loop guard below is ours.
+ * EXTERNAL: Stop hook contract, https://code.claude.com/docs/en/hooks (Stop section, checked 2026-10-15):
+ *   stdin  : JSON with `last_assistant_message` (string, the turn's final text)
+ *            and `stop_hook_active` (true when Claude is already continuing
+ *            because a Stop hook kept it going). There is no `messages` array.
+ *   output : top-level {decision:"block", reason} keeps Claude working;
+ *            {hookSpecificOutput:{hookEventName:"Stop", additionalContext}} is
+ *            non-error feedback, and the conversation ALSO continues. A non-zero
+ *            exit with one stderr line is the user-facing "warn" mode.
  *
  * Config (env):
  *   VERIFY_HOOK_MODE    = "context" (default) | "warn" | "block" | "off"
- *       context -> non-blocking note fed to the MODEL so it self-corrects (default)
+ *       context -> feedback to the MODEL; it continues once to self-correct (default)
  *       warn    -> one-line notice to the USER, stop proceeds (no model turn, no loop)
- *       block   -> forces the model to continue and re-check once (loop-guarded)
+ *       block   -> hook error that forces the model to continue and re-check once
  *       off     -> disabled
  *   VERIFY_HOOK_PHRASES = comma-separated list to override the defaults
  */
@@ -62,22 +62,18 @@ function extractText(content) {
   return '';
 }
 
-function assistantTexts(messages) {
-  if (!Array.isArray(messages)) return [];
-  return messages
-    .filter((m) => m && m.role === 'assistant')
-    .map((m) => extractText(m.content));
-}
-
 function run(input) {
   const mode = (process.env.VERIFY_HOOK_MODE || 'context').toLowerCase();
   if (mode === 'off') return null;
 
-  const phrases = getPhrases();
-  const texts = assistantTexts(input && input.messages);
-  if (texts.length === 0) return null;
+  // ORDER: loop guard first — both model-facing modes make Claude continue, so
+  // a turn that is already a Stop-hook continuation must be allowed to stop.
+  if (input && input.stop_hook_active && mode !== 'warn') return null;
 
-  const finalText = texts[texts.length - 1];
+  const phrases = getPhrases();
+  const finalText = extractText(input && input.last_assistant_message);
+  if (!finalText) return null;
+
   const lower = finalText.toLowerCase();
 
   const hits = phrases.filter((p) => lower.includes(p));
@@ -103,16 +99,7 @@ function run(input) {
   }
 
   if (mode === 'block') {
-    // ORDER: loop guard — only hard-block when the PREVIOUS assistant turn did
-    // NOT already trip the scanner. If two turns in a row trip it, downgrade to
-    // non-blocking context so we never trap the session in a block loop (there
-    // is no platform `stop_hook_active` guard to lean on).
-    const priorHit = texts.length >= 2 &&
-      phrases.some((p) => texts[texts.length - 2].toLowerCase().includes(p));
-    if (!priorHit) {
-      return { exitCode: 0, json: { hookSpecificOutput: { hookEventName: 'Stop', decision: 'block', reason: full } } };
-    }
-    return { exitCode: 0, json: { hookSpecificOutput: { hookEventName: 'Stop', additionalContext: full } } };
+    return { exitCode: 0, json: { decision: 'block', reason: full } };
   }
 
   // mode === 'warn' (and any unrecognized value): user-facing, non-blocking. Exit non-zero so the
@@ -142,4 +129,4 @@ process.stdin.on('end', () => {
   process.exit(result.exitCode || 0);
 });
 
-module.exports = { run, assistantTexts, extractText };
+module.exports = { run, extractText };

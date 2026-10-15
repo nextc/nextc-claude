@@ -67,6 +67,7 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | Data model, repo, provider, service, UI workers | sonnet | high |
 | Rename, import fix, config, l10n extraction | haiku | medium |
 | Complex state mgmt, multi-file coordination | opus | xhigh |
-| Explore / bug investigation / codebase search | haiku | medium |
+| Explore / codebase search (read-only scan) | haiku | low–medium |
+| Bug investigation (forms hypotheses) | haiku | medium |
 | Bug synthesis / root cause (if complex) | opus | xhigh |
 | L10n translation orchestration | sonnet | medium |

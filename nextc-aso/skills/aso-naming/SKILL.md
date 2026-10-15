@@ -1,9 +1,8 @@
 ---
 name: aso-naming
 description: >
-  Turn a product concept into ranked Title + Subtitle candidates using the
-  Brand+Keyword formula, 4 angles, safety/collision checks, and a 12-point
-  rubric. Use before launch, before a rename, or for naming a sister-SKU.
+  Turn a product concept into ranked, collision-checked Title and Subtitle candidates. Use
+  when naming a product before launch, before a rename, or for naming a sister-SKU.
 user-invocable: true
 argument-hint: "[concept or flags: --validate <name> | --rename <current-name> | --from-proposal | --from-brief]"
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash WebFetch

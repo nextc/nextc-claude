@@ -1,6 +1,6 @@
 ---
 name: blueprint
-description: Turn a one-line objective into a cold-start-executable, multi-PR construction plan for work that spans several sessions or agents.
+description: Turn a one-line objective into a cold-start-executable, multi-PR construction plan for work that spans several sessions or agents. Use when a task is too big for one PR or one session.
 when_to_use: |
   Use when a task is too big for one PR or one session — a feature that breaks into multiple PRs, a refactor or migration across many files/sessions, or work coordinated across sub-agents where context loss between sessions would cause rework. Triggers: "plan this", "give me a roadmap", "blueprint", "break this into PRs", "how do we sequence this", "multi-step plan". Skip when the task fits one PR / fewer than ~3 tool calls, or the user says "just do it" — use the `planner` agent or `/feature-dev` instead.
 allowed-tools: Agent Read Grep Glob Bash
@@ -63,6 +63,9 @@ the invariant to preserve, the prior decision it builds on).
 **Consumes:** exact inputs/signatures produced by earlier steps (so this step needs no other reading).
 **Produces:** exact outputs/signatures later steps will consume.
 
+**Decisions:** the choices this step fixes — interfaces and signatures, the test assertions that
+must hold, spec values (limits, names, formats), and constraints. Decisions, not transcribed code.
+
 **Tasks:**
 - [ ] …
 
@@ -73,6 +76,14 @@ the invariant to preserve, the prior decision it builds on).
 
 `Consumes`/`Produces` are the contract that lets later-step agents work from their brief alone
 instead of re-reading the whole plan.
+
+**A plan records decisions, not implementation.** Write signatures, assertions, values, and
+rollback; do not paste function bodies or finished code. Implementation belongs to the executing
+agent, which sees the live code; transcribed code goes stale and bloats the plan.
+
+**Length self-check.** Before review, compare the plan's length to the spec's (or the objective's
+scope). If the plan is longer than the spec it implements or has started to contain working code,
+trim each step back to its decisions and delete the rest.
 
 ### 4. Review (adversarial gate)
 
@@ -87,10 +98,22 @@ Do not ship the plan unreviewed. Run the **`adversarial-review`** skill on it, o
 
 Fix every critical finding before finalizing.
 
-### 5. Register
+### 5. Register and approve
 
 Save the plan, add/refresh a pointer in `docs/tasks.md`, and report to the user: step count, the
 parallelism summary (which steps can run concurrently), and the first step to execute.
+
+**Approval gate.** Point the user at the saved `docs/plans/<slug>.md` and ask them to review that
+file. No step executes until they approve the saved plan. Approving the idea or the scope earlier
+is not approval of a plan they have not seen. Edits they request go into the file first, then
+re-ask.
+
+**Handoff.** After approval, offer the execution mode:
+
+1. **Inline (cheapest, recommended for small or serial plans)** — run the approved plan in this
+   session, step by step, with one whole-branch review at the end.
+2. **`/team-feature-dev`** — parallel workers per step; faster wall-clock on parallel steps, but
+   costs more tokens (one context per worker plus coordination).
 
 ## Plan mutation protocol
 
@@ -107,6 +130,8 @@ the change — never let the plan drift from what's actually being built (`lates
 - Steps bigger than one PR ("implement the whole backend").
 - Vague exit criteria ("works correctly") instead of observable/verifiable conditions.
 - Skipping the review gate because the plan "looks fine."
+- Starting execution before the user has approved the saved plan file.
+- Transcribing implementation code into steps instead of recording decisions.
 - Leaving the plan file stale after the work diverges from it.
 
 ## Relationship to other skills

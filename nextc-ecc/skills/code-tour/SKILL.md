@@ -1,6 +1,6 @@
 ---
 name: code-tour
-description: Generate a persona-targeted CodeTour `.tour` walkthrough anchored to real, verified file and line locations.
+description: Generate a persona-targeted CodeTour `.tour` walkthrough anchored to real, verified file and line locations. Use when the user wants a reusable guided walkthrough artifact rather than a one-off chat answer.
 when_to_use: |
   Use when the user wants a reusable guided walkthrough artifact, not a one-off chat answer — "code tour", "onboarding tour", "architecture walkthrough", "tour this PR", "walk me through how X works", "ramp-up path for a new engineer". Skip when a chat explanation suffices, when they want prose docs (edit repo docs instead), or for broad onboarding without a tour artifact (use `codebase-onboarding`).
 allowed-tools: Read Write Grep Glob Bash

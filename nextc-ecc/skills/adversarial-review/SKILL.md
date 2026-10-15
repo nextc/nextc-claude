@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: Two independent reviewers must both approve high-stakes output before it ships, breaking the single-reviewer blind-spot problem.
+description: Require independent review approval before high-stakes output ships, breaking the single-reviewer blind-spot problem. Use when about to ship output where a missed defect is costly.
 when_to_use: |
   Use before shipping output where a missed defect is costly — production code without human review, customer-facing copy, claims/stats/API references, compliance-sensitive text, or batch-generated content. Also when the user says "make sure this is right", "double-check this", "review this twice", "is this safe to ship", or "adversarial review". Skip for internal drafts, exploration, and anything a build/test/lint already verifies deterministically — use `verification-loop` for those.
 allowed-tools: Agent Read Grep Glob

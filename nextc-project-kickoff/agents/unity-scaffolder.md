@@ -194,7 +194,7 @@ Unity Editor populates it automatically on first open.
 
 ## Steps 4–11: Write Config and Tooling Files
 
-Read `references/unity-scaffolder-templates.md` for the exact content of each file:
+Read `${CLAUDE_PLUGIN_ROOT}/references/unity-scaffolder-templates.md` for the exact content of each file:
 
 - **Step 4** — `ProjectSettings/EditorSettings.asset` (YAML, Text serialization)
 - **Step 5** — `ProjectSettings/ProjectSettings.asset` (YAML, minimal stub)

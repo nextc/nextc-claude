@@ -1,6 +1,6 @@
 ---
 name: opensource-pipeline
-description: Prepare a private project for safe public open-source release.
+description: Prepare a private project for safe public open-source release. Use when preparing a private repo for public release.
 when_to_use: |
   Use when preparing a private repo for public release. Triggers: "/opensource", "open source this", "make this public", "prepare for open source", "release publicly", "strip secrets before pushing", "ship this to GitHub publicly".
 disable-model-invocation: true

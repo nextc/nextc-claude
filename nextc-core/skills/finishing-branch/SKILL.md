@@ -1,6 +1,6 @@
 ---
 name: finishing-branch
-description: Decide how to integrate completed branch work via a structured merge / PR / keep / discard menu, with safe worktree cleanup.
+description: Decide how to integrate completed branch work, with safe worktree cleanup. Use when implementation on a branch is complete and verified and you need to decide what happens to it.
 when_to_use: |
   Use when implementation on a branch is complete and verified and you need to decide what happens to it. Triggers: "wrap this up", "finish this branch", "merge or PR?", "I'm done with this branch", "clean up the worktree", "what do I do with this work now". Skip mid-implementation or when the user already told you exactly how to integrate (just do that).
 allowed-tools: Read Bash AskUserQuestion

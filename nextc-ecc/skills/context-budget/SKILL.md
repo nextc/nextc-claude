@@ -1,6 +1,6 @@
 ---
 name: context-budget
-description: Audit Claude Code context-window consumption across agents, skills, MCP servers, and rules. Identifies bloat, duplication, and surfaces a prioritized token-savings list.
+description: Audit Claude Code context-window consumption and surface a prioritized token-savings list. Use when the context bar is high, a session feels slow or expensive, or before installing more skills or agents.
 when_to_use: |
   Use when context bar is high before any work is done, when a session feels slow/expensive, or when planning skill/agent installs. Also when user says "where's my context going", "audit my setup", "token bloat", "context budget", "what's loaded", "trim my context", or "why is this so slow".
 allowed-tools: Read Grep Glob Bash

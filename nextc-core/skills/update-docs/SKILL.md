@@ -1,6 +1,6 @@
 ---
 name: update-docs
-description: Sync project docs with current codebase state — CLAUDE.md, tasks.md, specs, design.md, changelog, glossary, api.md.
+description: Sync project docs with the current codebase state. Use when you have completed features, fixing bugs, or making changes that affect documentation.
 when_to_use: |
   Use after completing features, fixing bugs, or making changes that affect documentation. Triggers: "update the docs", "sync docs", "docs are stale", "doc-keeper", "/update-docs", "after this is done update docs", or "make sure docs match the code".
 user-invocable: true

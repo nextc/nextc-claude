@@ -1,6 +1,6 @@
 ---
 name: agent-self-evaluation
-description: Self-rate your own output on five evidence-backed axes before handing it back, catching omissions and overconfidence.
+description: Self-rate your own output on evidence-backed axes before handing it back, catching omissions and overconfidence. Use when you have completed a non-trivial deliverable.
 when_to_use: |
   Use after completing a non-trivial deliverable — code spanning 3+ files or ~50+ lines, a multi-step workflow, a debugging session with 3+ attempts, or a design/analysis document. Also when the user says "rate yourself", "how good was that", "grade this", or "self-review". Skip for trivial one-line answers and pure conversation.
 allowed-tools: Read Grep Glob Bash

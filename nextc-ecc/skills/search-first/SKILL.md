@@ -1,6 +1,6 @@
 ---
 name: search-first
-description: Research-before-coding workflow. Search Context7, GitHub, and registries for existing tools, libraries, and patterns before writing custom code.
+description: Research existing tools, libraries, and patterns before writing custom code. Use when about to build common infrastructure such as auth, payments, file upload, or caching.
 when_to_use: |
   Use before writing custom code for auth, payments, animations, file upload, charts, caching, or any common infra problem. Also when user says "is there a library for", "before we build this", "search first", "find existing", "any package that does", or proposes building something that's likely solved.
 allowed-tools: Agent Read Grep Glob Bash WebFetch WebSearch

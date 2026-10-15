@@ -232,7 +232,7 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 | Backend | [choice] |
 | Auth | [choice] |
 | Entities | [N] defined in docs/architecture.md |
-| Docs | CLAUDE.md + docs/ seeded from proposal |
+| Docs | AGENTS.md (canonical) + CLAUDE.md (imports it) + docs/ seeded from proposal |
 | Architecture | docs/architecture.md — patterns for /feature-dev |
 
 ## Your First Move
@@ -240,6 +240,16 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 > `cd [dir] && /feature-dev` — start with core infrastructure (Phase 1 tasks in tasks.md).
 > The architecture is prescribed in docs/architecture.md. /feature-dev reads it and
 > writes production-grade code using the current Flutter SDK.
+
+## Recommended (optional): official Dart/Flutter tooling
+
+Offer — do not force, and ask before running — installing the official plugin
+(MCP server for analyzer diagnostics / tests / runtime inspection, Flutter skills,
+a11y agent). Source: https://docs.flutter.dev/ai/get-started
+> `claude plugin marketplace add flutter/agent-plugins`
+> `claude plugin install dart-flutter@dart-flutter`
+Do not re-implement what it provides. Claude Code does not auto-load its rules;
+they can be copied from https://github.com/flutter/agent-plugins/tree/main/rules.
 ```
 
 **If `--full` mode:** Continue to Phase 4.

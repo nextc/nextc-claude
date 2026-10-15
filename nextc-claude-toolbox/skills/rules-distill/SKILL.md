@@ -1,6 +1,6 @@
 ---
 name: rules-distill
-description: Find cross-cutting principles repeated across skills and promote them into rule files, with user approval per candidate.
+description: Find cross-cutting principles repeated across skills and promote them into rule files, with user approval per candidate. Use when doing periodic rules maintenance or after adding several new skills.
 when_to_use: |
   Use for periodic rules maintenance, after adding several new skills, or when the rules feel incomplete relative to how skills actually behave. Triggers: "distill rules", "what should be a rule", "extract principles from the skills", "rules maintenance". Skip for one-off principles that belong to a single skill.
 allowed-tools: Read Write Edit Grep Glob Bash Agent

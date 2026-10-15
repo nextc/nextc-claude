@@ -70,12 +70,6 @@ After a spec change, every echo of the old spec is a future bug. Hunt and remove
 
 If you can't update every echo in the same response (because the audit is huge), surface that explicitly and propose a follow-up — never just leave them and move on.
 
-## How This Differs From Related Rules
-
-- **`project-docs.md`** mandates the `docs/` folder as source of truth. This rule defines *when* and *how* that source moves forward — and extends the obligation to comments, README, rules, and any other place behavior is recorded.
-- **`practices.md` → Think Before Coding** surfaces competing readings of a *single* request. This rule handles competing instructions *across time*.
-- **`verify-before-claim.md`** governs *not asserting* any fact (external or internal) without proof. This rule governs *which version* of the spec is canonical when there are competing versions across time.
-
 ## Enforcement
 
 - Before implementing any new request: identify whether it changes any prior spec recorded in docs, code, comments, rules, or earlier in this session. If yes, classify as Branch A (extension / coherent supersession) or Branch B (conflict) and act accordingly.

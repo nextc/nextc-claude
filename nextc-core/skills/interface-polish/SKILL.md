@@ -1,6 +1,6 @@
 ---
 name: interface-polish
-description: Apply concrete design-engineering details that make a web UI feel polished — radius, type, motion, hit areas, states.
+description: Apply concrete design-engineering details that make a web UI feel polished. Use when a web or CSS interface feels off, flat, cramped, or unfinished.
 when_to_use: |
   Use when a web/CSS interface feels off, flat, generic, cramped, jumpy, or unfinished, or when building controls/cards/lists/forms/toolbars that need hover/active/focus/enter/exit/loading/empty states, or when a frontend review needs specific before/after recommendations. Skip for non-web stacks (Flutter/Unity) and for color/typography/consistency decisions — those are governed by the `ui-ux-design.md` rule.
 allowed-tools: Read Edit Grep Glob

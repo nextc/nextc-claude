@@ -1,5 +1,34 @@
 # Release Log
 
+## v1.6.13 (2026-10-15)
+
+**Re-run `./setup-rules.sh` after pulling.** Rule references moved from `rules/nextc-claude/references/` to `rules-references/`, symlinked to `~/.claude/nextc-claude-references/`, because Claude Code loads every `.md` under `~/.claude/rules/`, subfolders included. The always-loaded rule text is 19% smaller; `verify-before-claim` went from 124 to ~80 lines, and duplicate text was removed from `git-workflow`, `latest-spec-wins` and `practices`. No obligation was dropped. A new before/after eval harness (`rules-evals/`) measured the trim at 28/28 on both sides, with about 18% lower cost per run.
+
+**Fixes.**
+- The `verify-before-claim` Stop hook never fired; it now reads `last_assistant_message` and uses the documented block format.
+- The secret scanner now catches Anthropic, OpenAI project, GitHub, Slack, Google and Stripe keys in every staged text file, including on `--amend`.
+- Git hooks only start on git commands, and the safety gates block if they fail to start.
+- Reference docs under `agents/references/` were being loaded as agents; they moved to `<plugin>/references/`.
+- `setup-rules.sh` now lists all 8 plugins.
+- `nextc-core` declares `nextc-ecc` as a dependency.
+- The validator is synced to the current spec and gains check S13.
+- Stale model and tool names fixed.
+
+**Decisions.**
+- Fable stays on the leader agents, with full plan-billing rules.
+- Skill descriptions need a portable "Use when …" clause (35 updated).
+- `low` effort is allowed only for read-only scan workers.
+- After the affected tests pass, the full test suite is offered, not run.
+- Changelog updates are suggested only at completion points.
+
+**Workflow.**
+- `blueprint` plans record decisions, not code, and need approval before they run.
+- In `team-feature-dev`, fixes go back to the original worker.
+- `feature-dev` classifies work by size first.
+- Kickoff seeds `AGENTS.md` plus a thin `CLAUDE.md`.
+- One shared eval convention.
+- An optional, advisory `enterprise/` rollout kit.
+
 ## v1.6.12 (2026-10-15)
 
 **Orchestrators now stop their teammates once the work is in.** A background teammate does not exit when it finishes — it parks at an idle prompt (by design, so it can take follow-up work) and keeps its full context and process alive until something stops it. Orchestrations consumed teammates' reports and moved on without stopping them; in one run eleven idle teammates held ~1.9M tokens for hours. The `agents` rule gains a **Teammate Teardown** section: whoever spawns a teammate stops it with `TaskStop` as soon as its final report is consumed, confirms with `ListAgents` that none of its spawns is still listed, and never stops a teammate mid-work. `team-feature-dev` (Phase 8, lead conduct, worker preamble), `flutter-build` + `flutter-builder` (Step 4e — the TestFlight "only after fastlane exits" gate is kept) and `unity-build` now use `TaskStop` in place of the legacy `shutdown_request` handshake. The rule's old explanation — that teammates linger because their `tools:` lacks `SendMessage` — was wrong and is corrected; `SendMessage` stays required because a teammate's plain-text output never reaches the lead.

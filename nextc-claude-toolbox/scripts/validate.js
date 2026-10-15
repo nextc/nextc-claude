@@ -297,7 +297,7 @@ function validateSkills(pluginName, pluginDir, options = {}) {
 
     // Validate effort if present
     if (fm.effort && !VALID_EFFORTS.has(fm.effort)) {
-      results.push(warn(pluginName, 'skill', dir.name, 'S02', `Invalid effort value: "${fm.effort}" (expected: low, medium, high, max)`));
+      results.push(warn(pluginName, 'skill', dir.name, 'S02', `Invalid effort value: "${fm.effort}" (expected: ${[...VALID_EFFORTS].join(', ')})`));
     }
 
     // Validate context if present
@@ -344,6 +344,17 @@ function validateSkills(pluginName, pluginDir, options = {}) {
       if (combined > 1536) {
         results.push(warn(pluginName, 'skill', dir.name, 'S12',
           `description + when_to_use combined is ${combined} chars (canonical truncation cap: 1536). Trim or move detail to body.`));
+      }
+
+      // S13: portable description — the Agent Skills spec has no when_to_use, so other tools
+      // see only `description` (rules/nextc-claude/skill-authoring.md)
+      if (desc && !/\buse when\b/i.test(desc)) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S13',
+          'description has no "Use when …" trigger clause (other Agent Skills tools read only description)'));
+      }
+      if (desc.length > 1024) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S13',
+          `description is ${desc.length} chars (Agent Skills spec max: 1024)`));
       }
     }
   }

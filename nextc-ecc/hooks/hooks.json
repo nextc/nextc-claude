@@ -7,7 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx block-no-verify@1.1.5"
+            "command": "npx block-no-verify@1.1.5",
+            "if": "Bash(git *)"
           }
         ]
       },
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/config-protection.js\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/config-protection.js\"",
+            "onFailure": "block"
           }
         ]
       },
@@ -25,7 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/fact-force-guard.js\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/fact-force-guard.js\"",
+            "onFailure": "block"
           }
         ]
       },
@@ -34,7 +37,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-commit-quality.js\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-commit-quality.js\"",
+            "if": "Bash(git commit *)",
+            "onFailure": "block"
           }
         ]
       },

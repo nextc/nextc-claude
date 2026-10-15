@@ -70,6 +70,18 @@ Read the project context in parallel:
 - `pubspec.yaml` or `package.json` — tech stack confirmation
 - `git log --oneline -10` — recent changes for context
 
+### Size Classification
+
+Classify the work by size at entry; it sets how much of the pipeline runs:
+
+| Size | Signal | Path |
+|------|--------|------|
+| **Spike** | Throwaway exploration to learn something; code will not ship | Skip Phase 2b, 6, 7, 8; note findings, delete or park the code |
+| **Bounded** | Well-understood change inside existing patterns, no new data model, no cross-layer contract | Lighter path: skip the architect review (Phase 2b) and the doc-keeper suggestion unless docs obviously changed; still plan, user-approve, verify |
+| **Architectural** | New data model, new layer or module, cross-cutting contract, or hard to reverse | Full pipeline; architect review (Phase 2b) is mandatory |
+
+State the classification in the Phase 1 summary below. When unsure between two sizes, pick the larger.
+
 ### Existing Spec Detection
 
 If a matching spec already exists in `docs/spec/` (from a prior `/clarify` run or manual writing):
@@ -97,6 +109,7 @@ Present the classification:
 
 ```
 Feature: {one-line summary}
+Size: {spike / bounded / architectural}
 Type: {UI / Backend}
 Scope: {estimated files/areas affected}
 Existing spec: {docs/spec/X.md or "none"}
@@ -122,6 +135,8 @@ Spawn a **planner** agent (use `nextc-ecc:planner` or the general-purpose agent 
   - Data model changes (if any)
   - Dependencies between steps
   - Acceptance criteria (testable)
+- The plan records **decisions, not code**: interfaces and signatures, data shapes, test
+  assertions, and constraints. Implementation is written in Phase 4 against the live code.
 
 ### Step 2b: Architecture Review
 
@@ -188,7 +203,7 @@ Ask:
 2. **Adjust the plan** (free text)
 3. **Cancel**
 
-On approval, persist the plan per Step 2d before proceeding.
+The user approves the **written** plan (the file from Step 2d, not just this summary) before any implementation starts. On approval, persist the plan per Step 2d before proceeding.
 
 ## Phase 3: Design (UI Features Only)
 
@@ -430,7 +445,7 @@ The feature is now completely built and verified — this is the proper moment t
 ## Rules
 
 - NEVER skip the vagueness check — a vague request that reaches implementation is hours of rework when the user finally says "that's not what I meant"
-- NEVER skip the architecture review — single-pass planning reliably misses structural issues that become expensive to undo mid-implementation
+- NEVER skip the architecture review for architectural work (bounded work may skip it per Size Classification) — single-pass planning reliably misses structural issues that become expensive to undo mid-implementation
 - NEVER implement UI before the data layer — widgets need providers and repositories to bind to; building UI first means rebuilding it when the data shape changes
 - When you discover new work mid-implementation, note it and finish the current plan first rather than expanding scope in-flight. Mid-stream scope expansion produces a half-finished feature and a half-started one.
 - Present the plan for user approval before coding — the plan gate exists so the user can redirect before time is spent on the wrong approach

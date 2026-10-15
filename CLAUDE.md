@@ -38,18 +38,21 @@ nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO pipeline (3 skills, 11 agents)
 nextc-ecc/                        — Core agents + quality tools (21 skills, 15 agents, 8 hooks)
 nextc-claude-toolbox/             — Utility toolkit (4 skills)
-rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh)
-setup-rules.sh                    — Symlinks rules into ~/.claude/rules/
+rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh; loaded every session)
+rules-references/                 — Long-form rule references, read on demand (kept out of ~/.claude/rules/ because every .md there loads)
+rules-evals/                      — Before/after behavioral evals for rule changes (`node rules-evals/run.mjs`; costs model calls, ask first)
+setup-rules.sh                    — Symlinks rules into ~/.claude/rules/ and references into ~/.claude/nextc-claude-references/
 ```
 
 ## Dependencies
 
 | Dependency | Required By | Agents/Skills Used |
 |------------|-------------|-------------------|
-| **nextc-ecc** | `nextc-core` | planner, architect, code-reviewer, security-reviewer (agents) |
+| **nextc-ecc** | `nextc-core` (declared in its `plugin.json` `dependencies`, so it is enabled automatically) | planner, architect, code-reviewer, security-reviewer (agents) |
 | **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
 | **marketingskills** | `nextc-product` | customer-research |
 | **aso-skills** | `nextc-aso` | 27 ASO skills |
+| **dart-flutter** (official, optional) | `nextc-project-kickoff` (`/flutter-kickoff` offers it) | Dart/Flutter MCP server (analyzer, tests, runtime inspection), Flutter skills, a11y agent. Install: `claude plugin marketplace add flutter/agent-plugins` then `claude plugin install dart-flutter@dart-flutter` (source: docs.flutter.dev/ai/get-started) |
 
 ## Plugins
 
@@ -196,7 +199,7 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
 
 ## Changelog
 
-- After any response that changes files, suggest updating `CHANGELOG.md` (e.g. "Want me to update the changelog?")
+- Suggest updating `CHANGELOG.md` only at completion points (a feature built and verified, a milestone done, a fix confirmed), per `project-docs.md` — not after every response that changes files
 - Before every commit, verify `CHANGELOG.md` is up to date — update it if not
 
 Update rules:
@@ -222,7 +225,8 @@ When the user asks to "release", "bump version", or "cut a release":
 
    <summary of what changed since last release — pull from CHANGELOG.md>
    ```
-3. **Commit** with message: `chore: bump to X.Y.Z`
+3. **Validate** — `node nextc-claude-toolbox/scripts/validate.js` and `claude plugin validate ./<plugin>` for each plugin plus `claude plugin validate .` for the marketplace. Errors block the release; the known warnings (`nextc-claude-toolbox` name reads as Anthropic's, `metadata.repository` unknown field) are accepted.
+4. **Commit** with message: `chore: bump to X.Y.Z`
 
 ## Design Principles
 

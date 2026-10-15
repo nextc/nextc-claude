@@ -1,6 +1,6 @@
 {
   "skill_name": "feature-dev",
-  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --model claude-opus-4-7 --max-iterations 5",
+  "_note": "Trigger eval queries for the description-optimization loop in skill-creator. Use with: python -m scripts.run_loop --eval-set evals.json --skill-path . --model claude-opus-5-5 --max-iterations 5",
   "evals": [
     {
       "id": 1,

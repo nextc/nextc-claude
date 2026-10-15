@@ -1,6 +1,6 @@
 ---
 name: production-audit
-description: Local-evidence production-readiness audit that scores ship/block risk before a launch without sending repo data anywhere.
+description: Local-evidence production-readiness audit that scores ship/block risk without sending repo data anywhere. Use when you need a pre-deploy, post-merge, or pre-launch risk pass.
 when_to_use: |
   Use when the user asks "is this production-ready", "what would break in prod", "ready to ship?", "what did we miss", "audit this repo", or wants a pre-deploy / post-merge / pre-launch risk pass — especially when CI is green but real production risk is the question. Skip during active implementation (use the `security-reviewer` agent for line-level secure coding first), for pure libraries/docs/scaffolds, for formal legal/regulatory compliance audits, and when there is no repo/deployment/CI surface to inspect yet.
 allowed-tools: Read Bash Grep Glob

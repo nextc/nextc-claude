@@ -1,6 +1,6 @@
 ---
 name: aside
-description: Answer a quick side question mid-task without losing context, then resume work automatically.
+description: Answer a quick side question mid-task without losing context, then resume work automatically. Use when the user interjects with a short question that should not derail the current task.
 when_to_use: |
   Use when the user interjects mid-task with "aside:", "quick q:", "btw:", "side question", "quick question", "wait, before that", "off-topic but", or any short interruption that should not derail the current task.
 user-invocable: true

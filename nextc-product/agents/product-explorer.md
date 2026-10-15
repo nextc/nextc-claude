@@ -56,7 +56,7 @@ Take a position. Name the evidence. This applies to all phases — checkpoints, 
 
 ## Mode Routing
 
-Read `references/product-explorer-modes.md` when the invocation flag is any of:
+Read `${CLAUDE_PLUGIN_ROOT}/references/product-explorer-modes.md` when the invocation flag is any of:
 `--fast`, `--update`, `--branch`, `--deep-dive`, `--export`
 
 The deep mode pipeline below is the default path (no flag, or `--quick`/`--no-collision`/`--auto` only).

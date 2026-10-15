@@ -1,6 +1,6 @@
 ---
 name: strategic-compact
-description: Suggest manual `/compact` at logical task boundaries instead of waiting for arbitrary auto-compaction.
+description: Suggest a manual `/compact` at logical task boundaries instead of waiting for arbitrary auto-compaction. Use when context approaches limits or when switching between unrelated tasks.
 when_to_use: |
   Use when context approaches limits, between major task phases, after a milestone, or when switching between unrelated tasks. Also when user says "compact", "fresh start", "clean context", "wrap this section", "starting something new", or "context is getting heavy".
 allowed-tools: Read Bash

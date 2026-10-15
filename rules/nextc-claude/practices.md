@@ -14,7 +14,7 @@ Rationale: Immutable data prevents hidden side effects, makes debugging easier, 
 
 ## Research & Reuse
 
-This rule covers *"do I need a new library or pattern?"*. For *"am I about to assert a fact — about a library, SDK, API, service, OR about what code in this repo does, OR about runtime behavior — that I haven't proven this session?"* — see `verify-before-claim.md` (CRITICAL). Both rules apply; this one is about scoping work, that one is about not making things up (whether external or internal).
+This covers *"do I need a new library or pattern?"*. Asserting facts you haven't proven is `verify-before-claim.md`; both apply.
 
 **Search before coding** when the task involves:
 - Common infrastructure (auth, payments, file upload, caching, etc.)
@@ -23,10 +23,10 @@ This rule covers *"do I need a new library or pattern?"*. For *"am I about to as
 - Unfamiliar ecosystems or frameworks
 - Any solution you're not confident about
 
-**Skip searching** only when every fact and pattern you need can be verified from the local repo state alone — files already read, git history, the user's prompt. "Known stack" is **not** a skip condition (familiarity is the trap, not the safety net — see `verify-before-claim.md`).
+**Skip searching** only when every fact and pattern you need can be verified from the local repo state alone. "Known stack" is **not** a skip condition.
 
 **Search order:**
-1. **Context7** — library/API docs, usage examples, version details. Use even when you think you know the answer; training data may be stale.
+1. **Context7** — library/API docs, usage examples, version details (if it isn't signed in, see `verify-before-claim.md` → How to Verify).
 2. **GitHub/registries** — `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
 3. **Web** — WebFetch/WebSearch only when 1-2 are insufficient
 

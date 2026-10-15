@@ -1,6 +1,6 @@
 ---
 name: council
-description: Convene a four-voice council (Claude + Skeptic + Pragmatist + Critic) for ambiguous decisions, tradeoffs, and go/no-go calls.
+description: Get structured multi-perspective disagreement on an ambiguous decision, tradeoff, or go/no-go call. Use when multiple valid paths exist and you need a second opinion.
 when_to_use: |
   Use when multiple valid paths exist and structured disagreement helps. Also when user says "I'm stuck choosing", "pros and cons", "two valid options", "should I do A or B", "second opinion", "talk me through this", "council", or "I keep flip-flopping". Skip for code review, implementation planning, or architecture design.
 allowed-tools: Agent Read Glob Grep

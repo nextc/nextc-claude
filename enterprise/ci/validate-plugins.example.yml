@@ -1,0 +1,32 @@
+# EXAMPLE ONLY. Lives outside .github/workflows on purpose so nothing runs automatically.
+# To adopt: copy to .github/workflows/validate-plugins.yml in YOUR fork of the marketplace.
+#
+# Verified (docs: /plugins/cli-reference): `claude plugin validate <path> [--strict]`, exit 0 ok / 1 failure / 2 unexpected error.
+# UNVERIFIED: the npm package name used to install the CLI below. Check the official install docs
+# and replace the install step with your company's approved method.
+# actions/setup-node@v4 is a common pin but was not checked this session; pin to a SHA per your policy.
+name: Validate plugins
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Repo validator (no model cost)
+        run: node nextc-claude-toolbox/scripts/validate.js
+      - name: Install Claude Code CLI (UNVERIFIED package name, replace as needed)
+        run: npm install -g @anthropic-ai/claude-code
+      # No --strict: as of 1.6.12 the marketplace has two accepted warnings (the `nextc-claude-toolbox`
+      # name reads as Anthropic's; `metadata.repository` is an unknown field), and --strict fails on warnings.
+      - name: Validate marketplace and plugin manifests
+        run: |
+          claude plugin validate .
+          for p in nextc-*/; do claude plugin validate "./$p"; done

@@ -1,0 +1,12 @@
+{
+  "extraKnownMarketplaces": {
+    "nextc-claude": {
+      "source": { "source": "github", "repo": "your-org/nextc-claude" },
+      "autoUpdate": false
+    }
+  },
+  "enabledPlugins": {
+    "nextc-core@nextc-claude": true,
+    "nextc-ecc@nextc-claude": true
+  }
+}

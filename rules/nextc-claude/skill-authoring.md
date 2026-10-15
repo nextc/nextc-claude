@@ -20,9 +20,15 @@ and follow the full process. **The summary becomes a shortcut the agent takes in
 
 So:
 
-- `description:` — **what the skill is for + the situations that trigger it.** A single high-level
-  sentence. Never an enumeration of the skill's internal phases, agents, or step sequence.
-- `when_to_use:` — **triggering conditions and trigger phrases** (the "Use when … / Skip for …" line).
+- `description:` — **what the skill is for, then a short "Use when …" clause naming the situations
+  that trigger it.** One or two sentences, under 1024 characters. Never an enumeration of the skill's
+  internal phases, agents, or step sequence. The trigger clause is required because the open Agent
+  Skills spec (agentskills.io/specification) has no `when_to_use` field: tools other than Claude Code
+  read only `description` to decide when to load a skill.
+- `when_to_use:` — **the full trigger list for Claude Code**: trigger phrases and "Skip for …"
+  conditions. It may repeat and expand the description's clause. It is a Claude Code extension, so
+  strip it (and other non-spec keys such as `argument-hint`) before uploading a skill to claude.ai or
+  the Skills API, which reject unknown keys.
 - The **body** owns the workflow. Steps, phase counts, agent fan-out, ordering — these live ONLY
   in the body, never in the frontmatter.
 
@@ -38,11 +44,11 @@ description: Validated proposal pipeline — demand probe, research, competitor 
 # ❌ BAD — names the internal fan-out the body is supposed to drive
 description: Spawns 8 framework analysts in parallel (JTBD, OST, Morphological, …) then a synthesizer
 
-# ✅ GOOD — purpose + trigger, no workflow leak; the body drives the steps
-description: Turn a raw product idea into a validated proposal with a recommended scope decision
+# ✅ GOOD — purpose + trigger clause, no workflow leak; the body drives the steps
+description: Turn a raw product idea into a validated proposal with a recommended scope decision. Use when the user has a product idea to evaluate before building.
 
-# ✅ GOOD — purpose only; the 8-analyst fan-out is the body's job
-description: Multi-framework deep analysis of a problem or product concept
+# ✅ GOOD — purpose + trigger; the 8-analyst fan-out is the body's job
+description: Multi-framework deep analysis of a problem or product concept. Use when a problem or concept needs examining through several lenses before committing.
 ```
 
 ## Match the form to the failure (when writing skill bodies)
@@ -65,8 +71,8 @@ unless…") — express a real exception as its own conditional.
 
 - Before writing or editing any `SKILL.md`: confirm `description` states purpose + trigger only,
   with **zero** workflow/step/phase/agent enumeration. Move any such detail to the body.
-- When `description` and `when_to_use` overlap, `description` = what-it's-for, `when_to_use` = when.
+- `description` = what-it's-for + a short "Use when …" clause (portable); `when_to_use` = the full Claude Code trigger list.
 - During `/validate`, `skill-audit`, or code review: a `description` that enumerates the workflow
-  is a defect to fix, equal in severity to a missing `when_to_use`.
+  is a defect to fix, equal in severity to a missing `when_to_use`. So is a `description` with no "Use when …" clause, or one over 1024 characters.
 - This composes with `latest-spec-wins.md`: if you change what a skill does, fix its `description`
   in the same response — but never by re-leaking the workflow into it.

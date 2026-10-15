@@ -1,7 +1,7 @@
 /**
  * Bundled Claude Code specs for validation.
  * Source: https://code.claude.com/docs/en/skills, /sub-agents, /hooks, /plugins-reference
- * Last synced: 2026-05-08
+ * Last synced: 2026-10-15
  */
 
 'use strict';
@@ -16,13 +16,18 @@ const VALID_SKILL_FIELDS = new Set([
   'disable-model-invocation',
   'user-invocable',
   'allowed-tools',
+  'disallowed-tools',
   'model',
   'effort',
   'context',
   'agent',
+  'background',
   'hooks',
   'paths',
   'shell',
+  'metadata',
+  'license',
+  'compatibility',
 ]);
 
 // --- Agent frontmatter ---
@@ -34,15 +39,18 @@ const VALID_AGENT_FIELDS = new Set([
   'model',
   'permissionMode',
   'maxTurns',
+  'autoCompactWindow',
   'skills',
   'mcpServers',
   'hooks',
   'memory',
   'background',
+  'omitClaudeMd',
   'effort',
   'isolation',
   'color',
   'initialPrompt',
+  'experimental',
 ]);
 
 // Fields ignored for plugin-shipped agents (security restriction)
@@ -50,11 +58,13 @@ const PLUGIN_IGNORED_AGENT_FIELDS = new Set([
   'hooks',
   'mcpServers',
   'permissionMode',
+  'initialPrompt',
 ]);
 
 // --- Hook event types ---
 const VALID_HOOK_EVENTS = new Set([
   'SessionStart',
+  'Setup',
   'SessionEnd',
   'InstructionsLoaded',
   'ConfigChange',
@@ -65,6 +75,12 @@ const VALID_HOOK_EVENTS = new Set([
   'PermissionRequest',
   'PermissionDenied',
   'UserPromptSubmit',
+  'UserPromptExpansion',
+  'PostToolBatch',
+  'MessageDisplay',
+  'DirectoryAdded',
+  'PreModelSwitch',
+  'PostModelSwitch',
   'Notification',
   'SubagentStart',
   'SubagentStop',
@@ -86,6 +102,7 @@ const VALID_HOOK_EVENTS = new Set([
 const VALID_HOOK_TYPES = new Set([
   'command',
   'http',
+  'mcp_tool',
   'prompt',
   'agent',
 ]);
@@ -119,6 +136,7 @@ const VALID_PERMISSION_MODES = new Set([
   'dontAsk',
   'bypassPermissions',
   'plan',
+  'manual',
 ]);
 
 // --- Isolation values ---

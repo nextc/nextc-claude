@@ -1,6 +1,6 @@
 ---
 name: learn-eval
-description: Extract reusable patterns from the current session, self-evaluate quality, and place the result in the right scope (Global vs Project).
+description: Extract reusable patterns from the current session and file them in the right scope. Use when a session that surfaced a pattern worth keeping.
 when_to_use: |
   Use after a session that surfaced a reusable pattern worth keeping. Also when user says "remember this", "save this learning", "extract the pattern", "turn this into a skill", "we should reuse this", or "let's not relearn this next time".
 user-invocable: true
@@ -110,7 +110,7 @@ origin: auto-extracted
 
 ## Design Rationale
 
-This version replaces the previous 5-dimension numeric scoring rubric (Specificity, Actionability, Scope Fit, Non-redundancy, Coverage scored 1-5) with a checklist-based holistic verdict system. Modern frontier models (Opus 4.6+) have strong contextual judgment — forcing rich qualitative signals into numeric scores loses nuance and can produce misleading totals. The holistic approach lets the model weigh all factors naturally, producing more accurate save/drop decisions while the explicit checklist ensures no critical check is skipped.
+This version replaces the previous 5-dimension numeric scoring rubric (Specificity, Actionability, Scope Fit, Non-redundancy, Coverage scored 1-5) with a checklist-based holistic verdict system. Current frontier models have strong contextual judgment — forcing rich qualitative signals into numeric scores loses nuance and can produce misleading totals. The holistic approach lets the model weigh all factors naturally, producing more accurate save/drop decisions while the explicit checklist ensures no critical check is skipped.
 
 ## Notes
 

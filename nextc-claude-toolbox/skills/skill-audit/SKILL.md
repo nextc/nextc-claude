@@ -1,6 +1,6 @@
 ---
 name: skill-audit
-description: Deep audit of skill quality against current skill-creator best practices. Flags missing when_to_use, imperative density, missing evals/, and description budget overflow.
+description: Deep audit of skill quality against current skill-creator best practices. Use when you have just written or modifying a skill, or before a release.
 when_to_use: |
   Use after writing or modifying a skill, before a release, or when reviewing skill quality. Triggers: "audit my skills", "check skill quality", "are my skills well-written", "/skill-audit", "skill best practice check", or after adding new SKILL.md files.
 user-invocable: true
@@ -14,8 +14,9 @@ Runs `validate.js --audit` to surface skill-quality issues that the standard `/v
 
 - **S09: Trigger coverage gaps** — skills missing both `when_to_use` and inline trigger phrases (combat undertriggering per skill-creator's "pushy descriptions" guidance)
 - **S10: Imperative density** — skills with > 5 `MUST/ALWAYS/NEVER` occurrences (reframe stylistic imperatives as prose)
-- **S11: Missing evals/** — high-traffic skills (`feature-dev`, `bug-fix`, `cleanup`, `clarify`, `team-feature-dev`, `product-explore`) without `evals/evals.json` (needed for skill-creator's `run_loop.py` description optimization)
+- **S11: Missing evals/** — high-traffic skills (`feature-dev`, `bug-fix`, `cleanup`, `clarify`, `team-feature-dev`, `product-explore`) without `evals/evals.json` (needed for skill-creator's `run_loop.py` description optimization). Missing evals on a high-traffic skill is a finding. Also a finding: evals present but no stored baseline/with-change result, or a baseline older than the skill's last change or taken on a different model. Convention: `../writing-skills/references/eval-convention.md`. The audit only reads files; it never runs evals (they cost model calls and need the user's go-ahead)
 - **S12: Listing budget overflow** — skills where `description + when_to_use` exceeds the canonical 1,536-character cap
+- **S13: Non-portable description** — `description` has no "Use when …" clause, or exceeds the Agent Skills spec's 1,024 characters (other tools read only `description`; see `rules/nextc-claude/skill-authoring.md`)
 
 Plus everything `/validate` already checks (frontmatter validity, body length, model+effort assignment, antipatterns).
 
@@ -45,7 +46,7 @@ The PreCommit hook (configured in `~/.claude/settings.json`) blocks commits with
 Each finding has:
 - **Plugin** name (e.g. `nextc-core`)
 - **Skill** name (e.g. `feature-dev`)
-- **Check ID** (S09–S12 for audit-mode checks)
+- **Check ID** (S09–S13 for audit-mode checks)
 - **Level** (PASS / WARN / FAIL)
 - **Message** with concrete fix suggestion
 
@@ -55,4 +56,4 @@ Treat any FAIL as blocking. WARNs are advisory but in aggregate signal descripti
 
 - Anthropic skill-creator: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator/SKILL.md`
 - Canonical frontmatter spec: https://code.claude.com/docs/en/skills
-- Internal: `nextc-claude-toolbox/scripts/validate.js` (audit-mode block at S09–S12)
+- Internal: `nextc-claude-toolbox/scripts/validate.js` (audit-mode block at S09–S13)

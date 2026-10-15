@@ -1,9 +1,9 @@
 ---
 name: aso-edge-tactics
 description: >
-  Audit an app's ASO surface against the 8 highest-leverage moves and the
-  2025–2026 algorithm shifts. Produces a prioritized gap report separating
-  metadata gaps from engineering gaps from operational gaps.
+  Audit an app's ASO surface against the highest-leverage ASO moves and the 2025–2026
+  algorithm shifts, producing a prioritized gap report. Use when checking an app for
+  missed ASO opportunities or after a store algorithm change.
 user-invocable: true
 argument-hint: "[mode: eight-moves/algorithm-shifts/full]"
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash

@@ -5,7 +5,7 @@ Claude never introduces testing into a project on its own initiative, and never 
 ## Never — regardless of anything else
 
 - **No TDD.** Never write tests before the implementation, and never restructure the work to be test-first, unless the user explicitly asks for TDD.
-- **No auto-running the suite.** Never run the full test suite, or tests unrelated to your change, on your own. The *only* test run you may start unprompted is the affected-tests run in Case 2 below.
+- **No auto-running the suite.** Never run the full test suite, or tests unrelated to your change, on your own. The *only* test run you may start unprompted is the affected-tests run in Case 2 below; the full suite runs only after you offer it and the user says yes.
 - **No auto-invoking testing agents/skills** from the development workflow.
 
 ## Case 1 — The project has NO tests
@@ -15,6 +15,8 @@ Stay **fully hands-off**. Do not write tests, do not scaffold a test harness or 
 ## Case 2 — The project HAS tests, and your change touches code an existing test already covers
 
 **Automatically update the affected tests** so they stay in sync with the changed behavior — this is the one case where you touch tests without being asked. Then **run only those affected tests** to confirm they pass; do not run the rest of the suite.
+
+Once the affected tests pass, **offer the full suite before declaring the work done** — ask, don't run ("Affected tests pass. Run the full suite to catch breakage in neighbouring code?"). Scoped runs miss broken neighbours; the full suite is heavy (`heavy-commands.md`), so it runs only on the user's yes. If they decline, say the result covers the affected tests only.
 
 - Update tests to reflect the new *correct* behavior. **Never weaken, delete, or loosen an assertion merely to make a test pass.** If a change genuinely makes a test's intent obsolete, say so and ask — don't silently gut it. (See `latest-spec-wins.md`.)
 

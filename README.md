@@ -100,7 +100,7 @@ claude plugin install nextc-ecc@nextc-claude
 claude plugin install nextc-project-kickoff@nextc-claude --scope local
 ```
 
-If the release notes mention new rules, re-run the symlink script:
+If the release notes mention new rules or rule references, re-run the symlink script (it is idempotent):
 
 ```bash
 cd ~/code/nextc/nextc-claude && git pull && ./setup-rules.sh
@@ -115,8 +115,8 @@ claude plugin uninstall nextc-core@nextc-claude
 # Remove the marketplace entirely
 claude plugin marketplace remove nextc-claude
 
-# Remove symlinked rules
-rm ~/.claude/rules/nextc-claude
+# Remove symlinked rules and their references
+rm ~/.claude/rules/nextc-claude ~/.claude/nextc-claude-references
 ```
 
 ---
@@ -172,7 +172,9 @@ Multi-agent system in **nextc-aso**. Requires [aso-skills](https://github.com/Er
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 8 plugins)
-├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh)
+├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; loaded every session)
+├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
+├── rules-evals/                      (before/after behavioral evals for rule changes; costs model calls)
 ├── setup-rules.sh
 ├── nextc-core/                       (9 skills, 2 agents)
 ├── nextc-ecc/                        (21 skills, 15 agents, 8 hooks)
@@ -197,6 +199,12 @@ nextc-claude/                         (marketplace root)
 | Agent | Add `<plugin>/agents/<name>.md` |
 | Rule | Add `rules/nextc-claude/<name>.md` |
 | Plugin | Create new dir with `.claude-plugin/plugin.json`, add to `marketplace.json` |
+
+## Company rollout (optional)
+
+An optional, advisory kit for admins rolling nextc-claude out across a company lives in [enterprise/README.md](enterprise/README.md): managed-settings templates (distribution, and a separate stricter policy example), an OpenTelemetry env block, cost and data/MCP guidance, a third-party marketplace review checklist, and example CI workflows. Nothing in it is enforced or installed automatically, and the plugins behave the same whether or not you use it.
+
+Onboarding note: the Context7 MCP server may expose only an `authenticate` tool until you run its auth flow via `/mcp`.
 
 ## Design Principles
 

@@ -250,7 +250,7 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 | DI / Services | [choice] |
 | UI Toolkit | [choice] |
 | Key Entities | [N] defined in docs/architecture.md |
-| Docs | CLAUDE.md + docs/ seeded from proposal |
+| Docs | AGENTS.md (canonical) + CLAUDE.md (imports it) + docs/ seeded from proposal |
 | Architecture | docs/architecture.md — patterns for /feature-dev |
 
 ## Your First Move
@@ -258,6 +258,11 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 > Open [dir]/ in Unity Hub, then run /feature-dev — start with core infrastructure
 > (Phase 1 tasks in tasks.md). Architecture is prescribed in docs/architecture.md.
 > /feature-dev reads it and writes production-grade C# code.
+
+Optional: a Unity MCP server exists that lets AI agents drive the Unity Editor
+(https://docs.unity3d.com/Packages/com.unity.ai.assistant@2.0/manual/unity-mcp-overview.html;
+shown as 2.0.0-pre.1, so pre-release). Requirements (Unity 6, AI Assistant package,
+subscription) are unverified — confirm in Unity's docs. Not installed by default.
 ```
 
 **If `--full` mode:** Continue to Phase 4.

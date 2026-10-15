@@ -340,11 +340,11 @@ After all tasks are completed:
 
 ### On Verification Failure (Fix Loop)
 
-If verification finds issues:
-1. Create fix tasks via TaskCreate
-2. Assign to an idle worker (or spawn a new one)
-3. Worker fixes → reports → re-verify
-4. **Max 3 fix loops** — if the same issue persists after 3 attempts, stop and report to user
+Route each fix to the **original implementing worker** via `SendMessage` (it keeps its context);
+spawn fresh only if that worker was already stopped. Re-verify scoped to the fix diff, then run
+one full verification at the end. A non-destructive ambiguity gets a ruling in the progress
+ledger; only destructive or irreversible ambiguity stops for the user. **Max 3 fix loops** — if
+the same issue persists after 3 attempts, stop and report. Details: `references/fix-loop.md`.
 
 ## Phase 6: Review
 
@@ -479,7 +479,7 @@ Present the final summary to the user:
 | Phase 3 | User provides design assets | — | Core screen design (UI features) |
 | Phase 4 | `Agent` (spawn teammates) + `TaskCreate` | — | Native team orchestration (team forms on first spawn) |
 | Phase 4 | `ui-ux-developer` persona (injected into a `general-purpose` worker prompt) | sonnet | UI screen implementation — file body is the prompt, NOT a custom subagent_type |
-| Phase 5 | Fix loop via `TaskCreate` + workers | haiku/sonnet | Verification failures (haiku for simple, sonnet for complex) |
+| Phase 5 | Fix loop via `SendMessage` to the original worker | haiku/sonnet | Verification failures (fresh worker only if the original was stopped) |
 | Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
 | Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
 | Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |

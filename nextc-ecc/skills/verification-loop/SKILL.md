@@ -1,6 +1,6 @@
 ---
 name: verification-loop
-description: Build, typecheck, and lint verification loop — confirms the build is green before handoff, commit, or PR.
+description: Confirm the build is green before handoff, commit, or PR. Use when code edits are done and before commit or PR, or as a quality gate.
 when_to_use: |
   Use after code edits, before commit/PR, or as a quality gate. Also when user says "check the build", "is it green", "run typecheck", "make sure it compiles", "lint pass", "verify the changes", or "any errors".
 allowed-tools: Read Bash Glob

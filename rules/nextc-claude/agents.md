@@ -13,7 +13,7 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 
 **Decision rule:** "How much reasoning?" Leads the whole effort → Fable. Deep → Opus. Standard → Sonnet. Minimal → Haiku.
 
-**Fable is a closed list.** Only the agents marked `fable` in `references/agents-roster.md` run on Fable. Never assign Fable to a new agent, a dynamic team worker, or an ad-hoc `Agent()` call without the user's explicit approval — Fable-tier usage is the most expensive line on the bill (API) and drains plan usage limits fastest (subscription). When unsure, use Opus.
+**Fable is a closed list.** Only the agents marked `fable` in `~/.claude/nextc-claude-references/agents-roster.md` run on Fable. Never assign Fable to a new agent, a dynamic team worker, or an ad-hoc `Agent()` call without the user's explicit approval — Fable-tier usage is the most expensive line on the bill (API) and drains plan usage limits fastest (subscription). When unsure, use Opus.
 
 ## Effort Tiers
 
@@ -21,9 +21,10 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 |--------|----------|
 | **xhigh** | Fable/Opus agents doing multi-artifact synthesis, architecture, deep planning (`planner`, `architect`, `product-collision-analyst`, `ie-team-lead`) |
 | **high** | Sophisticated coding, reasoning, orchestration, review — default for sonnet; default for haiku agents doing structured work |
-| **medium** | Mechanical, templating, scripted, scaffolding, regex-driven, file-copy work. This is the FLOOR — never go below |
+| **medium** | Mechanical, templating, scripted, scaffolding, regex-driven, file-copy work. The floor for any agent that writes files or makes a decision |
+| **low** | Read-only scanning/search workers only (file sweeps, grep-style lookups, listing) whose output a higher-effort agent or the lead checks |
 
-**Effort floor:** NEVER use `low`. Minimum effort is `medium`. Even chore agents need enough reasoning to produce correct structured output.
+**Effort floor:** `low` is a valid level (Anthropic lists it for simple subagent tasks), but this repo allows it **only** for read-only scanning/search workers. Anything that writes, edits, decides, or produces structured output the next step relies on stays at `medium` or above — at low effort, workers are more likely to skip a search, stop early, or skip a check.
 
 **Sophistication downgrade rule:** When an agent's typical work matches one of the mechanical categories above, downgrade one level (sonnet `high` → `medium`, opus/fable `xhigh` → `high`), but never below `medium`.
 
@@ -37,11 +38,11 @@ The `Agent()` tool schema is already visible in your system prompt each session 
 
 ## Model + Effort Assignments
 
-See `references/agents-roster.md` for the full per-agent and per-team-worker model+effort roster.
+See `~/.claude/nextc-claude-references/agents-roster.md` for the full per-agent and per-team-worker model+effort roster.
 
 ## Team Worker Assignments (dynamic / not file-based)
 
-See `references/agents-roster.md` for the full per-agent and per-team-worker model+effort roster.
+See `~/.claude/nextc-claude-references/agents-roster.md` for the full per-agent and per-team-worker model+effort roster.
 
 ## Cost Rules
 
@@ -51,8 +52,8 @@ See `references/agents-roster.md` for the full per-agent and per-team-worker mod
 4. **Opus sparingly** — most coding is sonnet-tier
 5. **Never fable or opus for chores** — docs, builds, scanning, dashboards
 6. **Escalate on failure one tier at a time** — haiku → sonnet → opus. Never escalate to fable on failure
-7. **Plan-aware fallback** — if Fable is unavailable on the user's plan or their Fable usage limit is hit, run the same agent on `opus` for that invocation (pass `model: "opus"`) and say so; don't stall the pipeline. On plans where Fable is billed to usage credits instead of plan limits (Pro, Team standard seats), pass `model: "opus"` for Fable-tier agents by default — use Fable only after the user opts in to paying for it in this session
-8. **Never `effort: low`** — `medium` is the floor, no exceptions
+7. **Plan-aware fallback** — if Fable is unavailable on the user's plan or their Fable usage limit is hit, run the same agent on `opus` for that invocation (pass `model: "opus"`) and say so; don't stall the pipeline. On seats where Fable is billed to usage credits from the start — Pro, standard Team seats, standard seats on seat-based Enterprise — pass `model: "opus"` for Fable-tier agents by default and use Fable only after the user opts in to paying for it in this session. Max and premium seats include Fable but cap it at 50% of the weekly usage limit, so the cap is the usual fallback trigger there. Fable 5.1 needs Claude Code 2.1.255 or later (source: support.claude.com "Claude Fable models on your plan", checked 2026-10-15)
+8. **`effort: low` only for read-only scans** — `medium` is the floor for everything that writes or decides
 
 ## Agent Teams
 
@@ -64,6 +65,8 @@ Use Claude Code's agent-teams orchestration — spawn teammates via the `Agent` 
 
 Plain parallel `Agent()` is the right default only when the user did **not** invoke a team skill and did **not** describe the work as a team. Examples: ad-hoc research fan-out, a single skill that internally spawns helpers, parallel scans where the user never said "team."
 
+**While `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, any `Agent()` call that passes a `name` launches as a teammate** (unless it is a fork or passes `isolation`), so a "plain" parallel fan-out becomes a team just by naming its workers. For non-team work, omit `name`; a named worker becomes your teardown responsibility (below). Source: code.claude.com/docs/en/agent-teams.
+
 Examples that REQUIRE agent-teams orchestration: `/team-feature-dev`, `/team-builder`, "spin up a team of …", "run these as a team", "I want to watch them in panes", multi-feature sprints, full-stack features where frontend/backend need to sync, parallel investigations with cross-checking.
 
 ## Teammate Teardown (CRITICAL)
@@ -72,7 +75,7 @@ Examples that REQUIRE agent-teams orchestration: `/team-feature-dev`, `/team-bui
 
 - **Stop each teammate with `TaskStop(task_id="<teammate name>")` as soon as its final report is consumed and no follow-up task is planned for it.** Reap at that point — not "at the end of the pipeline", and never left for the user to find.
 - **Before ending the turn that closes out an orchestration, account for every teammate you spawned** (`ListAgents`): each one is either stopped or deliberately kept with a stated reason. Rows that are other Claude sessions, not your spawns, are not yours to stop.
-- **`shutdown_request` is the legacy handshake** — it depends on the teammate answering, so it can stall. Use `TaskStop`; the orchestrator does not need the teammate's cooperation.
+- **Prefer `TaskStop` over a shutdown request.** The documented graceful path (asking a teammate to shut down) sends a shutdown request the teammate can reject or answer slowly; `TaskStop` needs no cooperation.
 - **Never stop a teammate mid-work.** `TaskStop` kills the teammate and every child process it owns. Wait for a *final* report (e.g. a TestFlight lane is final only once fastlane has exited).
 
 **Why:** an orchestrator consumed eleven teammates' reports and kept working without stopping any of them; they sat idle for hours holding ~1.9M tokens of context, one left over from a build two days earlier. The earlier diagnosis — that teammates lingered because their `tools:` lacked `SendMessage` — was wrong; the missing step was the orchestrator's teardown.
@@ -99,8 +102,8 @@ only succeeds if its brief is right:
 
 - Every `Agent()` call: `model` parameter required
 - Every agent definition: BOTH `model:` AND `effort:` fields in frontmatter
-- Every agent definition's `tools:` list MUST include `SendMessage` — a teammate's plain-text output is not visible to the lead, so without it a teammate cannot report results, blockers, or completion. The `tools:` allowlist DOES gate this; the harness does not inject it. Task-claiming workers also need the `Task*` family. (Only omit for a definition that will never run as a teammate.)
+- Every agent definition's `tools:` list MUST include `SendMessage` — a teammate's plain-text output is not visible to the lead, so without it a teammate cannot report results, blockers, or completion. Claude Code adds `SendMessage` (and the `Task*` tools, when the session has them) to an **in-process** teammate automatically, but a split-pane teammate and a plain subagent get only the definition's `tools:` list — so keep it in the list. (Only omit for a definition that will never run as a teammate or need to message.)
 - Every orchestration that spawns background teammates MUST stop them with `TaskStop` once their final reports are consumed (see Teammate Teardown). An idle teammate left running after its work is consumed is a defect in the orchestrator, not in the teammate.
 - When in doubt: `sonnet` + `high`
-- Never `low` effort
+- `low` effort only for read-only scanning/search workers
 - Team work uses agent-teams orchestration (teammates spawned via `Agent` under the experimental flag) — never silently downgrade to plain parallel `Agent()` calls. If you want to downgrade, ask first.

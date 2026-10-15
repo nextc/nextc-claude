@@ -49,7 +49,7 @@ When initializing a project or noticing these files are not ignored, add them to
 
 ## Log Ownership
 
-- `CHANGELOG.md` (project root — technical, comprehensive) is maintained by the `doc-keeper` agent. Audience, grouping, and completeness rules live in its agent definition.
+- `CHANGELOG.md` — see Pre-Commit Check step 3.
 - `docs/buildlog.md` (user-facing, per-build) is owned by the `flutter-builder` and `unity-builder` agents (Phase 5 / `Mode: whats-new`). Do not draft inline in a skill.
 
 ## Pull Request Workflow

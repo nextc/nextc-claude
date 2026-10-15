@@ -1,6 +1,6 @@
 ---
 name: save-session
-description: Capture current session state — what was built, tried, failed, and is left — to a dated file so the next session can pick up exactly where this one ended.
+description: Capture current session state to a dated file so the next session can pick up exactly where this one ended. Use when ending a work session or before hitting context limits.
 when_to_use: |
   Use at end of work session before closing, before hitting context limits, or after solving something worth remembering. Also when user says "save state", "wrap up", "pick this up tomorrow", "session handoff", "before I close", or "snapshot where we are".
 user-invocable: true

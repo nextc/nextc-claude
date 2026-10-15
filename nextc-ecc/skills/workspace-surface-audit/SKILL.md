@@ -1,6 +1,6 @@
 ---
 name: workspace-surface-audit
-description: Read-only audit of repo, MCP servers, plugins, and env surfaces. Recommends highest-value skills, hooks, and agents from the nextc-claude marketplace.
+description: Read-only audit of a workspace's repo, MCP servers, plugins, and env surfaces with install recommendations. Use when setting up Claude Code in a new repo or taking inventory of capabilities.
 when_to_use: |
   Use when setting up Claude Code in a new repo, taking inventory of capabilities, or planning what to install. Also when user says "what can this workspace do", "audit my setup", "what's available", "what should I install", "tour my Claude Code setup", or "what capabilities do I have".
 allowed-tools: Read Grep Glob Bash

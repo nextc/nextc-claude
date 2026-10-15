@@ -1,0 +1,37 @@
+# EXAMPLE ONLY. Lives outside .github/workflows on purpose so nothing runs automatically.
+# To adopt: copy to .github/workflows/ in a consuming repo and edit the placeholders.
+#
+# Inputs used below are all from https://code.claude.com/docs/en/github-actions (Action parameters table):
+#   anthropic_api_key, plugin_marketplaces, plugins, prompt, claude_args (--max-turns, --allowedTools).
+# Workload identity federation inputs (verified, same page) replace the API key if you want no long-lived secret:
+#   anthropic_federation_rule_id, anthropic_organization_id, anthropic_service_account_id, anthropic_workspace_id.
+# CLAUDE_CODE_SYNC_PLUGIN_INSTALL=1 is from /plugins/org (makes CI wait for plugin install before the first turn).
+# The marketplace name in `plugins` comes from the marketplace's own manifest (nextc-claude), not its URL.
+# Private marketplace: needs a PAT/app token exported as GH_TOKEN plus `gh auth setup-git` (see /plugins/org).
+name: Claude review (example)
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_SYNC_PLUGIN_INSTALL: "1"
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          plugin_marketplaces: "https://github.com/your-org/nextc-claude.git"
+          plugins: |
+            nextc-core@nextc-claude
+            nextc-ecc@nextc-claude
+          prompt: "Review this pull request for correctness and security issues: ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          claude_args: "--max-turns 8"

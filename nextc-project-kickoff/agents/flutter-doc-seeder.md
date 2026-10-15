@@ -2,7 +2,7 @@
 name: flutter-doc-seeder
 description: >
   Flutter project documentation and architectural blueprint seeder. Generates
-  CLAUDE.md, docs/, and README.md with product context and architecture prescriptions
+  AGENTS.md (with a thin CLAUDE.md that imports it), docs/, and README.md with product context and architecture prescriptions
   that guide /feature-dev to write production-grade code. Handles Phase 3 of the
   /flutter-kickoff pipeline.
 model: sonnet
@@ -36,14 +36,17 @@ Read all three files first.
 
 ## Generated Files
 
-### CLAUDE.md (project root)
+### AGENTS.md (project root, canonical) + CLAUDE.md (thin import)
 
-This is the most important file. Every future Claude session reads it first.
+`AGENTS.md` is the tool-neutral, canonical project-instruction file — every coding agent
+reads it first. `CLAUDE.md` is a thin file that imports it. Verified against
+https://code.claude.com/docs/en/memory: Claude Code imports `@AGENTS.md` from a `CLAUDE.md`
+and reads the imported file first, then the Claude-specific content below the import.
+Write `AGENTS.md` with the body below, then write `CLAUDE.md` exactly as shown after it.
+
+#### AGENTS.md
 
 ```markdown
-> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them
-> throughout the entire session.
-
 # [Product Name]
 
 [Elevator pitch from proposal]
@@ -93,11 +96,34 @@ lib/
 ## Status
 
 MVP — project scaffolded, ready for feature development via `/feature-dev`.
+
+## Tooling
+
+- Analyzer diagnostics, tests, and runtime inspection: prefer the Dart and Flutter MCP server
+  (official `dart-flutter` plugin) when installed; fall back to `flutter analyze` / `flutter test`.
+- Flutter accessibility audits: prefer the official Flutter a11y agent from the same plugin.
+```
+
+#### CLAUDE.md
+
+Thin import. Holds only Claude-specific content — never duplicate `AGENTS.md` here.
+
+```markdown
+@AGENTS.md
+
+## Claude Code
+
+> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them
+> throughout the entire session.
+
+Use `/feature-dev` for features. The official `dart-flutter` plugin does not auto-load its rules
+in Claude Code; copy any wanted rules from https://github.com/flutter/agent-plugins/tree/main/rules
+into this section.
 ```
 
 ### docs/architecture.md (THE KEY FILE)
 
-Read `references/flutter-architecture-template.md` and follow its prescriptions
+Read `${CLAUDE_PLUGIN_ROOT}/references/flutter-architecture-template.md` and follow its prescriptions
 verbatim when generating this file. Adapt all bracketed placeholders to the user's
 decisions. Keep only the variant that matches each decision (e.g. keep `[RIVERPOD]`,
 remove `[PROVIDER]` and `[BLOC]`). Remove conditional sections that do not apply.
@@ -206,6 +232,6 @@ Product name, tagline, tech stack, quick start, links to docs/.
 
 Report to orchestrator:
 - Success/failure
-- List of files created
+- List of files created (including both `AGENTS.md` and `CLAUDE.md`)
 
 **Do NOT update `decisions.json`.** The orchestrator owns checkpoint writes.

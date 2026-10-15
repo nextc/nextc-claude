@@ -1,6 +1,6 @@
 ---
 name: safety-guard
-description: Prevent destructive operations on production systems and during autonomous agent runs. Sets ask/deny rules around `rm`, `git reset/clean`, force-push, drops, and infra changes.
+description: Prevent destructive operations on production systems and during autonomous agent runs. Use when working on production, running agents in full-auto, or doing migrations and deploys.
 when_to_use: |
   Use when working on production, running agents in full-auto, doing migrations or deploys, or restricting edits to a specific directory. Also when user says "production mode", "lock this down", "don't break anything", "run this safely", "guard rails", or "I'm scared of this script".
 allowed-tools: Read Edit Write Bash

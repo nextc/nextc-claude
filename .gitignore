@@ -10,3 +10,6 @@ reference-oss/
 
 # Internal specs (not shipped with plugin)
 specs/
+
+# Rules eval raw output (summaries are copied into rules-evals/RESULTS.md)
+rules-evals/results/

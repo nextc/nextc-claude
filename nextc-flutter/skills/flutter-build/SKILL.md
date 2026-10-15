@@ -1,6 +1,6 @@
 ---
 name: flutter-build
-description: Build Flutter APK/IPA, generate changelog, update buildlog, and commit version bump. Handles platform selection, build mode, and artifact renaming.
+description: Build a Flutter APK or IPA with changelog and version bump. Use when building the app, cutting a release, or producing a test build.
 when_to_use: |
   Use when building the app, cutting a release, or producing a test build. Triggers: "build the app", "make a release", "ship it", "build APK", "build IPA", "release build", "test build", "/flutter-build".
 user-invocable: true

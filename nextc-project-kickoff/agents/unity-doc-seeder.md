@@ -2,7 +2,7 @@
 name: unity-doc-seeder
 description: >
   Unity game project documentation and architectural blueprint seeder. Generates
-  CLAUDE.md, docs/, and README.md with product context and architecture prescriptions
+  AGENTS.md (with a thin CLAUDE.md that imports it), docs/, and README.md with product context and architecture prescriptions
   that guide /feature-dev to write production-grade C# code. Handles Phase 3 of the
   /unity-kickoff pipeline.
 model: sonnet
@@ -36,14 +36,17 @@ Read all three files first.
 
 ## Generated Files
 
-### CLAUDE.md (project root)
+### AGENTS.md (project root, canonical) + CLAUDE.md (thin import)
 
-This is the most important file. Every future Claude session reads it first.
+`AGENTS.md` is the tool-neutral, canonical project-instruction file — every coding agent
+reads it first. `CLAUDE.md` is a thin file that imports it. Verified against
+https://code.claude.com/docs/en/memory: Claude Code imports `@AGENTS.md` from a `CLAUDE.md`
+and reads the imported file first, then the Claude-specific content below the import.
+Write `AGENTS.md` with the body below, then write `CLAUDE.md` exactly as shown after it.
+
+#### AGENTS.md
 
 ```markdown
-> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them
-> throughout the entire session.
-
 # [Product Name]
 
 [Elevator pitch from proposal]
@@ -106,9 +109,22 @@ Assets/
 MVP — project scaffolded, ready for feature development via `/feature-dev`.
 ```
 
+#### CLAUDE.md
+
+Thin import. Holds only Claude-specific content — never duplicate `AGENTS.md` here.
+
+```markdown
+@AGENTS.md
+
+## Claude Code
+
+> **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them
+> throughout the entire session.
+```
+
 ### docs/architecture.md (THE KEY FILE)
 
-Read `references/unity-architecture-template.md` and follow its prescriptions
+Read `${CLAUDE_PLUGIN_ROOT}/references/unity-architecture-template.md` and follow its prescriptions
 verbatim when generating this file. Adapt all bracketed placeholders to the user's
 decisions. Keep only the variant that matches each decision (e.g. keep `[VCONTAINER]`,
 remove the other service pattern sections). Remove conditional sections that do not
@@ -274,6 +290,6 @@ git config merge.unityyamlmerge.driver "path/to/UnityYAMLMerge merge -p %O %A %B
 
 Report to orchestrator:
 - Success/failure
-- List of files created
+- List of files created (including both `AGENTS.md` and `CLAUDE.md`)
 
 **Do NOT update `decisions.json`.** The orchestrator owns checkpoint writes.

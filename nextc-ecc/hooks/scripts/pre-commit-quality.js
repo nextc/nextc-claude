@@ -4,8 +4,11 @@
  *
  * PreToolUse hook on Bash. When the command is a `git commit`, scans the STAGED
  * content for issues before the commit lands:
- *   - ERROR (blocks, exit 2): hardcoded secrets, leftover `debugger` statements
+ *   - ERROR (blocks, exit 2): hardcoded secrets (every staged text file, since
+ *     keys usually live in .env/.json/.yaml/.plist), leftover `debugger`
+ *     statements (code files only)
  *   - WARNING (allows): reachable `console.log`, non-conventional commit subject
+ * `git commit --amend` is scanned too — the staged content still lands in a commit.
  *
  * Enforces git-workflow.md (conventional commits) and safety.md (never commit
  * secrets) at the tool layer. Deliberately does NOT run external linters
@@ -25,8 +28,14 @@ const MAX_STDIN = 1024 * 1024;
 const CHECK_EXT = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go', '.rs', '.rb', '.java', '.kt', '.dart'];
 
 const SECRET_PATTERNS = [
-  { re: /sk-[a-zA-Z0-9]{20,}/, name: 'OpenAI API key' },
-  { re: /ghp_[a-zA-Z0-9]{36}/, name: 'GitHub personal access token' },
+  // \b keeps words ending in "sk" (task-, desk-) from matching now that the
+  // body allows `-`/`_`, which Anthropic (sk-ant-…) and OpenAI project keys contain.
+  { re: /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}/, name: 'Anthropic/OpenAI API key' },
+  { re: /\bgh[pousr]_[A-Za-z0-9]{36}/, name: 'GitHub token' },
+  { re: /\bgithub_pat_[A-Za-z0-9_]{22,}/, name: 'GitHub fine-grained token' },
+  { re: /\bxox[abprs]-[A-Za-z0-9-]{10,}/, name: 'Slack token' },
+  { re: /\bAIza[0-9A-Za-z_-]{35}/, name: 'Google API key' },
+  { re: /\b[sr]k_live_[0-9A-Za-z]{24,}/, name: 'Stripe live key' },
   { re: /AKIA[A-Z0-9]{16}/, name: 'AWS access key id' },
   { re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/, name: 'private key' },
   // Leading (?:^|[^a-z0-9]) anchors the keyword to a token start so a camelCase
@@ -57,7 +66,8 @@ function checkable(f) {
 
 function scanFile(file) {
   const content = git(['show', `:${file}`]);
-  if (content == null) return [];
+  if (content == null || content.includes('\0')) return [];
+  const isCode = checkable(file);
   const issues = [];
   content.split('\n').forEach((line, i) => {
     const n = i + 1;
@@ -66,7 +76,8 @@ function scanFile(file) {
     for (const { re, name } of SECRET_PATTERNS) {
       if (re.test(line)) issues.push({ sev: 'error', msg: `possible ${name} at ${file}:${n}` });
     }
-    if (/\bdebugger\b/.test(line) && !isComment) issues.push({ sev: 'error', msg: `debugger statement at ${file}:${n}` });
+    if (!isCode) return;
+    if (/^\s*debugger\s*;?\s*$/.test(line)) issues.push({ sev: 'error', msg: `debugger statement at ${file}:${n}` });
     if (line.includes('console.log') && !isComment) issues.push({ sev: 'warn', msg: `console.log at ${file}:${n}` });
   });
   return issues;
@@ -93,9 +104,9 @@ function evaluate(rawInput) {
   }
   if ((input.tool_name || '') !== 'Bash') return { exitCode: 0 };
   const command = (input.tool_input && input.tool_input.command) || '';
-  if (!/\bgit\s+commit\b/.test(command) || command.includes('--amend')) return { exitCode: 0 };
+  if (!/\bgit\s+commit\b/.test(command)) return { exitCode: 0 };
 
-  const files = stagedFiles().filter(checkable);
+  const files = stagedFiles();
   const issues = [];
   for (const f of files) issues.push(...scanFile(f));
   issues.push(...commitMessageIssues(command));

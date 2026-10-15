@@ -1,6 +1,6 @@
 ---
 name: resume-session
-description: Load the most recent session file from ~/.claude/session-data/ and orient fully before resuming work.
+description: Load the most recent saved session and orient fully before resuming work. Use when starting a fresh session that should pick up prior work.
 when_to_use: |
   Use when starting a fresh session that should pick up prior work. Also when user says "where did we leave off", "continue from yesterday", "resume work", "what were we doing", "pick up where we stopped", or "load my last session".
 user-invocable: true

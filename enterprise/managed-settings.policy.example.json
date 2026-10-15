@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Bash(git push --force *)",
+      "Bash(rm -rf *)"
+    ],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "allowManagedPermissionRulesOnly": true,
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false
+  },
+  "strictKnownMarketplaces": [
+    { "source": "github", "repo": "your-org/*" },
+    { "source": "skills-dir" }
+  ],
+  "extraKnownMarketplaces": {
+    "nextc-claude": {
+      "source": { "source": "github", "repo": "your-org/nextc-claude" }
+    }
+  },
+  "enabledPlugins": {
+    "nextc-core@nextc-claude": true,
+    "nextc-ecc@nextc-claude": true
+  },
+  "disableSideloadFlags": true,
+  "allowManagedMcpServersOnly": true,
+  "allowedMcpServers": [
+    { "serverUrl": "https://mcp.example.com/*" }
+  ]
+}
