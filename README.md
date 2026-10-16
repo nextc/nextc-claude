@@ -35,6 +35,8 @@ git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 ```
 
+`setup-rules.sh` also merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). That file holds narrow allow rules for release build commands and an auto mode exception for builds and TestFlight uploads you asked for. It only adds entries; it never removes yours. In auto mode, broad rules such as `"Bash"` or `"Bash(flutter *)"` are dropped, and an allow rule can't match past a `FL_CHANGELOG=…` prefix, so without these the auto mode check can refuse a build you asked for.
+
 This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, save-session, etc.).
 
 ### Per-Project (install when needed)
@@ -175,6 +177,7 @@ nextc-claude/                         (marketplace root)
 ├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; loaded every session)
 ├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals for rule changes; costs model calls)
+├── settings/user-settings.json       (build permission rules + auto mode exceptions, merged into ~/.claude/settings.json)
 ├── setup-rules.sh
 ├── nextc-core/                       (9 skills, 2 agents)
 ├── nextc-ecc/                        (21 skills, 15 agents, 8 hooks)

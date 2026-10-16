@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-16
+
+### Added
+- **`settings/user-settings.json`, merged into `~/.claude/settings.json` by `setup-rules.sh`** — narrow `permissions.allow` rules for `flutter build apk|appbundle|ipa` and the `flutter-builder` fastlane lanes (`release_testflight`, `build_adhoc`, `build_appstore`), plus one `autoMode.allow` entry for release builds and TestFlight uploads the user asked for. Why: in auto mode the classifier refused `/flutter-build`'s Android build and its TestFlight lane (`[Production Deploy]`), although the user's settings allowed `Bash` and `Bash(flutter *)`. Auto mode drops broad allow rules, an allow rule can't match past an `FL_CHANGELOG=…` prefix, and `autoMode` is read only from user or managed settings, never from project settings (code.claude.com/docs/en/permission-modes, /permissions, /auto-mode-config). The merge uses `jq`, only appends missing entries, starts a new `autoMode.allow` list with `"$defaults"` so the built-in exceptions stay, and backs the file up before writing.
+
 ## 2026-10-15
 
 ### Added

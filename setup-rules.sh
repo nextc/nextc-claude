@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # nextc-claude setup — symlinks rules into ~/.claude/rules/nextc-claude/ and their long-form
-# references into ~/.claude/nextc-claude-references/.
+# references into ~/.claude/nextc-claude-references/, and merges settings/user-settings.json
+# (build permission rules + auto mode exceptions) into ~/.claude/settings.json.
 # Agents and skills are installed via marketplace (/plugin marketplace add + /plugin install).
 # Rules have no plugin support, so they still require this symlink.
 
@@ -31,6 +32,38 @@ link "$REPO_DIR/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
 # EXTERNAL: kept outside ~/.claude/rules/ on purpose — Claude Code loads every .md under rules/
 # (subfolders too) into every session; these are read on demand via the paths the rules cite.
 link "$REPO_DIR/rules-references" "$CLAUDE_DIR/nextc-claude-references"
+
+# Merges settings/user-settings.json into ~/.claude/settings.json: appends missing permissions.allow
+# and autoMode.allow entries, never removes or reorders yours. Backs up the file before any change.
+merge_settings() {
+  local src="$REPO_DIR/settings/user-settings.json" dest="$CLAUDE_DIR/settings.json"
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "⚠ jq not found — skipped the settings merge. Add the entries in $src to $dest by hand."
+    return 0
+  fi
+  [ -f "$dest" ] || echo '{}' > "$dest"
+  local merged
+  # EXTERNAL: an autoMode.allow list without "$defaults" replaces every built-in exception
+  # (code.claude.com/docs/en/auto-mode-config), so a new list starts with it.
+  if ! merged="$(jq --slurpfile add "$src" '
+      def union($a; $b): ($a // []) + [($b // [])[] | select(. as $x | ($a // []) | any(. == $x) | not)];
+      .permissions.allow = union(.permissions.allow; $add[0].permissions.allow)
+      | if ($add[0].autoMode.allow // []) == [] then .
+        else .autoMode.allow = union(.autoMode.allow // ["$defaults"]; $add[0].autoMode.allow) end
+    ' "$dest")"; then
+    echo "✗ Could not parse $dest; left it unchanged."
+    return 1
+  fi
+  if [ "$merged" = "$(jq . "$dest")" ]; then
+    echo "✓ $dest already has every entry from settings/user-settings.json"
+  else
+    local backup="${dest}.bak.$(date +%Y%m%d%H%M%S)"
+    cp "$dest" "$backup"
+    printf '%s\n' "$merged" > "$dest"
+    echo "✓ Merged settings/user-settings.json into $dest (backup: $backup)"
+  fi
+}
+merge_settings
 
 # Configure repo-local git hooks (pre-commit runs validate.js)
 if [ -d "$REPO_DIR/.git" ] && [ -d "$REPO_DIR/.githooks" ]; then

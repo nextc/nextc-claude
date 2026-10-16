@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter build apk *)",
+      "Bash(flutter build appbundle *)",
+      "Bash(flutter build ipa *)",
+      "Bash(bundle exec fastlane ios release_testflight *)",
+      "Bash(bundle exec fastlane ios build_adhoc *)",
+      "Bash(bundle exec fastlane ios build_appstore *)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "Release builds the user asked for: when the user invoked /flutter-build or /unity-build or otherwise asked for a build in this session, building release artifacts locally (`flutter build apk|appbundle|ipa`, renaming them under the project's build/ folder) and running the project's iOS fastlane lanes `release_testflight`, `build_adhoc` or `build_appstore` via `bundle exec fastlane` (including with an `FL_CHANGELOG=...` prefix, from the project's ios/ folder) is allowed. A TestFlight upload goes to Apple's beta testing, not the public App Store, and the user reviews the build there before any release."
+    ]
+  }
+}
