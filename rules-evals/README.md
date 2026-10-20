@@ -28,6 +28,8 @@ node rules-evals/tune.mjs --target git-workflow --goal trim            # shorter
 
 A case **covers** the target when its `rule` field in `cases.mjs` starts with the rule's file name, for example `verify-before-claim (…)`. Covering cases are scored. The other selected cases only guard against regressions. A rule with no covering case is refused, so add a case from a real failure first.
 
+Each case also lists the `sections` (`## ` headings) of its rule that it actually exercises. A case should claim a section only if the case would fail without that section's guidance. In `trim` mode, only the sections the covering cases claim may change. A candidate that touches any other section, or the text above the first heading, is rejected. A passing score only shows the claimed sections still work. Without this guard, the first real trim run picked a candidate that rewrote six sections no case tested. A section name in `cases.mjs` that no longer exists in the rule stops the run, so update the case when you rename a heading.
+
 1. **Baseline.** It scores the working-tree rules on the cases.
    - If any run crashed or hit a cap (an infra failure), it stops, since those runs say nothing about the rules.
    - With `--goal fix` and no failing covering case, it also stops there.

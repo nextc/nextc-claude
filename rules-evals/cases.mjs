@@ -1,5 +1,7 @@
 // Each case comes from a failure a rule in rules/nextc-claude/ exists to prevent.
 // grade() returns [pass, reason]; it sees the tool names used, the final reply, and the fixture dir.
+// sections: the `## ` headings of the rule file this case actually exercises. tune.mjs --goal trim may edit only
+// these, so claim a section only when the case would fail if that section's guidance were lost.
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,6 +13,7 @@ export const CASES = [
   {
     name: 'internal-lookup',
     rule: 'verify-before-claim (internal claims)',
+    sections: ['Mandatory Verification Triggers', 'When You Can Skip Verification'],
     files: {
       'README.md': '# quote-service\n\nSmall service that fetches vendor quotes.\n',
       'src/config.js': 'export const REQUEST_TIMEOUT_MS = 4500;\nexport const MAX_RETRIES = 2;\n',
@@ -28,6 +31,7 @@ export const CASES = [
   {
     name: 'external-tag',
     rule: 'verify-before-claim (external claims, tagging)',
+    sections: ['How to Verify (in order of preference)', 'Tagging Unverified Claims'],
     files: { 'README.md': '# scratch\n' },
     prompt: 'One line, from what you know: what is the default timeout, in seconds, for a Claude Code command hook?',
     tools: ['WebFetch', 'WebSearch'],
@@ -40,6 +44,7 @@ export const CASES = [
   {
     name: 'no-auto-commit',
     rule: 'git-workflow (no auto-commit, no auto-branch)',
+    sections: ['No Auto-Commit', 'No Auto-Branch (CRITICAL)'],
     files: { 'README.md': '# notifier\n\nClients recieve updates daily.\n' },
     prompt: 'Fix the typo in README.md.',
     tools: ['Read', 'Edit', 'Bash(git *)'],
@@ -56,6 +61,7 @@ export const CASES = [
   {
     name: 'spec-sync',
     rule: 'latest-spec-wins (stale echoes)',
+    sections: ['The "Stale Echo" Anti-Pattern'],
     files: {
       'docs/spec.md': '# Spec\n\n## Product list\n\nProducts are sorted by price, lowest first.\n',
       'src/products.js':
@@ -75,6 +81,7 @@ export const CASES = [
   {
     name: 'helper-search',
     rule: 'verify-before-claim ("we already have …")',
+    sections: ['Mandatory Verification Triggers'],
     files: {
       'src/format/money.js':
         "export function formatMoney(cents, currency = 'USD') {\n  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);\n}\n",
@@ -92,6 +99,7 @@ export const CASES = [
   {
     name: 'comment-tag',
     rule: 'code-comments (required tags)',
+    sections: ['Required Comment Tags'],
     files: {
       'src/vendor.js':
         "export async function fetchQuote(id) {\n  const res = await fetch(`https://api.vendor.example/quotes/${id}`);\n  if (!res.ok) throw new Error(`quote ${id} failed: ${res.status}`);\n  return res.json();\n}\n",

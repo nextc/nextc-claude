@@ -21,6 +21,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
   - **First real run:** trim on `verify-before-claim` with `internal-lookup` and `helper-search`, 16 runs for $2.49 on sonnet.
     - **Result:** all three candidates tied the baseline at 4/4. The selected one was 6% shorter but cut content neither case tests, so it was rejected and the rule is unchanged.
     - **Lessons file:** the scores and the review verdict are the first entry in `rules-evals/LESSONS.md`, which the next proposer for that rule reads.
+  - **Trim edits only tested sections:** each case in `cases.mjs` now lists the `sections` (`## ` headings) of its rule that it exercises. `--goal trim` may change only those sections; a candidate that changes any other section, or the preamble, is rejected and the untouched sections are named. Why: on the first real run, the selected candidate passed by rewriting six sections no case tested. Replayed through the guard, the same candidate is rejected. A section name that no longer exists in the rule stops the run, so heading renames can't silently widen what trim may touch.
 
 ### Changed
 - **`rules-evals/run.mjs`** — the fixture setup, bundle builder, `claude -p` runner and worker pool moved to `rules-evals/lib.mjs`, now shared with `tune.mjs`. Behavior and output are unchanged, except that a missing `claude` binary now shows up as a failed run instead of crashing the script.

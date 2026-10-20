@@ -38,6 +38,30 @@ if (targetCases.length === 0) fail(`no selected case covers ${name}; add one to 
 
 const original = fs.readFileSync(path.join(REPO, targetRel), 'utf8');
 const normalize = (s) => s.trimEnd() + '\n';
+
+// Splits a rule file at its `## ` headings; text before the first one is keyed '(preamble)'.
+function sections(text) {
+  const map = new Map();
+  let key = '(preamble)';
+  let buf = [];
+  for (const line of text.split('\n')) {
+    if (line.startsWith('## ')) { map.set(key, buf.join('\n').trimEnd()); key = line.slice(3).trim(); buf = []; }
+    buf.push(line);
+  }
+  map.set(key, buf.join('\n').trimEnd());
+  return map;
+}
+const originalSections = sections(original);
+const stale = targetCases.flatMap((c) => (c.sections ?? []).filter((h) => !originalSections.has(h)).map((h) => `${c.name}: "${h}"`));
+if (stale.length) fail(`cases.mjs names sections missing from ${targetRel} (update the case): ${stale.join('; ')}`);
+// Trim may only touch what a case would catch; every other section must come back unchanged.
+const editable = [...new Set(targetCases.flatMap((c) => c.sections ?? []))];
+const frozen = [...originalSections.keys()].filter((h) => !editable.includes(h));
+if (opts.goal === 'trim' && editable.length === 0) fail(`no covering case declares sections; trim would be untested. Add sections to cases.mjs`);
+const changedFrozen = (body) => {
+  const got = sections(body);
+  return frozen.filter((h) => got.get(h) !== originalSections.get(h));
+};
 const LESSONS = path.join(HERE, 'LESSONS.md');
 const STRATEGIES = {
   fix: [
@@ -55,6 +79,7 @@ if (K > STRATEGIES.length) fail(`--k is at most ${STRATEGIES.length}, one candid
 
 const worst = (1 + K) * cases.length * RUNS * RUN_CAP_USD + K * ASK_CAP_USD;
 console.log(`target ${targetRel}; covering cases: ${targetCases.map((c) => c.name).join(', ')}; guard cases: ${cases.length - targetCases.length}`);
+if (opts.goal === 'trim') console.log(`editable sections: ${editable.join(' | ')}; ${frozen.length} other sections frozen`);
 console.log(`up to ${(1 + K) * cases.length * RUNS} runs + ${K} proposals; worst case $${worst.toFixed(2)}, stops starting runs past $${MAX_SPEND}`);
 
 const { out: OUT, work: WORK } = makeRunDirs(`-tune-${name}`);
@@ -125,6 +150,9 @@ async function tune(base, baseResults, failures) {
     `Tasks the agent currently handles correctly and must keep handling: ${keepPassing}.`,
     pastLessons ? `\nScored results of earlier tuning attempts on this file (unconfirmed small samples; learn from what won and lost):\n## ${pastLessons}` : '',
     '',
+    opts.goal === 'trim'
+      ? `Edit ONLY these sections (by their "## " heading): ${editable.map((h) => `"${h}"`).join(', ')}. Copy every other section, and the text before the first "## " heading, exactly as it is, character for character.`
+      : '',
     `Strategy for this candidate: ${strategy}`,
     'Constraints: change only what the strategy needs; keep the file\'s headings, tags and cross-references unless the strategy requires otherwise; do not mention tests, cases or graders.',
     sizeRule,
@@ -150,7 +178,8 @@ async function tune(base, baseResults, failures) {
     const invalid = r.error
       ?? (!m ? 'no <<<FILE block in reply'
         : body === normalize(original) ? 'no change'
-          : opts.goal === 'trim' && (body.length >= original.length || body.length < minChars) ? `size out of range (${body.length} chars)`
+          : opts.goal === 'trim' && changedFrozen(body).length ? `changed untested section(s): ${changedFrozen(body).join(' | ')}`
+            : opts.goal === 'trim' && (body.length >= original.length || body.length < minChars) ? `size out of range (${body.length} chars)`
             : opts.goal === 'fix' && body.length > maxChars ? `too long (${body.length} chars)`
               : null);
     return { id: i + 1, strategy: strategy.split(':')[0], body, why, invalid };
@@ -189,6 +218,7 @@ async function tune(base, baseResults, failures) {
   finish([
     `target=${targetRel} goal=${opts.goal} k=${K} runs=${RUNS} model=${opts.model} proposer=${opts.proposer}`,
     `covering cases: ${targetCases.map((c) => c.name).join(', ')} (pass column); all ${cases.length} cases guard against regressions`,
+    ...(opts.goal === 'trim' ? [`editable sections: ${editable.join(' | ')}`] : []),
     '',
     'arm | pass | context block | chars | note',
     `baseline | ${base.pass}/${tTotal} | ${base.ctx}/${expected} | ${original.length} |`,
