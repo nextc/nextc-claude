@@ -14,7 +14,14 @@ All notable changes to nextc-claude are documented here, grouped by date.
     - Runs that crashed or hit a cap count as infra failures, not rule failures; a baseline with any stops before proposing.
     - Rewrites that change nothing, or break the size limits, are rejected. A fix may grow at most 15%; a trim must stay at least half the original size.
     - It prints the worst-case cost up front and stops starting runs at `--max-spend`.
-    - The script never edits `rules/`: the winner lands in `results/` as a file plus diff for review, marked unconfirmed.
+    - Without `--apply` the script never edits `rules/`: the winner lands in `results/` as a file plus diff for review, marked unconfirmed.
+  - **`--apply`:** it re-runs the baseline and the winner with fresh, larger samples (`--confirm-runs`, default 5).
+    - These runs use bundle copies, so a winner that fails confirmation never goes live, even briefly.
+    - Only if the winner holds up does the script write it into `rules/<rule>.md`. That file is live in every new session at once through the `~/.claude/rules` symlink.
+    - It refuses to start when the rule file has uncommitted edits, so `git checkout` is a clean undo.
+    - The lesson records "applied" or why confirmation failed.
+    - Tested in a throwaway clone with a fake `claude`: confirmed-and-applied, failed confirmation (file untouched), a dirty file refused, and no flag (file untouched).
+  - **Flag parsing:** `rules-evals/lib.mjs` `parseArgs` now treats a flag followed by another flag, or by nothing, as a boolean. Before, a bare flag swallowed the next argument.
   - **Review:** a code review found six medium issues, all fixed before release. The worst was that failures from other rules could steer the proposer and the winner.
   - **Lessons:** each run appends its scored outcome to `rules-evals/LESSONS.md`, which the next proposer for that file reads. This mirrors harness2's persistent "improvement harness".
   - **Checked so far:** dry runs against a fake `claude` binary exercised fix, trim, an infra failure and bad input at no model cost.

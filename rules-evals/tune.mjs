@@ -1,7 +1,8 @@
 // Propose / probe / select for one rule file, after harness2's task-level loop (github.com/google-research/harness2).
-// SECURITY: never writes under rules/. Candidates and diffs go to results/; a person reviews and applies them.
+// SECURITY: writes under rules/ only with --apply, only the target file, and only after the winner passes a fresh
+// confirmation on bundle copies. ~/.claude/rules links to rules/, so an applied file is live in every new session.
 // Usage: node rules-evals/tune.mjs --target <rule> [--goal fix|trim] [--k 3] [--runs 2] [--cases a,b]
-//        [--model sonnet] [--proposer sonnet] [--concurrency 4] [--max-spend 15]
+//        [--model sonnet] [--proposer sonnet] [--concurrency 4] [--max-spend 15] [--apply] [--confirm-runs 5]
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,7 +17,7 @@ const MIN_TRIM = 0.5;
 const RUN_CAP_USD = 0.5;
 const ASK_CAP_USD = 1;
 
-const opts = parseArgs({ target: '', goal: 'fix', k: '3', runs: '2', cases: '', model: 'sonnet', proposer: 'sonnet', concurrency: '4', 'max-spend': '15' });
+const opts = parseArgs({ target: '', goal: 'fix', k: '3', runs: '2', cases: '', model: 'sonnet', proposer: 'sonnet', concurrency: '4', 'max-spend': '15', apply: '', 'confirm-runs': '5' });
 const fail = (msg) => { console.error(msg); process.exit(2); };
 const posInt = (v, flag) => (/^[1-9]\d*$/.test(String(v)) ? Number(v) : fail(`--${flag} must be a positive integer (got "${v}")`));
 const name = path.basename(opts.target || '', '.md');
@@ -27,6 +28,12 @@ const K = posInt(opts.k, 'k');
 const RUNS = posInt(opts.runs, 'runs');
 const CONCURRENCY = posInt(opts.concurrency, 'concurrency');
 const MAX_SPEND = Number(opts['max-spend']);
+const APPLY = opts.apply === 'true';
+const CONFIRM_RUNS = posInt(opts['confirm-runs'], 'confirm-runs');
+// Applying over uncommitted edits would mix them into the result and make `git checkout` an unsafe undo.
+if (APPLY && execFileSync('git', ['status', '--porcelain', '--', targetRel], { cwd: REPO }).toString().trim()) {
+  fail(`--apply needs ${targetRel} committed and unchanged; commit or stash your edits first`);
+}
 const wanted = opts.cases ? opts.cases.split(',') : null;
 const unknown = (wanted ?? []).filter((n) => !CASES.some((c) => c.name === n));
 if (unknown.length) fail(`unknown case(s): ${unknown.join(', ')}`);
@@ -77,16 +84,17 @@ const STRATEGIES = {
 }[opts.goal];
 if (K > STRATEGIES.length) fail(`--k is at most ${STRATEGIES.length}, one candidate per strategy`);
 
-const worst = (1 + K) * cases.length * RUNS * RUN_CAP_USD + K * ASK_CAP_USD;
+const confirmRuns = APPLY ? 2 * cases.length * CONFIRM_RUNS : 0;
+const worst = ((1 + K) * cases.length * RUNS + confirmRuns) * RUN_CAP_USD + K * ASK_CAP_USD;
 console.log(`target ${targetRel}; covering cases: ${targetCases.map((c) => c.name).join(', ')}; guard cases: ${cases.length - targetCases.length}`);
 if (opts.goal === 'trim') console.log(`editable sections: ${editable.join(' | ')}; ${frozen.length} other sections frozen`);
-console.log(`up to ${(1 + K) * cases.length * RUNS} runs + ${K} proposals; worst case $${worst.toFixed(2)}, stops starting runs past $${MAX_SPEND}`);
+console.log(`up to ${(1 + K) * cases.length * RUNS + confirmRuns} runs + ${K} proposals; worst case $${worst.toFixed(2)}, stops starting runs past $${MAX_SPEND}`);
 
 const { out: OUT, work: WORK } = makeRunDirs(`-tune-${name}`);
 let spent = 0;
 const track = (r) => { spent += r.cost; console.log(logLine(r)); };
 const overBudget = () => spent >= MAX_SPEND;
-const probe = (arm, bundlePath) => cases.flatMap((c) => Array.from({ length: RUNS }, (_, i) =>
+const probe = (arm, bundlePath, runs = RUNS) => cases.flatMap((c) => Array.from({ length: runs }, (_, i) =>
   () => runCase(c, { arm, run: i + 1, bundlePath, model: opts.model, work: WORK, out: OUT })));
 const isTarget = (r) => targetCases.some((c) => c.name === r.case);
 const score = (rs) => ({
@@ -115,13 +123,13 @@ try {
   } else if (opts.goal === 'fix' && failures.length === 0) {
     finish([`baseline passed every run of the cases covering ${name}; nothing to fix. Try --goal trim.`, `total cost $${spent.toFixed(2)}`]);
   } else {
-    await tune(base, baseResults, failures);
+    await tune(base, baseResults, failures, baseBundle);
   }
 } finally {
   fs.rmSync(WORK, { recursive: true, force: true });
 }
 
-async function tune(base, baseResults, failures) {
+async function tune(base, baseResults, failures, baseBundle) {
   // ASSUMPTION: lesson headers are the only lines starting "## " in LESSONS.md; tune.mjs writes them that way.
   const pastLessons = fs.existsSync(LESSONS)
     ? fs.readFileSync(LESSONS, 'utf8').split('\n## ').filter((s) => s.split('\n')[0].includes(`\`${name}\``)).slice(-5).join('\n## ')
@@ -212,6 +220,7 @@ async function tune(base, baseResults, failures) {
       : p.pass >= base.pass && p.chars < original.length);
   }
   const winner = proposals.filter((p) => p.eligible).sort((a, b) => b.pass - a.pass || b.ctx - a.ctx || a.chars - b.chars)[0];
+  const applied = APPLY && winner ? await confirmAndApply(winner, baseBundle) : null;
 
   const tTotal = targetCases.length * RUNS;
   const note = (p) => [p.incomplete ? `incomplete (${p.infra} infra, ${p.runs}/${expected} runs)` : '', p.regressed.length ? `regressed: ${p.regressed.join(',')}` : '', p.why].filter(Boolean).join('; ');
@@ -228,7 +237,10 @@ async function tune(base, baseResults, failures) {
     '',
     ...cases.map((c) => `${c.name}${covers(c) ? '' : ' (guard)'}: baseline ${base.perCase[c.name]}/${RUNS}${proposals.filter((p) => !p.invalid).map((p) => `, cand${p.id} ${p.perCase[c.name]}/${RUNS}`).join('')}`),
     '',
-    winner
+    ...(applied ? [applied.line, ''] : []),
+    applied?.ok
+      ? `Review ${path.relative(REPO, path.join(OUT, `candidate-${winner.id}.diff`))}, then commit ${targetRel} and rules-evals/LESSONS.md together. Undo: git checkout ${targetRel}`
+      : winner
       ? `winner (unconfirmed, ${RUNS} runs per case): candidate ${winner.id}. Review ${path.relative(REPO, path.join(OUT, `candidate-${winner.id}.diff`))}, then apply with:\n  cp ${path.relative(REPO, path.join(OUT, `candidate-${winner.id}.md`))} ${targetRel}\nand confirm with more runs: node rules-evals/run.mjs --runs 5`
       : 'no winner: no candidate beat the baseline cleanly. Rules unchanged.',
     `total cost $${spent.toFixed(2)}`,
@@ -242,7 +254,7 @@ async function tune(base, baseResults, failures) {
     ...proposals.map((p) => p.invalid
       ? `- ${p.strategy}: invalid (${p.invalid})`
       : `- ${p.strategy}: ${p.pass}/${tTotal}, ${p.chars} chars${p.incomplete ? ', incomplete' : ''}${p.regressed.length ? `, regressed ${p.regressed.join(',')}` : ''}${p === winner ? ' — best (unconfirmed)' : ''}. ${p.why}`),
-    `- outcome: ${winner ? `candidate ${winner.id} offered for review, not applied` : 'no winner'}`,
+    `- outcome: ${!winner ? 'no winner' : applied ? applied.lesson : `candidate ${winner.id} offered for review, not applied`}`,
   ].join('\n') + '\n');
 }
 
@@ -257,4 +269,31 @@ function writeDiff(id) {
     diff = e.stdout.toString();
   }
   fs.writeFileSync(path.join(OUT, `candidate-${id}.diff`), diff);
+}
+
+// Re-runs baseline and winner with fresh, larger samples so one lucky pass can't decide what goes live, then
+// writes the winner into rules/ only if it holds up.
+async function confirmAndApply(winner, baseBundle) {
+  console.log(`\nconfirming candidate ${winner.id}: ${CONFIRM_RUNS} fresh runs per case, baseline and winner`);
+  const winBundle = path.join(OUT, `candidate-${winner.id}.bundle.md`);
+  const rs = await pool([...probe('confirm-base', baseBundle, CONFIRM_RUNS), ...probe('confirm-win', winBundle, CONFIRM_RUNS)],
+    CONCURRENCY, track, overBudget);
+  fs.writeFileSync(path.join(OUT, 'confirm.json'), JSON.stringify(rs, null, 2));
+  const b = score(rs.filter((r) => r.arm === 'confirm-base'));
+  const w = score(rs.filter((r) => r.arm === 'confirm-win'));
+  const full = cases.length * CONFIRM_RUNS;
+  const total = targetCases.length * CONFIRM_RUNS;
+  const regressed = cases.filter((c) => b.perCase[c.name] === CONFIRM_RUNS && w.perCase[c.name] < CONFIRM_RUNS).map((c) => c.name);
+  const reason = b.infra + w.infra > 0 || b.runs < full || w.runs < full ? `incomplete (${b.infra + w.infra} infra, ${b.runs + w.runs}/${2 * full} runs)`
+    : regressed.length ? `regressed: ${regressed.join(',')}`
+      : opts.goal === 'fix' && w.pass <= b.pass ? 'no longer beats the baseline'
+        : opts.goal === 'trim' && w.pass < b.pass ? 'scores below the baseline'
+          : fs.readFileSync(path.join(REPO, targetRel), 'utf8') !== original ? `${targetRel} changed during the run`
+            : null;
+  const scores = `baseline ${b.pass}/${total}, winner ${w.pass}/${total}`;
+  if (reason) {
+    return { ok: false, line: `confirmation failed (${scores}): ${reason}. ${targetRel} left unchanged.`, lesson: `candidate ${winner.id} failed confirmation (${scores}; ${reason}), not applied` };
+  }
+  fs.writeFileSync(path.join(REPO, targetRel), winner.body);
+  return { ok: true, line: `confirmed (${scores}, ${CONFIRM_RUNS} runs per case) and APPLIED candidate ${winner.id} to ${targetRel}; it is live in new sessions now.`, lesson: `candidate ${winner.id} confirmed (${scores}) and applied` };
 }

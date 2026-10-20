@@ -22,7 +22,8 @@ node rules-evals/run.mjs --cases spec-sync,comment-tag      # subset
 
 ```bash
 node rules-evals/tune.mjs --target verify-before-claim                 # fix failures, 3 candidates × 2 runs
-node rules-evals/tune.mjs --target code-comments --cases comment-tag --k 4
+node rules-evals/tune.mjs --target code-comments --cases comment-tag --k 2
+node rules-evals/tune.mjs --target verify-before-claim --apply          # confirm the winner, then write it into rules/
 node rules-evals/tune.mjs --target git-workflow --goal trim            # shorter, same behavior
 ```
 
@@ -46,7 +47,14 @@ Each case also lists the `sections` (`## ` headings) of its rule that it actuall
    Ties go to more context blocks, then the shorter file.
 5. **Remember.** It appends the scored outcome to `LESSONS.md`, marked unconfirmed. The next proposer for that file reads it.
 
-It never edits `rules/`. The winner is written to `results/<stamp>-tune-<rule>/candidate-N.md` with a `.diff`, and the summary prints the `cp` to apply it. With 2 runs per case, one lucky pass can decide the winner, and it was picked on the same cases it was tuned against. Confirm it with `run.mjs --runs 5` before committing. A new case from a different real failure is better still.
+Without `--apply` it never edits `rules/`. The winner is written to `results/<stamp>-tune-<rule>/candidate-N.md` with a `.diff`, and the summary prints the `cp` to apply it. With 2 runs per case, one lucky pass can decide the winner, and it was picked on the same cases it was tuned against. Confirm it with `run.mjs --runs 5` before committing. A new case from a different real failure is better still.
+
+With `--apply`, the tuner does the confirmation for you:
+1. It re-runs the baseline and the winner with `--confirm-runs` fresh runs per case (default 5). These runs use bundle copies, so nothing is live yet.
+2. It writes the winner into `rules/<rule>.md` only if the winner still passes the selection test, with no infra failures and no regressions.
+3. If confirmation fails, the rule file is left as it was and the lesson records why.
+
+`--apply` refuses to start if the rule file has uncommitted changes, so `git checkout rules/nextc-claude/<rule>.md` is always a clean undo. `~/.claude/rules/nextc-claude` links to this folder, so an applied rule is live in your next session in any project. Colleagues get it only when you commit and push and they pull. Review the printed `.diff`, then commit the rule and `LESSONS.md` together. Confirmation adds 2 × cases × confirm-runs runs to the cost, and the up-front worst-case estimate includes them.
 
 Cost: (1 + k) × cases × runs probe runs plus k proposer calls. The default, all 6 cases with k=3 and 2 runs, is 48 runs, about $8 on sonnet (estimated from the 2026-10-15 cost of about $0.17 per run). It prints the worst case before starting and stops starting runs once `--max-spend` (default $15) is reached. Use `--cases` to focus it. It is a heavy command too, so get a go-ahead first.
 

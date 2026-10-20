@@ -9,9 +9,16 @@ export const HERE = path.dirname(new URL(import.meta.url).pathname);
 export const REPO = path.dirname(HERE);
 export const RULES_DIR = 'rules/nextc-claude';
 
+// A flag followed by another flag, or by nothing, is a boolean and reads as 'true'.
 export function parseArgs(defaults) {
   const opts = { ...defaults };
-  for (let i = 2; i < process.argv.length; i += 2) opts[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const key = argv[i].replace(/^--/, '');
+    const next = argv[i + 1];
+    if (next === undefined || next.startsWith('--')) opts[key] = 'true';
+    else { opts[key] = next; i++; }
+  }
   return opts;
 }
 
