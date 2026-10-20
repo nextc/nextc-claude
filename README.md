@@ -176,7 +176,7 @@ nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 8 plugins)
 ├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; loaded every session)
 ├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
-├── rules-evals/                      (before/after behavioral evals for rule changes; costs model calls)
+├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
 ├── settings/user-settings.json       (build permission rules + auto mode exceptions, merged into ~/.claude/settings.json)
 ├── setup-rules.sh
 ├── nextc-core/                       (9 skills, 2 agents)

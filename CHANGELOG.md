@@ -2,6 +2,26 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-20
+
+### Added
+- **`rules-evals/tune.mjs`** — automated tuning for one rule file, after the propose → probe → compose loop in [google-research/harness2](https://github.com/google-research/harness2). harness2 can't drive Claude Code (its executors are OpenCode and Codex), runs on Linux with Vertex AI, and is a 0.1.0 research release, so the idea was borrowed and the code was not. Usage: `node rules-evals/tune.mjs --target <rule> [--goal fix|trim]`.
+  - **How it works:** it scores the working-tree rules on the eval cases, then asks a tool-less `claude -p` for up to 3 rewrites of the target, each with a different strategy. Every candidate is run on the same cases.
+    - Only cases whose `rule` names the target are scored. The rest guard against regressions.
+    - The winner must beat the baseline on those cases (or, in `trim` mode, match it in fewer characters) without losing any case that passed every baseline run.
+  - **Safeguards:**
+    - The proposer sees each failure's task, reason and reply, but never the grader code.
+    - Runs that crashed or hit a cap count as infra failures, not rule failures; a baseline with any stops before proposing.
+    - Rewrites that change nothing, or break the size limits, are rejected. A fix may grow at most 15%; a trim must stay at least half the original size.
+    - It prints the worst-case cost up front and stops starting runs at `--max-spend`.
+    - The script never edits `rules/`: the winner lands in `results/` as a file plus diff for review, marked unconfirmed.
+  - **Review:** a code review found six medium issues, all fixed before release. The worst was that failures from other rules could steer the proposer and the winner.
+  - **Lessons:** each run appends its scored outcome to `rules-evals/LESSONS.md`, which the next proposer for that file reads. This mirrors harness2's persistent "improvement harness".
+  - **Checked so far:** dry runs against a fake `claude` binary exercised fix, trim, an infra failure and bad input at no model cost. No real tuning run has been made yet.
+
+### Changed
+- **`rules-evals/run.mjs`** — the fixture setup, bundle builder, `claude -p` runner and worker pool moved to `rules-evals/lib.mjs`, now shared with `tune.mjs`. Behavior and output are unchanged, except that a missing `claude` binary now shows up as a failed run instead of crashing the script.
+
 ## 2026-10-16
 
 ### Added
