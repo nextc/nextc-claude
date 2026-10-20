@@ -24,7 +24,14 @@ Encoding a *category* as a hue — a type, a family, a status, an owner, a tier 
 
 When the design style is liquid glass, glass, frosted, or similar, never use solid fills. If color is required, apply it only as a **low-opacity tint layered into the glass material** (tint over blur) — never an opaque block.
 
-**Why:** a solid fill breaks the material illusion the style depends on.
+**Exception — the one primary action.** The single primary-action control on a screen (the rule-1 "one high-salience element") may carry a **high-alpha accent tint** (up to ~0.85) layered into the glass, when a low-opacity tint can't make its label legible over an arbitrary background. Conditions, all required:
+- It stays glass: blur, edge light, and refraction are kept. Only the tint strength changes, and it never becomes an opaque `Container` fill.
+- At most **one** such control is visible per screen state, and the accent is never also used for borders, rings, icons, text, or categories (rules 1 and 1b).
+- Its label clears 4.5:1 against the tinted glass over the worst-case backdrops (black and white at minimum). Measure it; don't eyeball it.
+
+Everything else (cards, sheets, chips, secondary buttons, badges) stays at a low-opacity tint or neutral.
+
+**Why:** a solid fill breaks the material illusion the style depends on. A primary call to action is the one place where hue contrast earns its keep: over a busy photo, a faintly tinted CTA is indistinguishable from the other glass controls. A strongly tinted control that keeps its blur and edge light still reads as glass. (Precedent: iOS 26's prominent glass button style. Added 2026-10-20 after the TripFold PRD V1.2 accent decision.)
 
 ## 3. Sans-serif by default; serif only on command; never italic serif
 
