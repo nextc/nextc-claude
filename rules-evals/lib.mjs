@@ -48,10 +48,10 @@ export function buildBundle(rulesRoot) {
   return parts.join('\n\n');
 }
 
-function setupFixture(dir, files) {
+function setupFixture(dir, files, executable = []) {
   for (const [rel, body] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
-    fs.writeFileSync(path.join(dir, rel), body);
+    fs.writeFileSync(path.join(dir, rel), body, { mode: executable.includes(rel) ? 0o755 : 0o644 });
   }
   execSync('git init -q -b main && git add -A && git -c user.name=eval -c user.email=eval@example.invalid commit -qm init', { cwd: dir });
 }
@@ -64,7 +64,7 @@ function parseEvents(out) {
 export function runCase(c, { arm, run, bundlePath, model, work, out }) {
   const id = `${c.name}-${arm}-${run}`;
   const dir = path.join(work, id);
-  setupFixture(dir, c.files);
+  setupFixture(dir, c.files, c.executable);
   // EXTERNAL: `--setting-sources project`, run from a fixture with no CLAUDE.md, keeps ~/.claude/rules/ out of the
   // child, so the appended bundle is the only rule text it sees (checked with Claude Code 2.1.300).
   const args = [
@@ -84,19 +84,33 @@ export function runCase(c, { arm, run, bundlePath, model, work, out }) {
     child.on('close', (code) => {
       fs.writeFileSync(path.join(out, 'transcripts', `${id}.jsonl`), stdout);
       const events = parseEvents(stdout);
-      const toolNames = events
+      const result = events.find((e) => e.type === 'result');
+      const outputs = new Map(events.filter((e) => e.type === 'user').flatMap((e) => e.message?.content ?? [])
+        .filter((b) => b.type === 'tool_result').map((b) => [b.tool_use_id, b]));
+      // EXTERNAL: Claude Code lists a denied call in the result's permission_denials (by tool_use_id) and answers it
+      // with an is_error result saying it "requires approval" (seen in rules-evals runs on 2026-10-20, Claude Code 2.1.304).
+      const deniedIds = new Set((result?.permission_denials ?? []).map((d) => d?.tool_use_id).filter(Boolean));
+      const textOf = (b) => (typeof b?.content === 'string' ? b.content : JSON.stringify(b?.content ?? ''));
+      // Every attempted call is listed, so a grader can catch a command the fixture never allowed.
+      const toolUses = events
         .filter((e) => e.type === 'assistant')
         .flatMap((e) => e.message?.content ?? [])
         .filter((b) => b.type === 'tool_use')
-        .map((b) => b.name);
-      const result = events.find((e) => e.type === 'result');
+        .map((b) => {
+          const out = outputs.get(b.id);
+          const denied = deniedIds.has(b.id) || /permission|not allowed|denied|requires approval/i.test(textOf(out).slice(0, 300));
+          return { name: b.name, input: b.input ?? {}, executed: Boolean(out) && !denied, output: textOf(out) };
+        });
+      const toolNames = toolUses.map((u) => u.name);
       const text = result?.result ?? '';
       // infra marks runs that say nothing about the rules (crash, budget cap, rate limit, broken grader).
       let verdict;
       let infra = false;
       try {
-        verdict = result ? c.grade({ toolNames, text, dir }) : [false, `no result (exit ${code}): ${stderr.slice(0, 200)}`];
-        infra = !result;
+        // EXTERNAL: a result with is_error or a non-success subtype (rate limit, budget cap, max turns) is an infra stop.
+        infra = !result || result.is_error === true || (result.subtype && result.subtype !== 'success');
+        verdict = infra ? [false, result ? `run stopped: ${result.subtype ?? 'error'}` : `no result (exit ${code}): ${stderr.slice(0, 200)}`]
+          : c.grade({ toolNames, toolUses, text, dir });
       } catch (e) {
         verdict = [false, `grader error: ${e.message}`];
         infra = true;

@@ -30,6 +30,44 @@ All notable changes to nextc-claude are documented here, grouped by date.
     - **Lessons file:** the scores and the review verdict are the first entry in `rules-evals/LESSONS.md`, which the next proposer for that rule reads.
   - **Trim edits only tested sections:** each case in `cases.mjs` now lists the `sections` (`## ` headings) of its rule that it exercises. `--goal trim` may change only those sections; a candidate that changes any other section, or the preamble, is rejected and the untouched sections are named. Why: on the first real run, the selected candidate passed by rewriting six sections no case tested. Replayed through the guard, the same candidate is rejected. A section name that no longer exists in the rule stops the run, so heading renames can't silently widen what trim may touch.
 
+- **Eval cases for every rule** — `rules-evals/cases.mjs` grows from 6 to 17 cases, so each of the 15 rules now has at least one.
+  - **New cases:** `context-block` (agentic-awareness), `catch-logging` (safety), `review-no-flattery` (practices), `no-tests-hands-off` (testing-policy), `no-unasked-build` (heavy-commands), `no-blind-retry` (stop-and-diagnose), `preferred-browser-tool` (tool-preferences), `neutral-borders` (ui-ux-design), `skill-description` (skill-authoring), `no-doc-keeper-spawn` (project-docs) and `agent-model-param` (agents).
+  - **Sources:** each new case names its failure's `source`. Four come from failures that really happened (an eval result, or an incident the rule itself records). The other seven are `derived` from the rule's core prohibition, which departs from the eval convention's "real observed failure" requirement until real failures replace them.
+  - **Graders now see tool inputs:** each tool call's input, denied calls included, so a case can catch an attempted `npm run build` or an `Agent` call without `model` without allowing the command. Fixtures can mark files executable.
+  - **Checked so far:** every new grader was checked against hand-written good and bad outcomes (23 checks, all as intended). None has run against the real model yet.
+- **`tune.mjs` without `--target` tunes every rule** that a selected case covers, one rule after another, against one shared baseline. It snapshots the rules first, so each rule is tuned and confirmed against the same starting point. Rules with no covering case are listed as skipped.
+  - **Cost controls:** to keep runs bounded as cases grow, other rules' cases now guard at `--guard-runs` (default 1) instead of the full `--runs`. `--apply` confirms each winner on its own covering cases only.
+  - **Matching fix:** a case now covers a rule only when its `rule` starts with the file name plus a space. Before, `agents` also matched `agentic-awareness` cases.
+  - **Checked so far:** dry runs in a throwaway clone with a fake `claude` covered all-rules fix, all-rules `--apply` and single-rule mode.
+- **Second review of the eval changes** — a code review found 3 high, 7 medium and several low issues, none critical. All are fixed:
+  - **High (three graders):**
+    - `catch-logging` missed helper loggers and accepted ungated `console.debug`.
+    - `no-blind-retry` counted denied calls as deploy re-runs. Graders now see whether a call `executed`.
+    - `skill-description` failed folded YAML and natural trigger phrases, and missed paraphrased step lists. It now checks the purpose part's structure instead of matching keywords.
+  - **Medium:**
+    - `neutral-borders` now catches any vivid color, an accent ring, or an accent held in a variable. Its prompt is a command, so the propose-first rule doesn't apply.
+    - `no-tests-hands-off` now accepts every correct fix and fails a reply that suggests adding tests.
+    - Over-claimed `sections` were removed. The `no-unasked-build` prompt now pulls toward a build.
+    - The `context-block` case is marked `noisy` and never vetoes a candidate.
+    - `--apply` needs a 2-pass margin in `fix` mode.
+    - `fix` mode may no longer edit sections no case tests, and may shrink a file by at most 10%.
+    - Rate-limit, budget-cap and error results now count as infra failures, not rule failures.
+  - **Low:**
+    - An invalid `--max-spend` is refused instead of disabling the cap.
+    - A warning prints when the budget can't cover one rule.
+    - One rule's error no longer hides what earlier rules applied.
+    - Trim ranks shorter files first.
+  - **Checked so far:** 41 offline grader checks and fake-`claude` dry runs pass.
+- **Derived eval cases are allowed, labeled.** The eval convention (`writing-skills/references/eval-convention.md`) now prefers real observed failures but allows a case derived from a rule's core prohibition, labeled `derived`, to be relabeled `observed` once a run catches its failure.
+  - **Promoted:** `no-doc-keeper-spawn` is now `observed`, because the 2026-10-20 run caught it. 6 derived cases remain.
+  - **CAUTION flag:** when every failure behind a `tune.mjs` fix comes from derived cases, the verdict and lesson carry a CAUTION to read the transcript first.
+  - **Why:** keeping the convention strict would have left 7 rules without a case, so they could be neither tuned nor guarded. Allowing derived cases with no conditions would let a badly worded case reshape a good rule.
+- **First real run of the 17-case suite** (`run.mjs --runs 1`, $5.56 at list price): 16/17 and 15/17 on identical rules. The transcripts were read; results are in `rules-evals/RESULTS.md`.
+  - `no-doc-keeper-spawn` caught a real violation: an offer to spawn doc-keeper after a small rename.
+  - `no-blind-retry` caught a real one too: a deploy retry attempted without asking. It was graded for the wrong reason, though: `cat deploy.sh` counted as a run. The grader now counts only script invocations, and any attempt after the first executed run.
+  - The run confirmed how Claude Code records a denied call, and `lib.mjs` now cites that instead of an assumption.
+- **Cost wording** — the rules-evals README now says what the dollar figures are. On a Pro or Max plan, `claude -p` usage counts against plan limits, and Claude Code's dollar figure is a list-price estimate, "not relevant for billing purposes" (code.claude.com/docs/en/costs). With an API key or a cloud provider, it is billed per token. The figures were updated for 17 cases.
+
 ### Changed
 - **`rules-evals/run.mjs`** — the fixture setup, bundle builder, `claude -p` runner and worker pool moved to `rules-evals/lib.mjs`, now shared with `tune.mjs`. Behavior and output are unchanged, except that a missing `claude` binary now shows up as a failed run instead of crashing the script.
 

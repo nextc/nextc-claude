@@ -7,7 +7,8 @@ One convention for measuring whether a skill, rule, or agent change helped or hu
 
 ## 1. Where tasks come from
 
-- Every eval task comes from a **real observed failure** (a transcript where the agent skipped a rule, mis-triggered, or produced the wrong outcome). Not from imagination.
+- Prefer tasks from a **real observed failure** (a transcript where the agent skipped a rule, mis-triggered, or produced the wrong outcome). Not from imagination.
+- A task **derived** from a rule's core prohibition is allowed when no failure has been observed yet. Label its source `derived`. When a run catches that failure, relabel it `observed` with the date. Check the transcript before trusting a fix driven only by derived tasks: a badly worded task can fail for its own reasons, not the rule's.
 - Start with a handful. Grow toward 20-50 over time; Anthropic's guidance is that "20-50 simple tasks drawn from real failures is a great start" and early changes have large effects, so small suites are enough.
 - Capability evals (low pass rate, room to improve) graduate into regression evals (near 100%) once they pass reliably.
 
