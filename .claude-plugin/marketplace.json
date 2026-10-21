@@ -12,7 +12,7 @@
     {
       "name": "nextc-core",
       "source": "./nextc-core",
-      "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs.",
+      "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, autopilot.",
       "category": "workflow"
     },
     {

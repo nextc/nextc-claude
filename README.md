@@ -8,7 +8,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
-| **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, blueprint, finishing-branch, interface-polish | Development workflow pipelines that chain into each other |
+| **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, blueprint, finishing-branch, interface-polish, autopilot | Development workflow pipelines that chain into each other |
 | **nextc-ecc** | save-session, verification-loop, council, adversarial-review, production-audit, agent-self-evaluation, code-tour, canary-watch, +13 more | Core agents + quality tools migrated from Everything Claude Code |
 | **nextc-product** | product-explore, idea-explore | Idea/product analysis — proposal pipeline plus an 8-framework multi-lens explorer |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to production-grade Flutter or Unity project |
@@ -151,9 +151,22 @@ rm ~/.claude/rules/nextc-claude ~/.claude/nextc-claude-references
           /team-feature-dev (parallel variant)
 
 /bug-fix --> /cleanup (if 3+ files changed)
+
+/blueprint --> /autopilot plan --> (you start the run) --> report
 ```
 
 All from **nextc-core**. Skills auto-chain.
+
+### Autopilot
+
+`/autopilot plan <plan-file>` turns an approved plan into an unattended run.
+- **Approval:** you approve the steps once.
+- **Starting it:** you start the run yourself from a terminal with the command it prints.
+- **During the run:** it implements, verifies and commits every step on its own branch `autopilot/<run-id>`. The `autopilot-decider` agent (Fable) answers every question the run would have asked you.
+- **Containment:** Claude Code's OS sandbox and a scope hook keep everything, destructive commands included, inside the run's own clone of the repo. The launcher fetches the run branch back when the run ends.
+- **Deploys:** they run only after passing a backward-compatibility check.
+- **Never:** git push and store uploads are left for you.
+- **The report:** when it ends, `docs/autopilot/<run-id>/report.md` lists every question and answer, every decision and every failure. `touch ~/.claude/autopilot/<run-id>/STOP` stops a run.
 
 ### Design Workflow
 

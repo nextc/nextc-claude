@@ -13,7 +13,7 @@ Every `Agent()` call MUST include a `model` parameter. Every agent definition MU
 
 **Decision rule:** "How much reasoning?" Leads the whole effort → Fable. Deep → Opus. Standard → Sonnet. Minimal → Haiku.
 
-**Fable is a closed list.** Only the agents marked `fable` in `~/.claude/nextc-claude-references/agents-roster.md` run on Fable. Never assign Fable to a new agent, a dynamic team worker, or an ad-hoc `Agent()` call without the user's explicit approval — Fable-tier usage is the most expensive line on the bill (API) and drains plan usage limits fastest (subscription). When unsure, use Opus.
+**Fable is a closed list.** Only the agents marked `fable` in `~/.claude/nextc-claude-references/agents-roster.md` run on Fable. Never assign Fable to a new agent, a dynamic team worker, or an ad-hoc `Agent()` call without the user's explicit approval (the user approved `autopilot-decider` on 2026-10-21, falling back to Opus at the Fable cap) — Fable-tier usage is the most expensive line on the bill (API) and drains plan usage limits fastest (subscription). When unsure, use Opus.
 
 ## Effort Tiers
 

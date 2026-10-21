@@ -30,7 +30,7 @@ claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 
 ```
 .claude-plugin/marketplace.json   — Marketplace manifest (8 plugins)
-nextc-core/                   — Development workflows (9 skills, 2 agents)
+nextc-core/                   — Development workflows (10 skills, 3 agents)
 nextc-product/                    — Product exploration (2 skills, 14 agents)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 6 agents)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents)
@@ -70,8 +70,9 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/ and r
 | blueprint | `/blueprint` | Cold-start-executable, multi-PR/multi-session construction plan (the layer above `/feature-dev`). Adapted from affaan-m/ecc. |
 | finishing-branch | `/finishing-branch` | Structured merge / PR / keep / discard menu with safe worktree cleanup. Adapted from obra/Superpowers. |
 | interface-polish | `/interface-polish` | Concrete web/CSS polish recipes (radius, type, motion, hit areas). Adapted from affaan-m/ecc; governed by the ui-ux-design rule. |
+| autopilot | `/autopilot` | Run an approved plan unattended: `plan` mode gets one approval and prints the launch command; the user starts `scripts/autopilot-run.mjs`, which runs bypass-permissions in a local clone inside the OS sandbox plus a file-tool guard hook, never pushes or uploads to stores, and ends with `report.md` (every question, answer and decision). |
 
-Agents: `doc-keeper` (sonnet), `ui-ux-developer` (sonnet)
+Agents: `doc-keeper` (sonnet), `ui-ux-developer` (sonnet), `autopilot-decider` (fable, answers an autopilot run's questions)
 
 ### nextc-product
 
@@ -190,6 +191,8 @@ Hooks: `block-no-verify`, `config-protection`, `suggest-compact`, `tool-awarenes
           /team-feature-dev (parallel variant)
 
 /bug-fix ──→ /cleanup (if 3+ files changed)
+
+/blueprint ──→ /autopilot plan ──→ (user runs autopilot-run.mjs) ──→ report.md
 
 /product-explore ──→ /aso-pipeline (uses proposal.md for app brief seeding)
 ```

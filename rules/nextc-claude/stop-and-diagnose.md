@@ -30,6 +30,23 @@ Once diagnosed, change the single thing the evidence points to. Don't swap passw
 
 If two *diagnosed* attempts don't resolve it, stop and surface it to the user with what you found — do not burn a third, fourth, fifth attempt. A loop is a signal the framing is wrong, not that one more try will land.
 
+### 6. Autopilot runs
+
+Inside an approved `/autopilot` run, nobody is there to surface a failure to, so two parts of this rule change. Rules 1, 2 and 4 still hold: every attempt needs a diagnosis read from the evidence and one change.
+
+- **Rule 5:**
+  - After the 2 diagnosed attempts, the `autopilot-decider` agent directs up to 3 more, each with its own diagnosis.
+  - Every attempt is logged in the run's ledger.
+  - After the fifth, or when the evidence supports no diagnosis, the step is marked blocked and the run moves on.
+- **Rule 3, deploys:** a deploy may run without a fresh approval only when it passes the run's backward-compatibility check:
+  - API changes ship as new versions, and old ones keep working.
+  - Migrations only add.
+  - Behavior changes sit behind flags that default to the old behavior.
+  - There is a rollback command.
+
+  Missing evidence for any item blocks the deploy.
+- **Still hard stops:** git push and store uploads (TestFlight, App Store, Play). They are left for the user.
+
 ## Enforcement
 
 - Retrying a failed action without a stated diagnosis (what failed / why / what changed) is a CRITICAL violation — equal to a missing error log under `safety.md`.

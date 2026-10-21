@@ -30,6 +30,7 @@ If a command sits in the gray zone, treat it as heavy and ask — a wasted quest
 - **The user's own words or invocation.** "Build the APK", "run the app", "npm run dev", or invoking a skill whose stated purpose is the heavy action (`/flutter-build`, `/unity-build`, `/verification-loop`, `/run`) approves the heavy actions that skill's purpose requires — and only those.
 - **Approval is scoped to the requested task.** Re-running the same approved build after a *diagnosed* fix (per `stop-and-diagnose.md`) is covered. Escalating to a *different* heavy action is not — an approved build does NOT authorize launching the simulator, and an approved simulator run does NOT authorize starting a dev server. Fresh action, fresh ask.
 - **Approval does not persist** across tasks or sessions.
+- **An approved `/autopilot` plan approves every heavy command its run needs.** Inside the run the launcher starts, builds, simulators, dev servers, full test suites and installs all run without asking. The OS sandbox keeps them inside the run's clone of the project. This covers only that run; in a normal session, the gate above applies.
 
 ## Subagents Inherit the Gate
 

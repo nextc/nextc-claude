@@ -12,6 +12,7 @@ Authoritative roster of agent → model+effort assignments. Consulted when writi
 | `architect` | fable | xhigh |
 | `product-collision-analyst` | fable | xhigh |
 | `ie-team-lead` | fable | xhigh |
+| `autopilot-decider` | fable | xhigh |
 | `ui-ux-developer` | sonnet | high |
 | `product-explorer` | opus | high |
 | `product-researcher` | sonnet | high |

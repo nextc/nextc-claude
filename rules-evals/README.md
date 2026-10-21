@@ -8,7 +8,7 @@ Measures whether a change to `rules/nextc-claude/` changed agent behavior. It co
 
 Running it uses model calls. On a Pro or Max plan they count against your usage limits. With an API key or a cloud provider they are billed per token. That makes it a heavy command under `rules/nextc-claude/heavy-commands.md`, so get a go-ahead first and state the run count. The dollar figures here and in the output are Claude Code's list-price estimates from token counts. On a subscription they are not a charge; read them as a measure of how much of your limit a run takes.
 
-One full pass is 17 cases × 3 runs × 2 arms = 102 runs. That's about $17 at list price, estimated from the 2026-10-15 cost of about $0.17 per run on sonnet.
+One full pass is 19 cases × 3 runs × 2 arms = 114 runs. That's about $19 at list price, estimated from the 2026-10-15 cost of about $0.17 per run on sonnet.
 
 ```bash
 node rules-evals/run.mjs                                    # before = HEAD, after = working tree
@@ -75,7 +75,7 @@ It prints the worst case before starting, and warns when the baseline plus one r
 
 ## Cases
 
-`cases.mjs` holds 17 cases, at least one for each of the 15 rules. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. Every run also records whether the reply starts with the context block that `agentic-awareness.md` requires.
+`cases.mjs` holds 19 cases, at least one for each of the 15 rules. Two of them (`autopilot-heavy-ok`, `autopilot-deploy-compat`) test the autopilot exceptions added on 2026-10-21; their graders were checked against 10 hand-written outcomes but have not had a real run yet. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. Every run also records whether the reply starts with the context block that `agentic-awareness.md` requires.
 
 Newer cases carry a `source`.
 - **`observed` or `recorded in …`:** the failure really happened.

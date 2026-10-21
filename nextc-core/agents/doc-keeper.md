@@ -1,6 +1,6 @@
 ---
 name: doc-keeper
-description: Updates project docs to match real codebase state. Spawn ONLY with the user's explicit approval — via /update-docs or after the user accepts a suggestion at a completion point (feature built, milestone done, fix confirmed). Never auto-spawn. Reads git diff and conversation context to maintain CHANGELOG.md, docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md, docs/product-guide.md, docs/changelog.md, docs/glossary.md, docs/api.md, and docs/qc/.
+description: Updates project docs to match real codebase state. Spawn ONLY with the user's explicit approval — via /update-docs or after the user accepts a suggestion at a completion point (feature built, milestone done, fix confirmed), or once at the end of an approved /autopilot run. Never auto-spawn. Reads git diff and conversation context to maintain CHANGELOG.md, docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md, docs/product-guide.md, docs/changelog.md, docs/glossary.md, docs/api.md, and docs/qc/.
 model: sonnet
 effort: high
 tools:

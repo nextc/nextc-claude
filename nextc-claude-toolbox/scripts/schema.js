@@ -153,6 +153,7 @@ const MODEL_TIER_TABLE = {
   'ui-ux-developer': 'sonnet',
   'aso-director': 'opus',
   'planner': 'fable',
+  'autopilot-decider': 'fable',
   'architect': 'fable',
   'code-reviewer': 'sonnet',
   'security-reviewer': 'sonnet',

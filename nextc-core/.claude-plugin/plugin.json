@@ -1,7 +1,7 @@
 {
   "name": "nextc-core",
   "version": "1.6.13",
-  "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs. Composable skills that chain into each other.",
+  "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, autopilot. Composable skills that chain into each other.",
   "author": {
     "name": "nextc"
   },

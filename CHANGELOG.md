@@ -2,6 +2,64 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-21
+
+### Added
+- **`/autopilot` (nextc-core)** runs an approved plan to the end with nobody watching, then reports everything it decided.
+  - **`plan` mode, in your normal session:**
+    - It splits the plan into steps of three kinds (`build`, `deploy` and `hard-stop`), each with its dependencies.
+    - It lists the network hosts, sandbox exclusions, passed-through env vars and the budget the run needs, and asks for one approval.
+    - It then makes a local clone on the branch `autopilot/<run-id>`, writes the approved config to `~/.claude/autopilot/<run-id>/approved.json`, and prints the launch command.
+  - **`run` mode, the unattended session:**
+    - **Steps:** each step goes to a fresh worker, which follows feature-dev phases 4 to 7. The orchestrator re-checks the verification and commits the step on the run branch.
+    - **Questions:** these go to `autopilot-decider`.
+    - **Failures:** each gets 2 diagnosed attempts plus 3 more the decider directs, then the step is marked blocked.
+    - **End of run:** one doc-keeper pass, then `report.md`. Everything is appended to `ledger.md` as it happens, and state lives in `state.json`, so a run resumes after a crash or a compaction.
+  - **`status` and `report` modes** print a run's progress or its report.
+- **`nextc-core/scripts/autopilot-run.mjs <run-id>`**: the launcher, which you start from a terminal.
+  - **What it starts:** `claude -p` in the run's clone with `bypassPermissions`.
+  - **Before starting, it checks:**
+    - Claude Code is 2.1.295 or later, because the guard hook's `onFailure: "block"` needs it.
+    - The clone is a standalone clone on its run branch.
+    - No other launcher holds the run's lock.
+  - **Containment:**
+    - **Clone, not worktree:** a linked worktree would let sandboxed git commands rewrite the main repo's shared `.git`.
+    - **Strict OS sandbox:** unsandboxed retries are off, and the run refuses to start without the sandbox. The network allowlist is the plan's host list. Credential files (`~/.ssh`, `~/.aws`, `~/.config/gh`, …) and Claude's own auth variables are hidden from sandboxed commands.
+    - **Deny rules:** they block `git push`, `gh`, store uploads and package publishing.
+    - **Removed tools:** MCP (also `--strict-mcp-config`), WebFetch, Artifact and remote-trigger tools.
+    - **Env scrubbing:** secret-looking environment variables are dropped unless the plan lists them in `passEnv`.
+  - **Where the run's control files live:** the approved config, settings, rules bundle, transcript, lock and `STOP` file are in `~/.claude/autopilot/<run-id>/` (mode 0600), which the run can't write. The launcher trusts only that copy of the config.
+  - **Settings it skips:** your user settings, because their ask rules can't be removed by `--settings` (lists merge), and with nobody to answer, every matching command would be denied. Your `~/.claude/CLAUDE.md` and rules are passed in with `--append-system-prompt-file` and `--append-subagent-system-prompt-file` instead, and user-scope plugins with `--plugin-dir`.
+  - **When the run ends:**
+    - If it ended early, the launcher writes why to the ledger.
+    - It fetches the branch back into your repo.
+    - It forwards Ctrl-C and other termination signals to the session.
+  - **Starting it is your step on purpose:** Claude Code's auto-mode classifier blocks an agent from starting a bypass-permissions session ("Create Unsafe Agents").
+- **`nextc-core/scripts/autopilot-hooks.mjs`**: hooks registered only inside an autopilot run.
+  - **`guard`** confines Edit and Write to the clone:
+    - it accepts only absolute paths without `..`;
+    - it resolves every symlink, the last path component included;
+    - it refuses `.claude/`, `.mcp.json` and `.git/`, so the run can't widen its own settings.
+  - **After a `STOP` file appears:** only reads and writes to the run folder are allowed. If the guard itself crashes, it blocks the action rather than letting it through.
+  - **`stop`** keeps the session going while steps remain, including when `state.json` is unreadable. It lets the session end when nothing in the ledger or `state.json` changed since its last block, so it can't loop.
+- **`autopilot-decider` agent (fable/xhigh, read-only):** answers the run's questions from the plan, the earlier decisions, the user's rules and the code. It never widens the scope or lifts a hard stop. Its return block records the answer, the rejected options, its confidence, whether the choice can be undone, and whether it needs your review. It falls back to Opus at the Fable cap. You approved it for the Fable closed list on 2026-10-21; it's in `agents-roster.md` and the validator's tier table.
+- **Skill references:**
+  - `references/ledger.md`: the entry formats.
+  - `references/compat-gate.md`: the deploy check. API changes ship as new versions, migrations only add, behavior changes sit behind flags, there's a rollback command, and canary-watch runs after the deploy.
+  - `references/report-template.md`: the report's structure.
+- **Eval cases** `autopilot-heavy-ok` and `autopilot-deploy-compat` (19 cases now). Their graders were checked against 10 hand-written outcomes, with no real run yet.
+
+### Changed
+- **Rules: autopilot exceptions**, which apply only inside an approved run.
+  - `git-workflow`: branching and committing on `autopilot/<run-id>` are allowed, the changelog is updated at the end of the run, and the run never pushes.
+  - `heavy-commands`: every heavy command is approved.
+  - `stop-and-diagnose` (new §6): 3 decider-directed attempts after the 2 diagnosed ones. Deploys don't need a fresh approval when they pass the compatibility check. Push and store uploads stay hard stops.
+  - `testing-policy`: the full suite may run, and the Case 3 offer goes to the decider.
+  - `project-docs`: a third approval path, one doc-keeper pass per run.
+  - `agents.md`: notes the decider's Fable approval.
+- **Docs:** the `doc-keeper` description, README, CLAUDE.md and the marketplace/plugin descriptions now list autopilot. `nextc-core` is now 10 skills and 3 agents.
+- **`rules-evals/README.md`:** counts updated, from 102 runs per full pass to 114.
+
 ## 2026-10-20
 
 ### Added

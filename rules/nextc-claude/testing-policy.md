@@ -8,6 +8,8 @@ Claude never introduces testing into a project on its own initiative, and never 
 - **No auto-running the suite.** Never run the full test suite, or tests unrelated to your change, on your own. The *only* test run you may start unprompted is the affected-tests run in Case 2 below; the full suite runs only after you offer it and the user says yes.
 - **No auto-invoking testing agents/skills** from the development workflow.
 
+Inside an approved `/autopilot` run, the user's plan approval covers running the full suite (see `heavy-commands.md`). Whether to write new tests is still decided by the cases below: in Case 3, the offer to add tests goes to `autopilot-decider` instead of the user.
+
 ## Case 1 — The project has NO tests
 
 Stay **fully hands-off**. Do not write tests, do not scaffold a test harness or framework, do not run anything, and do not even suggest adding tests. Testing happens only if the user explicitly asks for it.

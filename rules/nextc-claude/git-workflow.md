@@ -14,6 +14,15 @@ NEVER create, switch, or split off a git branch without asking the user first. T
 
 **Why:** an unrequested branch silently relocates the user's work — they come back expecting their commits on `main` and find a branch they never asked for.
 
+## Autopilot Runs
+
+Inside an approved `/autopilot` run (the session `autopilot-run.mjs` starts), the user's plan approval covers branching and committing:
+- The run works in a local clone, on the branch `autopilot/<run-id>`, which plan mode creates. The launcher fetches that branch back into the repo when the run ends.
+- It commits after each step that passes its verification.
+- `CHANGELOG.md` is brought up to date once, by the doc-keeper pass at the end of the run, rather than before each step's commit.
+
+It never pushes. The user reviews the branch, pushes it and merges it (`/finishing-branch`). Outside such a run, the two rules above apply unchanged.
+
 ## Commit Message Format
 ```
 <type>: <description>

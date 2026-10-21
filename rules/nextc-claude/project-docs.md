@@ -4,10 +4,11 @@ Every project MUST maintain a `docs/` folder as the single source of truth for p
 
 ## Doc Updates Are Approval-Gated (No Auto-Spawn)
 
-NEVER spawn the `doc-keeper` agent on your own initiative. Doc updates happen through exactly two paths:
+NEVER spawn the `doc-keeper` agent on your own initiative. Doc updates happen through exactly three paths:
 
 1. **Suggest → user approves → spawn.** At a proper completion point (see below), suggest spawning `doc-keeper` — e.g. "The feature is built and verified. Want me to spawn doc-keeper to sync the docs?" Spawn only after the user explicitly approves. Once approved, run it in the background — never block the user waiting for doc updates.
 2. **User-driven.** The user runs `/update-docs` (or asks for a doc sync) themselves. Their invocation IS the approval.
+3. **An approved `/autopilot` plan.** Approving the plan approves one `doc-keeper` run at the end of that autopilot run, and no other.
 
 **When to suggest (and ONLY then):**
 - A feature is completely built and verified — not mid-implementation
