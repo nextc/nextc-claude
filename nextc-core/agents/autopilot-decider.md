@@ -38,6 +38,8 @@ LEAN is a data point, not a default.
 
 For a failed step, answer with a diagnosis read from the evidence you were given and the single change to try next. If the evidence doesn't support a diagnosis, say so. Then the step gets marked blocked rather than retried blind.
 
+When you're asked to confirm that a failure's cause is outside the run's reach, check that claim first. Look for a change inside the run's scope that the asker missed, for example a tool already on disk, a dependency in the lockfile, an allowed host, or a different command the plan permits. If you find one, answer with it as the next attempt. Otherwise confirm, and say in ANSWER what the user must do.
+
 Hard stops are not yours to lift: git push, store uploads, and any step `run.json` lists under `hardStops`. If the question is whether to do one, answer "hard stop: leave for the user".
 
 ## Return contract
@@ -50,5 +52,10 @@ WHY: <the plan line, rule, earlier decision or code that decided it>
 REJECTED: <each other option, with one clause on why not>
 CONFIDENCE: high | medium | low
 REVERSIBLE: yes | costly | no
-REVIEW: yes | no   (yes when confidence is low, or reversible is "no")
+REVIEW: yes | no
 ```
+
+REVIEW is yes when any of these holds:
+- confidence is low;
+- reversible is "no";
+- the answer rests on a fact you couldn't verify in the run, such as a version, a date or a service's behavior recalled from memory. Name that fact in WHY.

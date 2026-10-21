@@ -5,6 +5,14 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-10-21
 
 ### Added
+- **`tests/`: tests for the hook and launcher scripts.** Run them with `node --test 'tests/*.test.mjs'`. There is nothing to install, no model calls, and they take about 8 seconds. They build their own temporary git repos. They live outside the plugins, so installs don't ship them. The release steps in CLAUDE.md now run them before the validators. Until now these cases only existed in a session's scratch folder.
+  - `autopilot-hooks.test.mjs`:
+    - the guard, against 14 harmless commands and 32 hard-stop forms (including git aliases);
+    - the file guard, on 10 paths;
+    - STOP;
+    - the Stop hook: blocks on open steps, doesn't loop, its mark file is 0600, a step `in_progress` lets the turn end, and a finished run ends.
+  - `autopilot-cost.test.mjs`: the per-session cost sum, the cost line, and writing it into `report.md`.
+  - `block-no-verify.test.mjs`: the 36 cases above, plus the hook run as a process.
 - **`/autopilot` (nextc-core)** runs an approved plan to the end with nobody watching, then reports everything it decided.
   - **`plan` mode, in your normal session:**
     - It splits the plan into steps of three kinds (`build`, `deploy` and `hard-stop`), each with its dependencies.
@@ -51,6 +59,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **Eval cases** `autopilot-heavy-ok` and `autopilot-deploy-compat` (19 cases now). Their graders were checked against 10 hand-written outcomes, with no real run yet.
 
 ### Changed
+- **Autopilot flags more decisions for review, and handles first deploys.** These come from the first run of `/autopilot plan` on a real plan, which cost $6.83:
+  - **Review flag:** `autopilot-decider` now sets `REVIEW: yes` when its answer rests on a fact it couldn't verify in the run. In that run it lowered `engines.node` from `>=99` to `>=22` using Node end-of-life dates from memory, and still marked the decision `Review: no`.
+  - **First deploys:** the compatibility check now says a first deploy's rollback is a command that removes the deploy. Plan mode now reads each deploy step's rollback command and warns at approval when it can't undo the deploy. The run's deploy was blocked because its rollback script could only restore an earlier release.
+- **Autopilot blocks a step whose failure is out of its reach only after the decider confirms it.** In the rerun demo ($1.95), `npm run lint:sh` failed because `shellcheck` isn't installed and the run had no network host to fetch it. The orchestrator blocked the step after one attempt on its own diagnosis. That was the right outcome, but nothing in the skill allowed it, and the same exit would let a worker skip a step it could have fixed. The skill now has the case. When the cause is outside the run's reach (a tool it can't fetch, missing credentials, a service that is down), the decider checks for a fix inside the run first. The step is blocked only if it finds none. Updated in the autopilot skill, `autopilot-decider` and `stop-and-diagnose` §6.
 - **Autopilot workers ask the decider better questions.** A worker may settle a user-visible choice itself only when it copies a pattern already in the code or plan, and it must cite the file and line. Competing patterns, or a copy that changes what someone sees, still go to the decider, and "when unsure, ask". Every question now carries a block with QUESTION, OPTIONS, PLAN, CODE (file:line), CONSTRAINTS, TRIED and LEAN. The orchestrator fills in or sends back incomplete blocks rather than send the decider a thin question. The decider opens every cited file, searches for what the block left out, checks each option against the step's verify command, and treats the worker's lean as a data point. Failure diagnoses get the full evidence. There is no limit on decider calls. The ledger's Q entries record the context and lean, and D entries the pattern they copy.
 - **Rules: autopilot exceptions**, which apply only inside an approved run.
   - `git-workflow`: branching and committing on `autopilot/<run-id>` are allowed, the changelog is updated at the end of the run, and the run never pushes.
@@ -63,6 +75,17 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **`rules-evals/README.md`:** counts updated, from 102 runs per full pass to 114.
 
 ### Fixed
+- **Autopilot's report now shows the run's cost.** Its Cost line used to say "printed by the launcher", so the number was only in the terminal and `result.json`. Now the launcher replaces that line when the session ends, with this launch's cost, the total over all launches if there were several, and `~/.claude/autopilot/<run-id>/result.json`. It shows the path with `~`, so a committed report doesn't contain your home folder.
+  - **When the run committed `report.md`:** the launcher commits only that file on the run branch (`docs: autopilot <run-id> cost`). It does this before fetching the branch back, so the branch you review has the cost.
+  - **When the report wasn't committed** (a STOP ending): it only edits the file.
+
+  The cost code moved into `nextc-core/scripts/autopilot-cost.mjs`, so it can be tested without starting `claude`.
+- **`block-no-verify` (nextc-ecc) no longer blocks commands that only mention `-n` near a commit.** Its old npm package (`block-no-verify@1.1.5`) checked for `-n` across the whole Bash string whenever it contained `git commit`. So `git commit -m x && grep -n y file`, `sed -n`, `head -n` or `echo -n` in the same call was blocked as `--no-verify`. This happened twice in this session and once inside an autopilot run. It is now a local script, `hooks/scripts/block-no-verify.js`, adapted from the package (MIT). It splits a Bash call into its commands, respecting quotes, and checks each git command's own words. `-m` values and comments are skipped. Quoted text that contains `git` is checked too, because `sh -c`, `eval` and `$(...)` run it. Tested on 36 cases, with the old package run on the same cases:
+  - **Old false positives, now allowed (6):** `-n` from `grep`, `sed`, `head`, `echo` or another command's arguments next to a commit, and a commit message of `-n`.
+  - **Old misses, now blocked (4):** `git commit -an`, lowercase `core.hookspath`, `-ccore.hooksPath=…` and `g\it commit -n`.
+  - **The rest:** every other case gave the same result in both.
+
+  The hook no longer runs `npx`, so it works offline. It now has `onFailure: "block"` like the other safety gates. The package's GitHub MCP tool check is dropped: the hook only matches Bash calls, so that check never ran.
 - **Autopilot's decider wasn't being asked.** In the first demo run, the worker settled "what does `cli.js` do with no name?" itself and logged it as its own decision, so `autopilot-decider` never ran. Workers now return `needs-decision` for any user-visible choice the plan leaves open. The orchestrator also routes any such worker decision to the decider and redoes the work if the answer differs.
 - **Autopilot's report said "Cost: not recorded".** The run can't see its own final cost, so the launcher now prints it at the end and appends each launch's cost to `~/.claude/autopilot/<run-id>/result.json`. It uses the session's last `result` event, because `total_cost_usd` is a running total. The demo run's transcript gives $0.91.
 - **The autopilot Stop hook interrupted correct waiting.** Workers run as background agents, and the orchestrator ends its turn to wait for one. The hook blocked that 4 times in the demo run, and the orchestrator filled the gap with `sleep` polling. The hook now allows a turn to end while a step is `in_progress`, and run mode tells the orchestrator to wait for the notification instead of polling.

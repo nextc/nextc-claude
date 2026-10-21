@@ -39,7 +39,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
 2. **Check the repo.** It must be a git repo with a clean working tree, because the run branches from `HEAD`. If it isn't clean, ask the user to commit or stash first.
 3. **Split the plan into steps.** Each step must be something one worker can finish and verify in one go. Give each an id (`S1`, `S2`, …), a goal, how to verify it, and a kind:
    - `build`: ordinary work, run fully on autopilot.
-   - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`.
+   - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`. Name its rollback command, and read it to check that it can undo this deploy, including a first deploy with nothing to restore. If it can't, say so at the approval gate: the run would block the deploy.
    - `hard-stop`: git push, store uploads (TestFlight, App Store, Play), and anything the plan says needs the user. Never executed; listed in the report as left for the user.
 4. **List what the run needs from outside**:
    - **Network hosts:** the sandbox starts with none allowed. List the package registries, API hosts and deploy targets the steps need. Never list App Store Connect, TestFlight or Google Play hosts; leaving them out is what stops a store upload hidden inside a script, where the guard hook can't see it.
@@ -76,7 +76,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - Print the real absolute script path.
    - Running the same command again resumes the run, and `--dry-run` shows what it would start.
    - `touch ~/.claude/autopilot/<run-id>/STOP` stops it.
-   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost and records it in `~/.claude/autopilot/<run-id>/result.json`.
+   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost, records it in `~/.claude/autopilot/<run-id>/result.json`, and writes it into the report's Cost line.
 
    Don't start the run yourself. Starting a session with every permission check off is the user's decision, and Claude Code's auto mode blocks an agent from doing it.
 
@@ -140,6 +140,7 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
    - Attempts 1 and 2: the worker's own diagnosed retries. Each needs a diagnosis and one change; a retry without both doesn't count as an attempt, it's a violation.
    - Attempts 3 to 5: before each, ask the decider for the diagnosis and the single change to try, and log it. Pass it the evidence in full: the failing command, the full output or the path to its log, each earlier attempt's diagnosis and change, and the files those changes touched.
    - After attempt 5, or as soon as the decider says the evidence doesn't support a diagnosis: mark the step `blocked` with the last diagnosis and move on.
+   - **Cause outside the run's reach.** Sometimes, at any attempt, the diagnosis says no change inside the run can fix it: a missing tool with no allowed host to fetch it, credentials the run doesn't have, or a service that is down. Don't retry. Ask the decider to confirm. Pass it the same evidence as for attempts 3 to 5, plus each change you ruled out and why. If it confirms, mark the step `blocked` and log what the user must do. If it names a change, that change is the next attempt. Don't block a step on your own diagnosis alone: a fixable step blocked as "out of reach" is a step skipped.
 
    Count attempts in `state.json`.
 8. **Commit when done.** After a `done` return:

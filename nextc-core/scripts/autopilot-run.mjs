@@ -20,6 +20,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { launchCost, costLine, recordCostInReport } from './autopilot-cost.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -296,16 +297,8 @@ function launchResults() {
   return results;
 }
 
-// EXTERNAL: claude -p emits a `result` event after every turn, and its total_cost_usd is the
-// session's running total, so a session costs its last value. List-price dollars on any plan.
-function launchCost(results) {
-  const bySession = new Map();
-  for (const r of results) if (typeof r.total_cost_usd === 'number') bySession.set(r.session_id, r.total_cost_usd);
-  return bySession.size ? [...bySession.values()].reduce((a, b) => a + b, 0) : null;
-}
-
-// Appends this launch to result.json in the state folder. The committed report can't carry the
-// cost: the run ends before its last turn is billed.
+// Appends this launch to result.json in the state folder. The run can't record its own cost,
+// because it ends before its last turn is billed, so the launcher records it.
 function recordLaunch(code, cost) {
   const file = path.join(STATE_DIR, 'result.json');
   const launches = readJsonOr(file, { launches: [] }).launches;
@@ -339,6 +332,15 @@ function finish(code) {
       : result ? `session ended: ${result.subtype ?? 'unknown'}${result.is_error ? ' (error)' : ''}` : `claude exited with code ${code}`;
     fs.appendFileSync(ledger, `\n### [end] STOP: ${why}; open steps: ${open.map((s) => s.id).join(', ') || 'none'}${fs.existsSync(report) ? '' : '; no report.md'}\n`);
   }
+  const costText = costLine(cost, launches, path.join(STATE_DIR, 'result.json'));
+  // ORDER: before the branch is fetched back, so the fetched branch carries the cost.
+  if (fs.existsSync(report)) {
+    try {
+      recordCostInReport({ report, clone: CLONE, line: costText, message: `docs: autopilot ${runId} cost` });
+    } catch (err) {
+      console.error(`autopilot-run: could not write the cost into report.md: ${String(err.stderr || '').trim() || err.stack || err.message}`);
+    }
+  }
   let fetched = '';
   try {
     execFileSync('git', ['-C', approved.sourceRepo, 'fetch', '--quiet', CLONE, `${branch}:${branch}`], { stdio: 'pipe' });
@@ -348,9 +350,7 @@ function finish(code) {
   }
   console.log(`\nautopilot ${runId} ended (exit ${code}).`);
   console.log(fs.existsSync(report) ? `  report: ${report}` : '  no report.md; see the ledger and transcript.jsonl');
-  const usd = (n) => `$${n.toFixed(2)}`;
-  const total = launches.reduce((a, l) => a + (l.costUsd ?? 0), 0);
-  console.log(`  cost:     ${cost === null ? 'unknown (no result event)' : usd(cost)}${launches.length > 1 ? `, ${usd(total)} over ${launches.length} launches` : ''} (list price; ${path.join(STATE_DIR, 'result.json')})`);
+  console.log(`  cost:     ${costText}`);
   console.log(fetched);
   process.stdout.write('\x07');
   process.exit(code ?? 1);

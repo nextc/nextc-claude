@@ -38,6 +38,7 @@ Inside an approved `/autopilot` run, nobody is there to surface a failure to, so
   - After the 2 diagnosed attempts, the `autopilot-decider` agent directs up to 3 more, each with its own diagnosis.
   - Every attempt is logged in the run's ledger.
   - After the fifth, or when the evidence supports no diagnosis, the step is marked blocked and the run moves on.
+  - When the cause is outside the run's reach (a missing tool it can't fetch, credentials it doesn't have), the step is blocked without retries, but only after the decider confirms no change inside the run can fix it.
 - **Rule 3, deploys:** a deploy may run without a fresh approval only when it passes the run's backward-compatibility check:
   - API changes ship as new versions, and old ones keep working.
   - Migrations only add.

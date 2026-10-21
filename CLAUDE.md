@@ -41,6 +41,7 @@ nextc-claude-toolbox/             — Utility toolkit (4 skills)
 rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh; loaded every session)
 rules-references/                 — Long-form rule references, read on demand (kept out of ~/.claude/rules/ because every .md there loads)
 rules-evals/                      — Before/after behavioral evals for rule changes (`node rules-evals/run.mjs`) and propose/probe/select rule tuning (`tune.mjs`, lessons in `LESSONS.md`); both cost model calls, ask first
+tests/                            — Tests for the repo's hook and launcher scripts (`node --test 'tests/*.test.mjs'`, no install, no model calls); kept outside the plugins so they don't ship
 settings/user-settings.json       — Build permission rules + auto mode exceptions, merged into ~/.claude/settings.json by setup-rules.sh
 setup-rules.sh                    — Symlinks rules into ~/.claude/rules/ and references into ~/.claude/nextc-claude-references/; merges settings/user-settings.json (needs jq)
 ```
@@ -229,7 +230,7 @@ When the user asks to "release", "bump version", or "cut a release":
 
    <summary of what changed since last release — pull from CHANGELOG.md>
    ```
-3. **Validate** — `node nextc-claude-toolbox/scripts/validate.js` and `claude plugin validate ./<plugin>` for each plugin plus `claude plugin validate .` for the marketplace. Errors block the release; the known warnings (`nextc-claude-toolbox` name reads as Anthropic's, `metadata.repository` unknown field) are accepted.
+3. **Validate** — `node --test 'tests/*.test.mjs'`, `node nextc-claude-toolbox/scripts/validate.js` and `claude plugin validate ./<plugin>` for each plugin plus `claude plugin validate .` for the marketplace. Errors block the release; the known warnings (`nextc-claude-toolbox` name reads as Anthropic's, `metadata.repository` unknown field) are accepted.
 4. **Commit** with message: `chore: bump to X.Y.Z`
 
 ## Design Principles

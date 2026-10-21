@@ -80,7 +80,7 @@ This repo depends on third-party marketplaces (see the root README). Plugins can
 - [ ] Pin `ref` or `sha`; do not follow a moving default branch.
 - [ ] Read `hooks/hooks.json`, `.mcp.json`, any `bin/` directory, and every hook script.
 - [ ] List MCP servers and the data they would receive.
-- [ ] Check for network calls, `npx`/remote code at runtime (nextc-ecc's `block-no-verify` hook runs via `npx`; confirm that is acceptable offline/behind your proxy).
+- [ ] Check for network calls and `npx`/remote code at runtime. nextc-ecc's hooks run local `node` scripts and fetch nothing.
 - [ ] Re-review on every version bump you accept.
 - [ ] Record the approval and the pinned ref.
 
