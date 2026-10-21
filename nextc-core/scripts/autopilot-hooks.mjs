@@ -244,7 +244,7 @@ function guard(input) {
     if (READ_TOOLS.has(input.tool_name)) return;
     const runDir = fs.realpathSync(RUN_DIR);
     if (FILE_TOOLS.has(input.tool_name) && !checkFilePath(raw, root) && realTarget(raw).startsWith(runDir + path.sep)) return;
-    deny('Autopilot was stopped by the user (STOP file). Do not start new work: log the stop in ledger.md, write report.md (it stays uncommitted), and end.');
+    deny('Autopilot was stopped by the user (STOP file). Do not start new work: log the stop in ledger.md, write report.md, and end. The launcher commits the run folder.');
     return;
   }
   if (input.tool_name === 'Bash') {

@@ -22,7 +22,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { launchCost, costLine, recordCostInReport } from './autopilot-cost.mjs';
+import { launchCost, costLine, writeCostLine, commitRunRecords } from './autopilot-cost.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -289,7 +289,8 @@ const transcript = fs.openSync(transcriptPath, 'a', 0o600);
 console.log(`  ledger:   ${path.join(RUN_DIR, 'ledger.md')}`);
 console.log(`  stop:     touch "${path.join(STATE_DIR, 'STOP')}"`);
 const child = spawn('claude', claudeArgs, { cwd: CLONE, env, stdio: ['ignore', transcript, transcript] });
-for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => child.kill(sig));
+let signal = null;
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { signal ??= sig; child.kill(sig); });
 
 const ledger = path.join(RUN_DIR, 'ledger.md');
 let shown = fs.existsSync(ledger) ? fs.readFileSync(ledger, 'utf8').split('\n').length : 0;
@@ -351,18 +352,26 @@ function finish(code) {
   if (open.length || !fs.existsSync(report)) {
     // The session is gone, so nobody else can record why the run ended early.
     const result = results.at(-1);
-    const why = fs.existsSync(path.join(STATE_DIR, 'STOP')) ? 'user STOP file'
+    const stopped = fs.existsSync(path.join(STATE_DIR, 'STOP'));
+    const label = stopped ? 'STOP' : signal ? 'Interrupted' : 'Ended';
+    const why = stopped ? 'user STOP file'
+      : signal ? `${signal}${signal === 'SIGINT' ? ' (Ctrl-C)' : ''}`
       : result ? `session ended: ${result.subtype ?? 'unknown'}${result.is_error ? ' (error)' : ''}` : `claude exited with code ${code}`;
-    fs.appendFileSync(ledger, `\n### [end] STOP: ${why}; open steps: ${open.map((s) => s.id).join(', ') || 'none'}${fs.existsSync(report) ? '' : '; no report.md'}\n`);
+    fs.appendFileSync(ledger, `\n### [end] ${label}: ${why}; open steps: ${open.map((s) => s.id).join(', ') || 'none'}${fs.existsSync(report) ? '' : '; no report.md'}\n`);
   }
   const costText = costLine(cost, launches, path.join(STATE_DIR, 'result.json'));
-  // ORDER: before the branch is fetched back, so the fetched branch carries the cost.
   if (fs.existsSync(report)) {
     try {
-      recordCostInReport({ report, clone: CLONE, line: costText, message: `docs: autopilot ${runId} cost` });
+      writeCostLine(report, costText);
     } catch (err) {
-      console.error(`autopilot-run: could not write the cost into report.md: ${String(err.stderr || '').trim() || err.stack || err.message}`);
+      console.error(`autopilot-run: could not write the cost into report.md: ${err.stack || err.message}`);
     }
+  }
+  // ORDER: before the branch is fetched back, so the fetched branch carries the run's records.
+  try {
+    commitRunRecords({ clone: CLONE, runDir: RUN_DIR, message: `docs: autopilot ${runId} run records` });
+  } catch (err) {
+    console.error(`autopilot-run: could not commit the run folder: ${String(err.stderr || '').trim() || err.stack || err.message}`);
   }
   let fetched = '';
   try {

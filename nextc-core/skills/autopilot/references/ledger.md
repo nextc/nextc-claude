@@ -57,6 +57,8 @@ Number every entry with a sequence number in brackets. The report refers to entr
 - Diagnosed by: worker | decider
 ```
 
+The number is the diagnosed retry that failed. A failure before any retry is `F S3 first try`.
+
 **Deploy**
 ```markdown
 ### [17] DEPLOY S5: <target>
@@ -68,4 +70,10 @@ Number every entry with a sequence number in brackets. The report refers to entr
 **Stop**
 ```markdown
 ### [30] STOP: <user STOP file | budget cap | stuck: no progress>
+```
+
+When a session ends with steps still open or no report, the launcher adds its own entry:
+
+```markdown
+### [end] <STOP | Interrupted | Ended>: <user STOP file | SIGINT (Ctrl-C) | session ended: <subtype>>; open steps: <ids>
 ```

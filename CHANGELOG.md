@@ -2,6 +2,20 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-22
+
+### Fixed
+- **Four fixes from the live run `20261022-0347-shop-1-2` (opus, $3.64 over 2 launches).** That run confirmed crash resume after Ctrl-C, the deploy gate (S3's evidence came from reading, and nothing was deployed) and the temp folder (`.autopilot-tmp` was used and stayed out of git).
+  - **A stopped run's report now reaches the branch.** After STOP the run can't use git, so `report.md`, `ledger.md` and `state.json` stayed uncommitted in the clone, and the branch you review had none of them. Now, however the session ends, the launcher commits the run folder's uncommitted changes, and nothing outside it, before fetching the branch back. The commit message is `docs: autopilot <run-id> run records`. This replaces the "cost" commit, which committed only a report that was already tracked (`commitRunRecords` and `writeCostLine` in `nextc-core/scripts/autopilot-cost.mjs` replace `recordCostInReport`). The guard's STOP message, the skill and `ledger.md` say so.
+  - **A Ctrl-C is no longer logged as a STOP.** The launcher's ledger entry read `[end] STOP: session ended: error_during_execution (error)`, and the report then called it a crash. The launcher now records the signal it forwarded. Its entry is `[end] Interrupted: SIGINT (Ctrl-C)`, `[end] STOP` only for the STOP file, and `[end] Ended` otherwise. `references/ledger.md` documents the entry.
+  - **The report no longer opens as if the whole plan was done.** It began "The plan fixed the cart totals…, made the shell-script lint pass, published the docs site…", and only then said 2 of 5 steps finished. `report-template.md` now asks for the plan's purpose worded as intent ("The plan set out to …").
+  - **`attempts` in `state.json` now has one meaning:** the diagnosed retries, as numbered in `stop-and-diagnose` §6. The run had recorded 0 for the two steps that passed on their first try, but 1 for S2, which was blocked after its first try. A first-try failure is logged as `F <step> first try`.
+  - **Tests:** the three report tests in `tests/autopilot-cost.test.mjs` were replaced. The new ones check that the Cost line is written or appended, that a stopped run's report and ledger are committed without touching staged or unstaged files outside the run folder, and that no commit is made when the folder is clean. The launcher's `[end]` label has no test, because the launcher only runs with `claude`.
+- **Autopilot's `run.json` fields `hardStops` and `planNotes` now have a defined format** (`nextc-core/skills/autopilot/SKILL.md`, plan mode step 6).
+  - **Problem, seen in demo 4:** plan mode wrote `hardStops` as free text (`"S5: push the branch…"`). It also added `planNotes`, which the skill never mentioned, so nothing read them.
+  - **`hardStops`** is now the list of `hard-stop` step ids, such as `["S5"]`. The `autopilot-decider` reads this list.
+  - **`planNotes`** holds the warnings plan mode gave at the approval gate, one string each, starting with the step id. The worker for that step gets its notes in its prompt.
+
 ## 2026-10-21
 
 ### Added

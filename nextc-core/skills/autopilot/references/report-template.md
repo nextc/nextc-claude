@@ -5,7 +5,7 @@ Build `report.md` from `ledger.md` and `state.json` only. Every number and claim
 ```markdown
 # Autopilot report: <run-id>
 
-<One paragraph: what the plan was for, how many steps finished, what needs the user now.>
+<One paragraph: what the plan set out to do, worded as intent ("The plan set out to …") so it isn't read as done, then how many steps finished and what needs the user now.>
 
 ## Needs you
 

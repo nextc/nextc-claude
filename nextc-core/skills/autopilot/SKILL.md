@@ -64,7 +64,9 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
      - `deploys` is one entry per deploy step: `{ step: "S3", commands: ["npm run deploy:docs", "npm run rollback:docs"], scripts: ["scripts/deploy-docs.sh", "scripts/rollback-docs.sh"] }`, where `scripts` are paths relative to the clone.
    - In the clone, create `docs/autopilot/<run-id>/` with:
      - `plan.md`: a copy of the plan;
-     - `run.json`: the same fields plus `steps` and `hardStops`, for the orchestrator to read;
+     - `run.json`: the same fields plus `steps`, `hardStops` and `planNotes`, for the orchestrator to read:
+       - `hardStops`: the ids of the `hard-stop` steps, for example `["S5"]`. Each step's `goal` says what is left for the user.
+       - `planNotes`: the warnings you gave at the approval gate, one string each, starting with the step id. For example: `"S3: rollback-docs.sh:4-7 exits 1 when there is no previous release, so the deploy is expected to block."` Use `[]` when there are none.
      - `state.json`: `{ id, steps: [{ id, kind, goal, verify, dependsOn: [], status: "pending", attempts: 0 }] }`, plus `gate: null` on deploy steps;
      - `ledger.md`: the header from `references/ledger.md`.
    - Commit those four files on the run branch.
@@ -77,7 +79,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - Print the real absolute script path.
    - Running the same command again resumes the run, and `--dry-run` shows what it would start.
    - `touch ~/.claude/autopilot/<run-id>/STOP` stops it.
-   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost, records it in `~/.claude/autopilot/<run-id>/result.json`, and writes it into the report's Cost line.
+   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost, records it in `~/.claude/autopilot/<run-id>/result.json`, and writes it into the report's Cost line. It commits the run folder on the branch, including a report written after a STOP.
 
    Don't start the run yourself. Starting a session with every permission check off is the user's decision, and Claude Code's auto mode blocks an agent from doing it.
 
@@ -104,6 +106,7 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
      - it copies a pattern already in the code or the plan, and you cite the file and line it copies. For example, `farewell` returning `Goodbye, ${name}` beside `greet` returning `Hello, ${name}` (greet.js:1).
 
      If two patterns compete, or copying one would change what someone sees, it is a question. When unsure, ask: a wrong guess costs more than a question";
+   - the step's `planNotes` entries from `run.json`, if any, so the worker starts from what plan mode found;
    - for a `deploy` step, the instruction to run the checklist in `${CLAUDE_SKILL_DIR}/references/compat-gate.md` and return its evidence before deploying.
 
    Return contract:
@@ -143,7 +146,7 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
    - After attempt 5, or as soon as the decider says the evidence doesn't support a diagnosis: mark the step `blocked` with the last diagnosis and move on.
    - **Cause outside the run's reach.** Sometimes, at any attempt, the diagnosis says no change inside the run can fix it: a missing tool with no allowed host to fetch it, credentials the run doesn't have, or a service that is down. Don't retry. Ask the decider to confirm. Pass it the same evidence as for attempts 3 to 5, plus each change you ruled out and why. If it confirms, mark the step `blocked` and log what the user must do. If it names a change, that change is the next attempt. Don't block a step on your own diagnosis alone: a fixable step blocked as "out of reach" is a step skipped.
 
-   Count attempts in `state.json`.
+   `attempts` in `state.json` counts the diagnosed retries, so it matches the numbers above. The first try isn't one: a step that passes on its first try has `attempts: 0`, and so does a step blocked as out of reach after its first try. Log a first-try failure as `F <step> first try`.
 8. **Commit when done.** After a `done` return:
    - Check the claimed verification yourself: run the verify command again.
    - Then `git add -A && git commit -m "<type>: <step id> <goal>"` on the run branch.
@@ -174,9 +177,9 @@ When every step is `done`, `blocked`, `hard-stop` or `skipped`:
 If the run is stopped (tools denied with a stop message), only reading and writing the run folder still works:
 - log the stop;
 - write the report with the unfinished steps marked as such;
-- end without committing.
+- end without committing, since git is refused now.
 
-If the session dies instead (a crash, or the budget runs out), the launcher appends the reason to the ledger.
+If the session dies instead (Ctrl-C, a crash, or the budget runs out), the launcher appends the reason to the ledger. However the session ends, the launcher then commits the run folder's uncommitted changes, and nothing outside it, before fetching the branch back, so the branch carries the report and ledger.
 
 **Paths:** the guard accepts only absolute file paths inside the clone, with no `..`, and refuses `.claude/`, `.mcp.json` and `.git/`. Pass workers absolute paths.
 

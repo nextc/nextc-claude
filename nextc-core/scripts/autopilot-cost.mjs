@@ -1,4 +1,5 @@
-// Cost accounting for autopilot-run.mjs: what a launch cost, and writing it into the report.
+// Cost accounting for autopilot-run.mjs: what a launch cost, writing it into the report, and
+// committing the run's records when the session ends.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -20,17 +21,25 @@ export function costLine(cost, launches, resultFile) {
   return `${cost === null ? 'unknown (no result event)' : usd(cost)}${launches.length > 1 ? `, ${usd(total)} over ${launches.length} launches` : ''} (list price; ${shown})`;
 }
 
-// Puts `line` on report.md's Cost line, and commits the report when the run already committed it.
-// Returns 'committed', 'written' (report not tracked, e.g. after STOP) or 'unchanged'.
-export function recordCostInReport({ report, clone, line, message }) {
+// Puts `line` on report.md's Cost line, appending one if there is none. Returns whether it changed the file.
+export function writeCostLine(report, line) {
   const text = fs.readFileSync(report, 'utf8');
   const entry = `- Cost: ${line}`;
   const next = /^- Cost:.*$/m.test(text) ? text.replace(/^- Cost:.*$/m, entry) : `${text.trimEnd()}\n${entry}\n`;
-  if (next === text) return 'unchanged';
+  if (next === text) return false;
   fs.writeFileSync(report, next);
-  const rel = path.relative(clone, report);
-  const tracked = execFileSync('git', ['-C', clone, 'ls-files', '--', rel], { encoding: 'utf8' }).trim() !== '';
-  if (!tracked) return 'written';
-  execFileSync('git', ['-C', clone, 'commit', '--quiet', '-m', message, '--', rel], { stdio: 'pipe' });
+  return true;
+}
+
+// Commits the run folder's changes, and nothing outside it, on the run branch: the cost line, the
+// launcher's [end] entry, and whatever a stopped run left (after STOP it can't run git).
+// Returns 'committed' or 'unchanged'.
+export function commitRunRecords({ clone, runDir, message }) {
+  const rel = path.relative(clone, runDir);
+  const git = (...args) => execFileSync('git', ['-C', clone, ...args], { encoding: 'utf8', stdio: 'pipe' });
+  if (git('status', '--porcelain', '--', rel).trim() === '') return 'unchanged';
+  git('add', '--', rel);
+  // ORDER: added first, so the run's untracked report is part of the pathspec commit.
+  git('commit', '--quiet', '-m', message, '--', rel);
   return 'committed';
 }
