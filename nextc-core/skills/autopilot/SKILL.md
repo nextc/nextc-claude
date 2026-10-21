@@ -25,8 +25,8 @@ The unattended session runs with permission checks off. What keeps it safe is se
 
 - **A local clone of the repo.** The run works in a clone with its own `.git`, so no git command it runs can touch the user's checkout. The launcher fetches the run branch back into the repo when the run ends.
 - **The OS sandbox.** It confines shell commands and every process they start to the clone. A destructive command can only damage the clone.
-- **A guard hook.** It confines Edit and Write to the clone, and keeps them away from `.claude/`, `.mcp.json` and `.git/`.
-- **Deny rules and removed tools.** They block `git push`, `gh`, store uploads, package publishing, MCP tools and web fetches. The network allowlist is the plan's own host list.
+- **A guard hook.** It confines Edit and Write to the clone, and keeps them away from `.claude/`, `.mcp.json` and `.git/`. It also reads every shell command and blocks `git push`, `gh`, store uploads and package publishing, including behind `sh -c`, `$(…)` and git aliases. A command that only mentions one of them, such as `git log --grep=push`, still runs.
+- **Deny rules and removed tools.** Deny rules back the hook up. MCP tools and web fetches are removed. The network allowlist is the plan's own host list, which also stops anything a script runs that the hook can't see.
 - **A state folder outside the clone.** The approved config, the run's settings and the `STOP` file live in `~/.claude/autopilot/<run-id>/`, where the run can't write.
 
 The autopilot exceptions in `git-workflow`, `heavy-commands`, `stop-and-diagnose`, `testing-policy`, `project-docs` and `agents` apply only inside that unattended session.
@@ -42,7 +42,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`.
    - `hard-stop`: git push, store uploads (TestFlight, App Store, Play), and anything the plan says needs the user. Never executed; listed in the report as left for the user.
 4. **List what the run needs from outside**:
-   - **Network hosts:** the sandbox starts with none allowed. List the package registries, API hosts and deploy targets the steps need. Never list App Store Connect, TestFlight or Google Play hosts; leaving them out is what stops a store upload that a deny rule misses.
+   - **Network hosts:** the sandbox starts with none allowed. List the package registries, API hosts and deploy targets the steps need. Never list App Store Connect, TestFlight or Google Play hosts; leaving them out is what stops a store upload hidden inside a script, where the guard hook can't see it.
    - **Excluded commands:** tools that can't work in the sandbox, such as Docker. Each one runs with the user's full access, so keep each pattern narrow and say why it's needed.
    - **Environment variables:** the launcher strips anything that looks like a credential (tokens, keys, `AWS_*`, `GH_*`, …). List the names a step really needs, for example a deploy token, as `passEnv`.
    - **Budget:** propose a `--max-budget-usd` cap for the run. Without one, an unattended run has no spend limit. On a subscription the cap is measured in list-price dollars, but it still stops the run.

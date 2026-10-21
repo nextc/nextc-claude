@@ -9,8 +9,9 @@
 //     user's checkout. The branch is fetched back into the source repo when the run ends.
 //   - The OS sandbox confines every shell command and its child processes to the clone, and its
 //     network allowlist is the plan's host list.
-//   - A guard hook confines the file tools (they run outside the sandbox) to the clone.
-//   - Deny rules and removed tools block push, store uploads, publishing, MCP and web fetches.
+//   - A guard hook confines the file tools (they run outside the sandbox) to the clone, and
+//     parses each shell command to block push, gh, store uploads and publishing.
+//   - Deny rules back up the hook; removed tools take away MCP and web fetches.
 //   - Everything the run must not change (approved config, settings, STOP file) lives in
 //     ~/.claude/autopilot/<run-id>/, which neither the sandbox nor the guard lets it write.
 import fs from 'node:fs';
@@ -29,16 +30,15 @@ const STATE_ROOT = path.join(os.homedir(), '.claude', 'autopilot');
 const MIN_CLAUDE = [2, 1, 295];
 const TERMINAL = new Set(['done', 'blocked', 'hard-stop', 'skipped']);
 
-// SECURITY: deny rules hold in every permission mode. Patterns are loose on purpose (git -C,
-// env prefixes); the network allowlist is the backstop for anything they miss.
+// SECURITY: the guard hook parses each Bash command and blocks push, gh, store uploads and
+// publishing wherever they appear in it (git -C, env prefixes, sh -c, $(…), aliases). These
+// prefix rules are a second layer that holds even if the hook can't run. They match only at the
+// start of a command, so they never block an argument such as `git log --grep=push`.
 const DENY = [
-  'Bash(*git*push*)', 'Bash(*gh pr *)', 'Bash(*gh api*)', 'Bash(*gh release*)', 'Bash(*gh repo*)',
-  // Store uploads stay a hard stop: the user approves each one by hand.
-  'Bash(*fastlane*release_testflight*)', 'Bash(*fastlane*upload_to_testflight*)', 'Bash(*fastlane pilot*)',
-  'Bash(*fastlane*upload_to_app_store*)', 'Bash(*fastlane*deliver*)', 'Bash(*fastlane*supply*)',
-  'Bash(*fastlane*upload_to_play_store*)', 'Bash(*altool*)', 'Bash(*iTMSTransporter*)', 'Bash(*eas submit*)',
-  // Publishing a package is outward-facing and not a deploy.
-  'Bash(*npm publish*)', 'Bash(*pnpm publish*)', 'Bash(*yarn publish*)', 'Bash(*pub publish*)', 'Bash(*cargo publish*)',
+  'Bash(git push*)', 'Bash(gh pr *)', 'Bash(gh api *)', 'Bash(gh release *)', 'Bash(gh repo *)',
+  'Bash(fastlane pilot*)', 'Bash(fastlane deliver*)', 'Bash(fastlane supply*)', 'Bash(xcrun altool*)', 'Bash(eas submit*)',
+  'Bash(npm publish*)', 'Bash(pnpm publish*)', 'Bash(yarn publish*)', 'Bash(cargo publish*)',
+  'Bash(dart pub publish*)', 'Bash(flutter pub publish*)',
 ];
 // Tools that act outside the sandbox: web fetches, publishing, remote scheduling, questions.
 const REMOVED_TOOLS = [

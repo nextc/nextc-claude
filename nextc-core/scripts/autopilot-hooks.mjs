@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hooks for an autopilot run. autopilot-run.mjs registers them through --settings, so they
 // exist only inside that run, never in a normal session.
-//   node autopilot-hooks.mjs guard  PreToolUse, every tool: kill switch + file-tool scope
+//   node autopilot-hooks.mjs guard  PreToolUse, every tool: kill switch, file-tool scope, hard-stop commands
 //   node autopilot-hooks.mjs stop   Stop: keep working while steps remain
 // EXTERNAL: AUTOPILOT_RUN_DIR, AUTOPILOT_ROOT and AUTOPILOT_STATE_DIR are set by autopilot-run.mjs.
 // Errors go to stderr unconditionally: these hooks run in the user's own terminal session, so
@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const RUN_DIR = process.env.AUTOPILOT_RUN_DIR;
 const ROOT = process.env.AUTOPILOT_ROOT;
@@ -69,6 +70,133 @@ function checkFilePath(raw, root) {
   return null;
 }
 
+// Splits a shell command into simple commands, each a list of words with quotes removed. A
+// command or process substitution becomes a command of its own. Not a full shell parser:
+// redirection targets, heredoc bodies and globs stay as plain words.
+function splitCommands(src) {
+  const cmds = [];
+  const saved = [];
+  let words = [];
+  let word = null;
+  let dq = false;
+  const endWord = () => { if (word !== null) words.push(word); word = null; };
+  const endCmd = () => { endWord(); if (words.length) cmds.push(words); words = []; };
+  const openSub = (closer) => { saved.push({ words, word, dq, closer }); words = []; word = null; dq = false; };
+  const closeSub = () => { endCmd(); ({ words, word, dq } = saved.pop()); word = word ?? ''; };
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    const top = saved.at(-1);
+    if (c === '\\') { word = (word ?? '') + (src[i + 1] ?? ''); i++; continue; }
+    if (c === '`') { if (top?.closer === '`' && !dq) closeSub(); else openSub('`'); continue; }
+    if (c === '$' && src[i + 1] === '(') { openSub(')'); i++; continue; }
+    if (dq) { if (c === '"') dq = false; else word = (word ?? '') + c; continue; }
+    if (c === '"') { dq = true; word = word ?? ''; continue; }
+    if (c === "'") {
+      const end = src.indexOf("'", i + 1);
+      word = (word ?? '') + src.slice(i + 1, end < 0 ? src.length : end);
+      i = end < 0 ? src.length : end;
+      continue;
+    }
+    if (c === '#' && word === null) { while (i < src.length && src[i] !== '\n') i++; endCmd(); continue; }
+    if (c === ')' && top?.closer === ')') { closeSub(); continue; }
+    if (';&|\n()'.includes(c)) { endCmd(); continue; }
+    if (/\s/.test(c) || c === '<' || c === '>') { endWord(); continue; }
+    word = (word ?? '') + c;
+  }
+  while (saved.length) closeSub();
+  endCmd();
+  return cmds;
+}
+
+// Commands that run the rest of their words as another command. Their own options may take
+// values, so every suffix is checked rather than guessing where the inner command starts.
+const WRAPPERS = new Set(['sudo', 'env', 'command', 'exec', 'nohup', 'time', 'nice', 'timeout', 'xargs', 'npx', 'bunx', 'xcrun', 'caffeinate']);
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh']);
+const GIT_VALUE_OPTS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--config-env', '--super-prefix']);
+const GIT_COMMON = new Set(['status', 'log', 'diff', 'show', 'add', 'commit', 'restore', 'switch', 'checkout', 'branch', 'tag', 'merge', 'rebase', 'reset', 'stash', 'rev-parse', 'ls-files', 'grep', 'blame', 'fetch', 'pull', 'clone', 'init', 'mv', 'rm', 'config', 'remote', 'describe', 'cherry-pick', 'revert', 'clean', 'worktree', 'check-ignore', 'shortlog', 'reflog', 'apply', 'format-patch', 'notes', 'bisect', 'submodule', 'help', 'version']);
+// Store uploads stay a hard stop: the user approves each one by hand. release_testflight is
+// the nextc-flutter fastlane lane.
+const FASTLANE_STORE = new Set(['pilot', 'deliver', 'supply', 'upload_to_testflight', 'upload_to_app_store', 'upload_to_play_store', 'release_testflight']);
+const PUBLISHERS = new Set(['npm', 'pnpm', 'yarn', 'bun', 'cargo', 'dart', 'flutter']);
+const GH_DENIED = new Set(['pr', 'api', 'release', 'repo']);
+
+const firstArg = (args) => args.find((a) => !a.startsWith('-'));
+
+function gitAlias(name) {
+  try {
+    return execFileSync('git', ['-C', ROOT, 'config', '--get', `alias.${name}`], { encoding: 'utf8' }).trim();
+  } catch (err) {
+    // git exits 1 when the alias doesn't exist; anything else is a real failure.
+    if (err.status === 1) return null;
+    throw err;
+  }
+}
+
+// Returns a reason to deny one simple command, or null.
+function checkWords(words, depth) {
+  if (depth > 8) return 'Autopilot: the command nests too deeply to check.';
+  let w = words;
+  while (w.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0])) {
+    if (/^GIT_CONFIG_/.test(w[0])) return 'Autopilot: setting git config through the environment is blocked, because it can define an alias for push.';
+    w = w.slice(1);
+  }
+  if (!w.length) return null;
+  const name = path.basename(w[0]);
+  const args = w.slice(1);
+  if (WRAPPERS.has(name)) {
+    for (let i = 0; i < args.length; i++) {
+      const reason = checkWords(args.slice(i), depth + 1);
+      if (reason) return reason;
+    }
+    return null;
+  }
+  if (name === 'bundle' && args[0] === 'exec') return checkWords(args.slice(1), depth + 1);
+  if (SHELLS.has(name)) {
+    const c = args.findIndex((a) => /^-[a-z]*c[a-z]*$/.test(a));
+    return c >= 0 && args[c + 1] !== undefined ? checkCommand(args[c + 1], depth + 1) : null;
+  }
+  if (name === 'eval') return checkCommand(args.join(' '), depth + 1);
+
+  if (name === 'git') {
+    let i = 0;
+    for (; i < args.length && args[i].startsWith('-'); i++) {
+      const [opt, inline] = args[i].split(/=(.*)/s);
+      const value = GIT_VALUE_OPTS.has(opt) ? (inline ?? args[++i]) : null;
+      if ((opt === '-c' || opt === '--config-env') && /^alias\./i.test(value ?? '')) return 'Autopilot: defining a git alias on the command line is blocked, because it can hide a push.';
+    }
+    const sub = args[i];
+    const rest = args.slice(i + 1);
+    if (sub === 'push' || sub === 'send-email') return `Autopilot: git ${sub} is a hard stop. The user pushes the run branch after reviewing it.`;
+    if (sub === 'config' && rest.some((a) => /^alias\./i.test(a)) && !rest.some((a) => /^(--get|--get-all|--get-regexp|--list|-l|get|list)$/.test(a))) {
+      return 'Autopilot: writing a git alias is blocked, because it can hide a push.';
+    }
+    if (sub && !GIT_COMMON.has(sub)) {
+      const alias = gitAlias(sub);
+      if (alias) return alias.startsWith('!') ? checkCommand(alias.slice(1), depth + 1) : checkWords(['git', ...alias.split(/\s+/), ...rest], depth + 1);
+    }
+    return null;
+  }
+  if (name === 'gh' && GH_DENIED.has(firstArg(args))) return `Autopilot: gh ${firstArg(args)} acts on GitHub and is left for the user.`;
+  if (name === 'fastlane' && args.some((a) => FASTLANE_STORE.has(a))) return 'Autopilot: store uploads are a hard stop, left for the user.';
+  if (name === 'altool' || name === 'iTMSTransporter') return 'Autopilot: store uploads are a hard stop, left for the user.';
+  if (name === 'eas' && firstArg(args) === 'submit') return 'Autopilot: eas submit uploads to a store and is left for the user.';
+  if (PUBLISHERS.has(name)) {
+    const pos = args.filter((a) => !a.startsWith('-'));
+    if (pos[0] === 'publish' || (pos[0] === 'pub' && pos[1] === 'publish') || (pos[0] === 'npm' && pos[1] === 'publish')) {
+      return `Autopilot: publishing a package is outward-facing and left for the user.`;
+    }
+  }
+  return null;
+}
+
+function checkCommand(src, depth = 0) {
+  for (const words of splitCommands(src)) {
+    const reason = checkWords(words, depth);
+    if (reason) return reason;
+  }
+  return null;
+}
+
 function guard(input) {
   const root = fs.realpathSync(ROOT);
   const raw = input.tool_input?.file_path ?? input.tool_input?.notebook_path;
@@ -79,6 +207,14 @@ function guard(input) {
     const runDir = fs.realpathSync(RUN_DIR);
     if (FILE_TOOLS.has(input.tool_name) && !checkFilePath(raw, root) && realTarget(raw).startsWith(runDir + path.sep)) return;
     deny('Autopilot was stopped by the user (STOP file). Do not start new work: log the stop in ledger.md, write report.md (it stays uncommitted), and end.');
+    return;
+  }
+  if (input.tool_name === 'Bash') {
+    // SECURITY: the outward-facing commands the run must leave to the user (push, store
+    // uploads, publishing). Commands hidden inside scripts can't be seen here; the sandbox and
+    // the network allowlist stop those.
+    const reason = checkCommand(String(input.tool_input?.command ?? ''));
+    if (reason) deny(reason);
     return;
   }
   if (!FILE_TOOLS.has(input.tool_name)) return;

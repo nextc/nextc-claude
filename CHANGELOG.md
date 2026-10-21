@@ -25,7 +25,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
   - **Containment:**
     - **Clone, not worktree:** a linked worktree would let sandboxed git commands rewrite the main repo's shared `.git`.
     - **Strict OS sandbox:** unsandboxed retries are off, and the run refuses to start without the sandbox. The network allowlist is the plan's host list. Credential files (`~/.ssh`, `~/.aws`, `~/.config/gh`, …) and Claude's own auth variables are hidden from sandboxed commands.
-    - **Deny rules:** they block `git push`, `gh`, store uploads and package publishing.
+    - **Deny rules:** exact-prefix rules for `git push`, `gh`, store uploads and package publishing, a second layer behind the guard's command check.
     - **Removed tools:** MCP (also `--strict-mcp-config`), WebFetch, Artifact and remote-trigger tools.
     - **Env scrubbing:** secret-looking environment variables are dropped unless the plan lists them in `passEnv`.
   - **Where the run's control files live:** the approved config, settings, rules bundle, transcript, lock and `STOP` file are in `~/.claude/autopilot/<run-id>/` (mode 0600), which the run can't write. The launcher trusts only that copy of the config.
@@ -40,6 +40,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
     - it accepts only absolute paths without `..`;
     - it resolves every symlink, the last path component included;
     - it refuses `.claude/`, `.mcp.json` and `.git/`, so the run can't widen its own settings.
+  - **`guard`** also parses every shell command and blocks `git push`, `gh pr/api/release/repo`, store uploads and package publishing wherever they appear: after `cd … &&`, `git -C`, env prefixes, `sudo`/`env`/`timeout`, inside `sh -c`, `eval`, `$(…)` and backticks, and behind git aliases (it resolves them, and refuses to define new ones).
   - **After a `STOP` file appears:** only reads and writes to the run folder are allowed. If the guard itself crashes, it blocks the action rather than letting it through.
   - **`stop`** keeps the session going while steps remain, including when `state.json` is unreadable. It lets the session end when nothing in the ledger or `state.json` changed since its last block, so it can't loop.
 - **`autopilot-decider` agent (fable/xhigh, read-only):** answers the run's questions from the plan, the earlier decisions, the user's rules and the code. It never widens the scope or lifts a hard stop. Its return block records the answer, the rejected options, its confidence, whether the choice can be undone, and whether it needs your review. It falls back to Opus at the Fable cap. You approved it for the Fable closed list on 2026-10-21; it's in `agents-roster.md` and the validator's tier table.
@@ -59,6 +60,9 @@ All notable changes to nextc-claude are documented here, grouped by date.
   - `agents.md`: notes the decider's Fable approval.
 - **Docs:** the `doc-keeper` description, README, CLAUDE.md and the marketplace/plugin descriptions now list autopilot. `nextc-core` is now 10 skills and 3 agents.
 - **`rules-evals/README.md`:** counts updated, from 102 runs per full pass to 114.
+
+### Fixed
+- **Autopilot no longer blocks harmless commands that mention a hard-stop word.** The launcher's deny rules were loose globs such as `Bash(*git*push*)`, so `git log --grep=push` or `cat deliver.md` was denied. The guard hook now parses each command and checks only the command word and its subcommand, and the deny rules are now exact prefixes. Checked against 46 commands (14 harmless ones allowed, 32 hard-stop forms blocked) plus 16 regression cases for the file guard, STOP and the Stop hook. One false positive remains on purpose: a heredoc whose text contains `git push` is blocked, because the guard can't tell data from a script fed to `sh`.
 
 ## 2026-10-20
 
