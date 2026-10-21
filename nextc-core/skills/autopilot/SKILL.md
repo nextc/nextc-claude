@@ -25,7 +25,7 @@ The unattended session runs with permission checks off. What keeps it safe is se
 
 - **A local clone of the repo.** The run works in a clone with its own `.git`, so no git command it runs can touch the user's checkout. The launcher fetches the run branch back into the repo when the run ends.
 - **The OS sandbox.** It confines shell commands and every process they start to the clone. A destructive command can only damage the clone.
-- **A guard hook.** It confines Edit and Write to the clone, and keeps them away from `.claude/`, `.mcp.json` and `.git/`. It also reads every shell command and blocks `git push`, `gh`, store uploads and package publishing, including behind `sh -c`, `$(…)` and git aliases. A command that only mentions one of them, such as `git log --grep=push`, still runs.
+- **A guard hook.** It confines Edit and Write to the clone, and keeps them away from `.claude/`, `.mcp.json` and `.git/`. It also reads every shell command and blocks `git push`, `gh`, store uploads and package publishing, including behind `sh -c`, `$(…)` and git aliases. A command that only mentions one of them, such as `git log --grep=push`, still runs. It also refuses a deploy step's commands and scripts until that step has passed the compatibility check. Reading those scripts is still allowed.
 - **Deny rules and removed tools.** Deny rules back the hook up. MCP tools and web fetches are removed. The network allowlist is the plan's own host list, which also stops anything a script runs that the hook can't see.
 - **A state folder outside the clone.** The approved config, the run's settings and the `STOP` file live in `~/.claude/autopilot/<run-id>/`, where the run can't write.
 
@@ -39,7 +39,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
 2. **Check the repo.** It must be a git repo with a clean working tree, because the run branches from `HEAD`. If it isn't clean, ask the user to commit or stash first.
 3. **Split the plan into steps.** Each step must be something one worker can finish and verify in one go. Give each an id (`S1`, `S2`, …), a goal, how to verify it, and a kind:
    - `build`: ordinary work, run fully on autopilot.
-   - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`. Name its rollback command, and read it to check that it can undo this deploy, including a first deploy with nothing to restore. If it can't, say so at the approval gate: the run would block the deploy.
+   - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`. Name its rollback command, and read it to check that it can undo this deploy, including a first deploy with nothing to restore. If it can't, say so at the approval gate: the run would block the deploy. Also list every command that deploys or rolls back, and the scripts they run, read from `package.json`, the `Makefile` or wherever the plan's commands are defined. For example, `npm run deploy:docs` and `npm run rollback:docs` run `scripts/deploy-docs.sh` and `scripts/rollback-docs.sh`. The guard hook refuses these until the step passes the check.
    - `hard-stop`: git push, store uploads (TestFlight, App Store, Play), and anything the plan says needs the user. Never executed; listed in the report as left for the user.
 4. **List what the run needs from outside**:
    - **Network hosts:** the sandbox starts with none allowed. List the package registries, API hosts and deploy targets the steps need. Never list App Store Connect, TestFlight or Google Play hosts; leaving them out is what stops a store upload hidden inside a script, where the guard hook can't see it.
@@ -60,11 +60,12 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - `run-id` = `YYYYMMDD-HHMM-<slug>`.
    - Clone: `git clone --quiet --local "$(git rev-parse --show-toplevel)" .claude/autopilot-runs/<run-id>`, then `git -C <clone> switch -c autopilot/<run-id>`.
    - Add `.claude/autopilot-runs/` to `.git/info/exclude` if it isn't ignored already (check with `git check-ignore`), so the clone doesn't show as untracked in the main checkout.
-   - Write `~/.claude/autopilot/<run-id>/approved.json`: `{ id, approvedAt, sourceRepo, clone, allowedDomains, excludedCommands, passEnv, maxBudgetUsd, model: "opus" }`, with absolute paths, readable only by the user (`chmod 600`). This is the only copy the launcher trusts.
+   - Write `~/.claude/autopilot/<run-id>/approved.json`: `{ id, approvedAt, sourceRepo, clone, allowedDomains, excludedCommands, passEnv, maxBudgetUsd, model: "opus", deploys }`, with absolute paths, readable only by the user (`chmod 600`). This is the only copy the launcher and the guard trust.
+     - `deploys` is one entry per deploy step: `{ step: "S3", commands: ["npm run deploy:docs", "npm run rollback:docs"], scripts: ["scripts/deploy-docs.sh", "scripts/rollback-docs.sh"] }`, where `scripts` are paths relative to the clone.
    - In the clone, create `docs/autopilot/<run-id>/` with:
      - `plan.md`: a copy of the plan;
      - `run.json`: the same fields plus `steps` and `hardStops`, for the orchestrator to read;
-     - `state.json`: `{ id, steps: [{ id, kind, goal, verify, dependsOn: [], status: "pending", attempts: 0 }] }`;
+     - `state.json`: `{ id, steps: [{ id, kind, goal, verify, dependsOn: [], status: "pending", attempts: 0 }] }`, plus `gate: null` on deploy steps;
      - `ledger.md`: the header from `references/ledger.md`.
    - Commit those four files on the run branch.
 7. **Hand over the command.** Tell the user to start the run from a terminal:
@@ -152,6 +153,10 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
 ### Deploy steps
 
 A deploy runs only with the compatibility evidence from `references/compat-gate.md` in the ledger. Missing evidence, or a failed item, means the step is `blocked`, not deployed.
+
+1. **Gather the evidence by reading, never by running.** Don't run the deploy or rollback commands, or the scripts they call, while checking, not even in a copy or a temp folder. A "dry run" that lands in the wrong folder is a real deploy. Tell the worker that checks the step this, in its prompt.
+2. **Log the DEPLOY entry.**
+3. **Only when every item passes:** set `"gate": "pass"` on the step in `state.json`, then deploy. The guard hook refuses the step's commands and scripts, listed in `approved.json` `deploys`, until the step is `in_progress` with `"gate": "pass"`.
 
 After a deploy that has a URL, run `canary-watch` against the baseline. On a regression:
 - roll back with the recorded rollback command;

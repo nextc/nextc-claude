@@ -4,6 +4,8 @@ The user allowed deploys on autopilot only if they never break what is already r
 
 "Not applicable" is an answer only when the evidence shows it, for example "no files under `api/` changed (git diff --stat)".
 
+Gather the evidence by reading code, diffs and existing state. Never run the deploy or rollback commands, or the scripts they call, to get evidence. The deploy runs only once every item has passed.
+
 ## 1. API contracts
 
 - No existing endpoint, RPC, GraphQL field or event payload is removed, renamed, or changed in type or meaning.
@@ -31,7 +33,7 @@ The user allowed deploys on autopilot only if they never break what is already r
 ## 5. Rollback
 
 - There is one command that restores the previous version, it's written in the DEPLOY entry, and it doesn't need the user.
-- On a first deploy, the previous version is "nothing deployed", so the rollback is a command that removes the deploy. Show that nothing is deployed yet (the evidence), and that the command handles that case (its code, or a dry run). A rollback that only knows how to restore an earlier release fails this item on a first deploy.
+- On a first deploy, the previous version is "nothing deployed", so the rollback is a command that removes the deploy. Show that nothing is deployed yet (the evidence), and that the command handles that case (its code, with file and line). A rollback that only knows how to restore an earlier release fails this item on a first deploy.
 - If a migration ran, the rollback leaves the data usable by the previous version. With additive-only migrations it does.
 
 ## After the deploy

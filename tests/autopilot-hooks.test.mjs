@@ -60,6 +60,40 @@ test('guard denies push, store uploads and publishing in every form', () => {
   for (const c of DENIED_COMMANDS) assert.equal(denied(hook(fx, 'guard', bash(c), fx.clone)), true, c);
 });
 
+function deployFixture(step) {
+  const fx = fixture();
+  fs.writeFileSync(path.join(fx.state, 'approved.json'), JSON.stringify({
+    deploys: [{ step: 'S3', commands: ['npm run deploy:docs', 'npm run rollback:docs'], scripts: ['scripts/deploy-docs.sh', 'scripts/rollback-docs.sh'] }],
+  }));
+  fs.writeFileSync(path.join(fx.run, 'state.json'), JSON.stringify({ steps: [{ id: 'S1', status: 'done' }, { id: 'S3', kind: 'deploy', ...step }] }));
+  return fx;
+}
+
+const DEPLOY_RUNS = (clone) => [
+  'npm run deploy:docs', 'npm run rollback:docs', 'timeout 60 npm run deploy:docs', 'bash -c "npm run rollback:docs"',
+  'sh scripts/deploy-docs.sh', './scripts/deploy-docs.sh', 'cd scripts && ./deploy-docs.sh', `sh ${clone}/scripts/rollback-docs.sh`,
+  'npm test && npm run deploy:docs', '. scripts/deploy-docs.sh',
+];
+
+test('guard refuses a deploy step\'s commands and scripts before its check passes', () => {
+  for (const step of [{ status: 'pending', gate: null }, { status: 'in_progress', gate: null }, { status: 'pending', gate: 'pass' }]) {
+    const fx = deployFixture(step);
+    for (const c of DEPLOY_RUNS(fx.clone)) assert.equal(denied(hook(fx, 'guard', bash(c))), true, `${JSON.stringify(step)}: ${c}`);
+  }
+});
+
+test('guard allows reading deploy scripts and other npm scripts before the check passes', () => {
+  const fx = deployFixture({ status: 'in_progress', gate: null });
+  for (const c of ['cat scripts/deploy-docs.sh', 'grep -n rm scripts/rollback-docs.sh', 'sh -n scripts/deploy-docs.sh', 'npm test', 'npm run deploy', 'ls site site.previous']) {
+    assert.equal(denied(hook(fx, 'guard', bash(c))), false, c);
+  }
+});
+
+test('guard allows the deploy once the step is in progress with gate pass', () => {
+  const fx = deployFixture({ status: 'in_progress', gate: 'pass' });
+  for (const c of DEPLOY_RUNS(fx.clone)) assert.equal(denied(hook(fx, 'guard', bash(c))), false, c);
+});
+
 test('guard keeps file tools inside the clone', () => {
   const fx = fixture();
   const R = fx.clone;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hooks for an autopilot run. autopilot-run.mjs registers them through --settings, so they
 // exist only inside that run, never in a normal session.
-//   node autopilot-hooks.mjs guard  PreToolUse, every tool: kill switch, file-tool scope, hard-stop commands
+//   node autopilot-hooks.mjs guard  PreToolUse, every tool: kill switch, file-tool scope, hard-stop commands, deploy gate
 //   node autopilot-hooks.mjs stop   Stop: keep working while steps remain
 // EXTERNAL: AUTOPILOT_RUN_DIR, AUTOPILOT_ROOT and AUTOPILOT_STATE_DIR are set by autopilot-run.mjs.
 // Errors go to stderr unconditionally: these hooks run in the user's own terminal session, so
@@ -132,6 +132,42 @@ function gitAlias(name) {
   }
 }
 
+let deploys;
+// The deploy steps' commands and scripts, from the approved config plan mode wrote.
+function approvedDeploys() {
+  deploys ??= readJson(path.join(STATE_DIR, 'approved.json'))?.deploys ?? [];
+  return deploys;
+}
+
+// By file name, so `cd scripts && ./deploy.sh` matches too; only executed words are compared.
+const isScript = (word, script) => word !== '' && path.basename(word) === path.basename(script);
+
+// Returns the deploy entry that `w` runs, or null. A script counts only where it is executed
+// (first word, or the file a shell or `source` runs), so reading it with cat or grep is allowed.
+function deployRun(w) {
+  const name = path.basename(w[0]);
+  const runs = [w[0]];
+  // `sh -n` only checks syntax, so it is reading, not running.
+  const syntaxOnly = SHELLS.has(name) && w.slice(1).some((a) => /^-[a-z]*n[a-z]*$/.test(a));
+  if ((SHELLS.has(name) && !syntaxOnly) || name === 'source' || name === '.') runs.push(w.slice(1).find((a) => !a.startsWith('-')) ?? '');
+  for (const d of approvedDeploys()) {
+    if ((d.commands ?? []).some((c) => { const cw = c.split(/\s+/); return cw.every((x, i) => w[i] === x); })) return d;
+    if ((d.scripts ?? []).some((s) => runs.some((r) => isScript(r, s)))) return d;
+  }
+  return null;
+}
+
+// SECURITY: a deploy or rollback is outward-facing, so it runs only after the compatibility check
+// passed. state.json is the run's own file: this stops accidents, such as a dry run in the wrong
+// folder, not a run set on deploying. Commands a deploy script runs as child processes aren't seen.
+function deployGate(w) {
+  const d = deployRun(w);
+  if (!d) return null;
+  const step = readJson(path.join(RUN_DIR, 'state.json'))?.steps?.find((s) => s.id === d.step);
+  if (step?.status === 'in_progress' && step.gate === 'pass') return null;
+  return `Autopilot: "${w.join(' ')}" deploys or rolls back ${d.step}. It runs only after the compatibility check passes: gather the evidence by reading the code, log the DEPLOY entry, then set "gate": "pass" on ${d.step} in state.json. Never run it to collect evidence.`;
+}
+
 // Returns a reason to deny one simple command, or null.
 function checkWords(words, depth) {
   if (depth > 8) return 'Autopilot: the command nests too deeply to check.';
@@ -141,6 +177,8 @@ function checkWords(words, depth) {
     w = w.slice(1);
   }
   if (!w.length) return null;
+  const gated = deployGate(w);
+  if (gated) return gated;
   const name = path.basename(w[0]);
   const args = w.slice(1);
   if (WRAPPERS.has(name)) {

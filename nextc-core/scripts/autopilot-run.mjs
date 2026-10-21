@@ -10,7 +10,9 @@
 //   - The OS sandbox confines every shell command and its child processes to the clone, and its
 //     network allowlist is the plan's host list.
 //   - A guard hook confines the file tools (they run outside the sandbox) to the clone, and
-//     parses each shell command to block push, gh, store uploads and publishing.
+//     parses each shell command to block push, gh, store uploads and publishing, and a deploy
+//     step's commands until its compatibility check passed.
+//   - Temp files go to <clone>/.autopilot-tmp, inside the sandbox's write scope.
 //   - Deny rules back up the hook; removed tools take away MCP and web fetches.
 //   - Everything the run must not change (approved config, settings, STOP file) lives in
 //     ~/.claude/autopilot/<run-id>/, which neither the sandbox nor the guard lets it write.
@@ -153,7 +155,24 @@ function userPluginDirs() {
   return [...new Set([PLUGIN_ROOT, ...dirs.filter((d) => !d.includes(`${path.sep}nextc-core${path.sep}`))])];
 }
 
+const runTmpDir = (clone) => path.join(clone, '.autopilot-tmp');
+
+// Creates the run's temp folder, kept out of git through .git/info/exclude (the run can't edit .git).
+function createRunTmpDir(clone) {
+  const dir = runTmpDir(clone);
+  fs.mkdirSync(dir, { recursive: true });
+  const exclude = path.join(clone, '.git', 'info', 'exclude');
+  const current = fs.existsSync(exclude) ? fs.readFileSync(exclude, 'utf8') : '';
+  if (!current.split('\n').includes('/.autopilot-tmp/')) {
+    fs.mkdirSync(path.dirname(exclude), { recursive: true });
+    fs.appendFileSync(exclude, `${current && !current.endsWith('\n') ? '\n' : ''}/.autopilot-tmp/\n`);
+  }
+}
+
 function runEnv(approved, stateDir, runDir, clone) {
+  // EXTERNAL: the sandbox lets commands write only inside the clone, so the user's TMPDIR (under
+  // /var/folders) makes mktemp fail. A failed mktemp left a worker's "dry run" deploy in the clone.
+  const tmp = runTmpDir(clone);
   const pass = new Set(approved.passEnv ?? []);
   const env = {};
   for (const [k, v] of Object.entries(process.env)) {
@@ -164,6 +183,9 @@ function runEnv(approved, stateDir, runDir, clone) {
     AUTOPILOT_RUN_DIR: runDir,
     AUTOPILOT_ROOT: clone,
     AUTOPILOT_STATE_DIR: stateDir,
+    TMPDIR: tmp,
+    TMP: tmp,
+    TEMP: tmp,
     // EXTERNAL: turns off nextc-ecc's fact-force-guard hook. It asks for the user's verbatim
     // go-ahead before destructive commands; nobody can give one here, and the sandbox already
     // confines those commands to the clone.
@@ -255,6 +277,7 @@ if (args['dry-run']) {
 }
 
 writePrivate(lockFile, String(process.pid));
+createRunTmpDir(CLONE);
 fs.rmSync(path.join(STATE_DIR, 'STOP'), { force: true });
 fs.rmSync(path.join(STATE_DIR, 'stop-hook.json'), { force: true });
 writePrivate(settingsPath, JSON.stringify(settings, null, 2));
