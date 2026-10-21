@@ -42,6 +42,6 @@ For each deploy: the target, the compatibility evidence, the rollback command, a
 
 - Branch: autopilot/<run-id> (<n> commits, not pushed)
 - Started / ended: <times>
-- Cost: <from the transcript's result event, if present>
+- Cost: printed by the launcher when the run ends and recorded in `~/.claude/autopilot/<run-id>/result.json` (the run can't see its own final cost)
 - Stopped by: <finished | STOP file | budget | stuck>
 ```

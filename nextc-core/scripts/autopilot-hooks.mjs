@@ -230,6 +230,11 @@ function stop(input) {
   const state = readJson(statePath);
   const open = state?.steps?.filter((s) => !TERMINAL.has(s.status)) ?? null;
   if (open && open.length === 0 && fs.existsSync(path.join(RUN_DIR, 'report.md'))) return;
+  // EXTERNAL: workers run as background agents. Ending the turn is how the orchestrator waits
+  // for one; claude -p stays alive and resumes it when the worker's result arrives. Blocking here
+  // would only make it poll. If no worker is really running, the session ends, the launcher logs
+  // the open step, and launching again resumes.
+  if (open?.some((s) => s.status === 'in_progress')) return;
 
   // ORDER: compare against the fingerprint taken at the previous block. With no change to the
   // ledger or the step states since then, the run is stuck, and blocking again would loop.
@@ -240,7 +245,9 @@ function stop(input) {
     .digest('hex');
   const markFile = path.join(STATE_DIR, 'stop-hook.json');
   if (input.stop_hook_active && readJson(markFile)?.fingerprint === fingerprint) return;
-  fs.writeFileSync(markFile, JSON.stringify({ fingerprint }));
+  fs.writeFileSync(markFile, JSON.stringify({ fingerprint }), { mode: 0o600 });
+  // writeFileSync's mode applies only when it creates the file.
+  fs.chmodSync(markFile, 0o600);
 
   const next = !open ? 'state.json is missing or not valid JSON: repair it from the ledger before anything else.'
     : open.length ? `Steps not finished: ${open.map((s) => `${s.id} (${s.status})`).join(', ')}.`

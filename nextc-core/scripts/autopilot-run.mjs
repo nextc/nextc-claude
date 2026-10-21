@@ -80,6 +80,15 @@ function readJson(p) {
   }
 }
 
+function readJsonOr(p, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error(`autopilot-run: could not read ${p}, starting it fresh: ${err.message}`);
+    return fallback;
+  }
+}
+
 function checkClaudeVersion() {
   let out;
   try {
@@ -249,7 +258,10 @@ fs.rmSync(path.join(STATE_DIR, 'STOP'), { force: true });
 fs.rmSync(path.join(STATE_DIR, 'stop-hook.json'), { force: true });
 writePrivate(settingsPath, JSON.stringify(settings, null, 2));
 writePrivate(bundlePath, buildRulesBundle(RUN_DIR));
-const transcript = fs.openSync(path.join(STATE_DIR, 'transcript.jsonl'), 'a', 0o600);
+const transcriptPath = path.join(STATE_DIR, 'transcript.jsonl');
+// Earlier launches of the same run append to this transcript; costs are counted from here on.
+const transcriptStart = fs.existsSync(transcriptPath) ? fs.statSync(transcriptPath).size : 0;
+const transcript = fs.openSync(transcriptPath, 'a', 0o600);
 console.log(`  ledger:   ${path.join(RUN_DIR, 'ledger.md')}`);
 console.log(`  stop:     touch "${path.join(STATE_DIR, 'STOP')}"`);
 const child = spawn('claude', claudeArgs, { cwd: CLONE, env, stdio: ['ignore', transcript, transcript] });
@@ -265,21 +277,41 @@ const tick = setInterval(() => {
   shown = Math.max(lines.length - 1, 0);
 }, 5000);
 
-function lastResult() {
-  let lines;
+// The `result` events this launch wrote, oldest first.
+function launchResults() {
+  let text;
   try {
-    lines = fs.readFileSync(path.join(STATE_DIR, 'transcript.jsonl'), 'utf8').trim().split('\n').reverse();
+    text = fs.readFileSync(transcriptPath, 'utf8').slice(transcriptStart);
   } catch (err) {
     console.error(`autopilot-run: could not read the transcript: ${err.message}`);
-    return null;
+    return [];
   }
-  for (const line of lines) {
+  const results = [];
+  for (const line of text.split('\n')) {
     try {
       const ev = JSON.parse(line);
-      if (ev.type === 'result') return ev;
+      if (ev.type === 'result') results.push(ev);
     } catch { /* stderr lines interleave with the JSON stream */ }
   }
-  return null;
+  return results;
+}
+
+// EXTERNAL: claude -p emits a `result` event after every turn, and its total_cost_usd is the
+// session's running total, so a session costs its last value. List-price dollars on any plan.
+function launchCost(results) {
+  const bySession = new Map();
+  for (const r of results) if (typeof r.total_cost_usd === 'number') bySession.set(r.session_id, r.total_cost_usd);
+  return bySession.size ? [...bySession.values()].reduce((a, b) => a + b, 0) : null;
+}
+
+// Appends this launch to result.json in the state folder. The committed report can't carry the
+// cost: the run ends before its last turn is billed.
+function recordLaunch(code, cost) {
+  const file = path.join(STATE_DIR, 'result.json');
+  const launches = readJsonOr(file, { launches: [] }).launches;
+  const all = [...launches, { endedAt: new Date().toISOString(), exitCode: code, costUsd: cost }];
+  writePrivate(file, JSON.stringify({ launches: all, totalCostUsd: all.reduce((a, l) => a + (l.costUsd ?? 0), 0) }, null, 2));
+  return all;
 }
 
 function finish(code) {
@@ -292,9 +324,17 @@ function finish(code) {
     console.error(`autopilot-run: could not read state.json: ${err.message}`);
   }
   const report = path.join(RUN_DIR, 'report.md');
+  const results = launchResults();
+  const cost = launchCost(results);
+  let launches = [];
+  try {
+    launches = recordLaunch(code, cost);
+  } catch (err) {
+    console.error(`autopilot-run: could not write result.json: ${err.stack || err.message}`);
+  }
   if (open.length || !fs.existsSync(report)) {
     // The session is gone, so nobody else can record why the run ended early.
-    const result = lastResult();
+    const result = results.at(-1);
     const why = fs.existsSync(path.join(STATE_DIR, 'STOP')) ? 'user STOP file'
       : result ? `session ended: ${result.subtype ?? 'unknown'}${result.is_error ? ' (error)' : ''}` : `claude exited with code ${code}`;
     fs.appendFileSync(ledger, `\n### [end] STOP: ${why}; open steps: ${open.map((s) => s.id).join(', ') || 'none'}${fs.existsSync(report) ? '' : '; no report.md'}\n`);
@@ -308,6 +348,9 @@ function finish(code) {
   }
   console.log(`\nautopilot ${runId} ended (exit ${code}).`);
   console.log(fs.existsSync(report) ? `  report: ${report}` : '  no report.md; see the ledger and transcript.jsonl');
+  const usd = (n) => `$${n.toFixed(2)}`;
+  const total = launches.reduce((a, l) => a + (l.costUsd ?? 0), 0);
+  console.log(`  cost:     ${cost === null ? 'unknown (no result event)' : usd(cost)}${launches.length > 1 ? `, ${usd(total)} over ${launches.length} launches` : ''} (list price; ${path.join(STATE_DIR, 'result.json')})`);
   console.log(fetched);
   process.stdout.write('\x07');
   process.exit(code ?? 1);

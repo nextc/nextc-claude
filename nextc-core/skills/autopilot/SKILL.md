@@ -60,7 +60,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - `run-id` = `YYYYMMDD-HHMM-<slug>`.
    - Clone: `git clone --quiet --local "$(git rev-parse --show-toplevel)" .claude/autopilot-runs/<run-id>`, then `git -C <clone> switch -c autopilot/<run-id>`.
    - Add `.claude/autopilot-runs/` to `.git/info/exclude` if it isn't ignored already (check with `git check-ignore`), so the clone doesn't show as untracked in the main checkout.
-   - Write `~/.claude/autopilot/<run-id>/approved.json`: `{ id, approvedAt, sourceRepo, clone, allowedDomains, excludedCommands, passEnv, maxBudgetUsd, model: "opus" }`, with absolute paths. This is the only copy the launcher trusts.
+   - Write `~/.claude/autopilot/<run-id>/approved.json`: `{ id, approvedAt, sourceRepo, clone, allowedDomains, excludedCommands, passEnv, maxBudgetUsd, model: "opus" }`, with absolute paths, readable only by the user (`chmod 600`). This is the only copy the launcher trusts.
    - In the clone, create `docs/autopilot/<run-id>/` with:
      - `plan.md`: a copy of the plan;
      - `run.json`: the same fields plus `steps` and `hardStops`, for the orchestrator to read;
@@ -76,7 +76,7 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - Print the real absolute script path.
    - Running the same command again resumes the run, and `--dry-run` shows what it would start.
    - `touch ~/.claude/autopilot/<run-id>/STOP` stops it.
-   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push.
+   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost and records it in `~/.claude/autopilot/<run-id>/result.json`.
 
    Don't start the run yourself. Starting a session with every permission check off is the user's decision, and Claude Code's auto mode blocks an agent from doing it.
 
@@ -98,6 +98,11 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
    - the clone path, as absolute paths;
    - "follow feature-dev phases 4 to 7: read `${CLAUDE_PLUGIN_ROOT}/skills/feature-dev/SKILL.md`, and skip its user gates";
    - "do not commit, do not push, do not ask the user";
+   - the rule for choices: "a choice the plan leaves open about what a user, caller or operator sees (behavior, output, errors, defaults, API or data shape) is a question: return `needs-decision` before building that part, with the full question block below. Settle it yourself, as a DECISIONS line, only when one of these holds:
+     - nobody outside the code would notice it (names, file layout, helpers);
+     - it copies a pattern already in the code or the plan, and you cite the file and line it copies. For example, `farewell` returning `Goodbye, ${name}` beside `greet` returning `Hello, ${name}` (greet.js:1).
+
+     If two patterns compete, or copying one would change what someone sees, it is a question. When unsure, ask: a wrong guess costs more than a question";
    - for a `deploy` step, the instruction to run the checklist in `${CLAUDE_SKILL_DIR}/references/compat-gate.md` and return its evidence before deploying.
 
    Return contract:
@@ -105,24 +110,35 @@ For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-
    STATUS: done | failed | needs-decision
    CHANGED: <files>
    VERIFIED: <the commands run and their results>
-   DECISIONS: <each choice the worker made itself, one line each>
-   QUESTIONS: <each question it needs answered, with the options it sees>
+   DECISIONS: <each choice the worker made itself, one line each, with the reason or the file:line it copies>
+   QUESTIONS: <one question block per open question, below>
    FAILURE: <for failed: what failed, the evidence, its diagnosis>
    ```
-5. **Log the return.** Every DECISIONS line becomes a ledger decision entry, marked `by: worker`.
-6. **Questions** (`needs-decision`): ask `autopilot-decider` (`Agent`, `model: "fable"`). Pass:
-   - the run-folder path;
-   - the question;
-   - the step;
-   - the options;
-   - what the worker tried.
 
-   Log the question and the full answer block as a Q entry, then dispatch the worker again with the answer.
+   The decider sees only what it is given and what it reads, so each question block carries everything that bears on the answer:
+   ```
+   QUESTION: <one line>
+   OPTIONS: <each option, with what it would mean in practice>
+   PLAN: <the plan's exact words on this, or "silent">
+   CODE: <file:line of each piece of code the answer depends on: callers, similar features, tests, config>
+   CONSTRAINTS: <what an answer must satisfy: the verify command, existing tests, API consumers, earlier ledger decisions>
+   TRIED: <what the worker already built or ruled out, and why>
+   LEAN: <the option the worker would pick, and why>
+   ```
+
+   The worker runs in the background. End your turn to wait for it: its result arrives as a notification and starts your next turn. Don't poll with `sleep` or `Monitor`, and don't start another step until it returns.
+5. **Log the return.** Every DECISIONS line becomes a ledger decision entry, marked `by: worker`, with its reason or the pattern it copies. Some lines settle something a user, caller or operator sees that the plan left open, without citing a pattern that decides it. Each of those was a question: put it to the decider as in step 6, building the question block yourself from the worker's return and the code. If the answer differs from what the worker built, dispatch the worker again with the answer.
+6. **Questions** (`needs-decision`): first check each question block is complete: every field filled, and `CODE` names real files. If a field is missing, fill it yourself from the code and the ledger, or send the worker back for it. Don't send the decider a thin question. Then ask `autopilot-decider` (`Agent`, `model: "fable"`), one call per question, passing:
+   - the run-folder path;
+   - the step id, its goal and its verify command;
+   - the question block, as the worker wrote it.
+
+   Log the question and the full answer block as a Q entry, then dispatch the worker again with the answer. There is no limit on decider calls: every real question goes to it.
 
    If the Fable call fails (unavailable, or the usage cap is hit), call it again with `model: "opus"` and log the fallback.
 7. **Failures**, following `stop-and-diagnose` with its autopilot exception:
    - Attempts 1 and 2: the worker's own diagnosed retries. Each needs a diagnosis and one change; a retry without both doesn't count as an attempt, it's a violation.
-   - Attempts 3 to 5: before each, ask the decider for the diagnosis and the single change to try, and log it.
+   - Attempts 3 to 5: before each, ask the decider for the diagnosis and the single change to try, and log it. Pass it the evidence in full: the failing command, the full output or the path to its log, each earlier attempt's diagnosis and change, and the files those changes touched.
    - After attempt 5, or as soon as the decider says the evidence doesn't support a diagnosis: mark the step `blocked` with the last diagnosis and move on.
 
    Count attempts in `state.json`.

@@ -42,7 +42,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
     - it refuses `.claude/`, `.mcp.json` and `.git/`, so the run can't widen its own settings.
   - **`guard`** also parses every shell command and blocks `git push`, `gh pr/api/release/repo`, store uploads and package publishing wherever they appear: after `cd … &&`, `git -C`, env prefixes, `sudo`/`env`/`timeout`, inside `sh -c`, `eval`, `$(…)` and backticks, and behind git aliases (it resolves them, and refuses to define new ones).
   - **After a `STOP` file appears:** only reads and writes to the run folder are allowed. If the guard itself crashes, it blocks the action rather than letting it through.
-  - **`stop`** keeps the session going while steps remain, including when `state.json` is unreadable. It lets the session end when nothing in the ledger or `state.json` changed since its last block, so it can't loop.
+  - **`stop`** keeps the session going while steps remain, including when `state.json` is unreadable. It lets a turn end while a step is `in_progress`, because that is how the orchestrator waits for a background worker. It also lets the session end when nothing in the ledger or `state.json` changed since its last block, so it can't loop.
 - **`autopilot-decider` agent (fable/xhigh, read-only):** answers the run's questions from the plan, the earlier decisions, the user's rules and the code. It never widens the scope or lifts a hard stop. Its return block records the answer, the rejected options, its confidence, whether the choice can be undone, and whether it needs your review. It falls back to Opus at the Fable cap. You approved it for the Fable closed list on 2026-10-21; it's in `agents-roster.md` and the validator's tier table.
 - **Skill references:**
   - `references/ledger.md`: the entry formats.
@@ -51,6 +51,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **Eval cases** `autopilot-heavy-ok` and `autopilot-deploy-compat` (19 cases now). Their graders were checked against 10 hand-written outcomes, with no real run yet.
 
 ### Changed
+- **Autopilot workers ask the decider better questions.** A worker may settle a user-visible choice itself only when it copies a pattern already in the code or plan, and it must cite the file and line. Competing patterns, or a copy that changes what someone sees, still go to the decider, and "when unsure, ask". Every question now carries a block with QUESTION, OPTIONS, PLAN, CODE (file:line), CONSTRAINTS, TRIED and LEAN. The orchestrator fills in or sends back incomplete blocks rather than send the decider a thin question. The decider opens every cited file, searches for what the block left out, checks each option against the step's verify command, and treats the worker's lean as a data point. Failure diagnoses get the full evidence. There is no limit on decider calls. The ledger's Q entries record the context and lean, and D entries the pattern they copy.
 - **Rules: autopilot exceptions**, which apply only inside an approved run.
   - `git-workflow`: branching and committing on `autopilot/<run-id>` are allowed, the changelog is updated at the end of the run, and the run never pushes.
   - `heavy-commands`: every heavy command is approved.
@@ -62,6 +63,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **`rules-evals/README.md`:** counts updated, from 102 runs per full pass to 114.
 
 ### Fixed
+- **Autopilot's decider wasn't being asked.** In the first demo run, the worker settled "what does `cli.js` do with no name?" itself and logged it as its own decision, so `autopilot-decider` never ran. Workers now return `needs-decision` for any user-visible choice the plan leaves open. The orchestrator also routes any such worker decision to the decider and redoes the work if the answer differs.
+- **Autopilot's report said "Cost: not recorded".** The run can't see its own final cost, so the launcher now prints it at the end and appends each launch's cost to `~/.claude/autopilot/<run-id>/result.json`. It uses the session's last `result` event, because `total_cost_usd` is a running total. The demo run's transcript gives $0.91.
+- **The autopilot Stop hook interrupted correct waiting.** Workers run as background agents, and the orchestrator ends its turn to wait for one. The hook blocked that 4 times in the demo run, and the orchestrator filled the gap with `sleep` polling. The hook now allows a turn to end while a step is `in_progress`, and run mode tells the orchestrator to wait for the notification instead of polling.
+- **Autopilot state files are owner-only.** `stop-hook.json` was written as 0644; it is now 0600, like the launcher's files, and plan mode writes `approved.json` with `chmod 600`.
 - **Autopilot no longer blocks harmless commands that mention a hard-stop word.** The launcher's deny rules were loose globs such as `Bash(*git*push*)`, so `git log --grep=push` or `cat deliver.md` was denied. The guard hook now parses each command and checks only the command word and its subcommand, and the deny rules are now exact prefixes. Checked against 46 commands (14 harmless ones allowed, 32 hard-stop forms blocked) plus 16 regression cases for the file guard, STOP and the Stop hook. One false positive remains on purpose: a heredoc whose text contains `git push` is blocked, because the guard can't tell data from a script fed to `sh`.
 
 ## 2026-10-20

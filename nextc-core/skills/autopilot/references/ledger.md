@@ -32,6 +32,8 @@ Number every entry with a sequence number in brackets. The report refers to entr
 ### [14] Q S3: <the question in one line>
 - Asked by: worker | orchestrator
 - Options: <as the asker saw them>
+- Context: <PLAN, CODE and CONSTRAINTS from the question block, one line each>
+- Lean: <the asker's LEAN>
 - Answer: <ANSWER>
 - Why: <WHY>
 - Rejected: <REJECTED>
@@ -43,7 +45,7 @@ Number every entry with a sequence number in brackets. The report refers to entr
 ```markdown
 ### [15] D S3: <the choice in one line>
 - By: worker | orchestrator
-- Why: <reason>
+- Why: <reason, or the file:line of the pattern it copies>
 ```
 
 **Failure and attempt**
