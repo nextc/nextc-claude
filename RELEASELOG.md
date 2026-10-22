@@ -1,5 +1,32 @@
 # Release Log
 
+## v1.6.14 (2026-10-22)
+
+**Re-run `./setup-rules.sh` after pulling.** It now merges `settings/user-settings.json` into `~/.claude/settings.json`: narrow allow rules for Flutter builds and the `flutter-builder` fastlane lanes, plus auto-mode exceptions. It needs `jq`.
+
+**New: `/autopilot` (nextc-core)** runs an approved plan to the end with nobody watching.
+- **Plan mode** turns a plan into steps you approve once, then prints a launch command.
+- **The launcher** (`nextc-core/scripts/autopilot-run.mjs`) runs a session with permission checks off. It works in a local clone of the repo, inside the OS sandbox, with a guard hook.
+- **What the run never does:** push, upload to a store, publish packages, or run a deploy command before that deploy has passed its compatibility check.
+- **Questions** go to the new `autopilot-decider` agent (Fable, falling back to Opus).
+- **Failures** follow `stop-and-diagnose`, with up to 5 diagnosed retries.
+- **The end result** is a branch for you to review and push, with a `report.md` listing every question, answer, decision and failure, plus the run's cost.
+- **STOP and resume:** `touch ~/.claude/autopilot/<run-id>/STOP` stops it, and running the same command again resumes it.
+- **Live demo runs** confirmed resume after Ctrl-C, STOP mid-step, the deploy gate (refusing, then allowing after the check passed) and the out-of-reach rule. Ctrl-C's new ledger label and decider-directed retries 3 to 5 haven't come up in a live run yet.
+
+**Rules.** `git-workflow`, `heavy-commands`, `stop-and-diagnose`, `testing-policy`, `project-docs` and `agents` each gain an exception that applies only inside an approved autopilot run.
+
+**Fixes.**
+- **`block-no-verify` (nextc-ecc):** a local, quote-aware script replaces the `block-no-verify@1.1.5` npm package. The package blocked any command that mentioned `-n` near `git commit`. The new script still blocks `--no-verify`, `commit -n` and overriding `core.hooksPath`.
+
+**Tests and evals.**
+- **`tests/`:** Node tests for the hook and launcher scripts. Run them with `node --test 'tests/*.test.mjs'`. They need no install and make no model calls. Releases now run them.
+- **`rules-evals/`:**
+  - eval cases for all 15 rules (19 cases);
+  - `tune.mjs`, which proposes, probes and selects rule edits and tunes every rule by default. Both cost model calls.
+
+**Rule change.** `ui-ux-design` rule 2 allows a high-alpha accent tint on the one primary action of a glass-style screen.
+
 ## v1.6.13 (2026-10-15)
 
 **Re-run `./setup-rules.sh` after pulling.** Rule references moved from `rules/nextc-claude/references/` to `rules-references/`, symlinked to `~/.claude/nextc-claude-references/`, because Claude Code loads every `.md` under `~/.claude/rules/`, subfolders included. The always-loaded rule text is 19% smaller; `verify-before-claim` went from 124 to ~80 lines, and duplicate text was removed from `git-workflow`, `latest-spec-wins` and `practices`. No obligation was dropped. A new before/after eval harness (`rules-evals/`) measured the trim at 28/28 on both sides, with about 18% lower cost per run.

@@ -4,6 +4,9 @@ All notable changes to nextc-claude are documented here, grouped by date.
 
 ## 2026-10-22
 
+### Changed
+- **Released 1.6.14.** All 8 plugins and the marketplace moved from 1.6.13 to 1.6.14, so installed copies get `/autopilot` and everything else changed since 1.6.13 (2026-10-15). `RELEASELOG.md` has the summary. `claude plugin validate` now also prints a plugin-directory warning, `ICON_MISSING`, for every plugin; it doesn't affect the result, and no icons were added.
+
 ### Fixed
 - **Four fixes from the live run `20261022-0347-shop-1-2` (opus, $3.64 over 2 launches).** That run confirmed crash resume after Ctrl-C, the deploy gate (S3's evidence came from reading, and nothing was deployed) and the temp folder (`.autopilot-tmp` was used and stayed out of git).
   - **A stopped run's report now reaches the branch.** After STOP the run can't use git, so `report.md`, `ledger.md` and `state.json` stayed uncommitted in the clone, and the branch you review had none of them. Now, however the session ends, the launcher commits the run folder's uncommitted changes, and nothing outside it, before fetching the branch back. The commit message is `docs: autopilot <run-id> run records`. This replaces the "cost" commit, which committed only a report that was already tracked (`commitRunRecords` and `writeCostLine` in `nextc-core/scripts/autopilot-cost.mjs` replace `recordCostInReport`). The guard's STOP message, the skill and `ledger.md` say so.
