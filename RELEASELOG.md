@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.15 (2026-10-23)
+
+**`/autopilot` can launch the run for you (nextc-core).** After you approve the plan, ask Claude in that session to launch it ("launch the run for me"). It runs the launcher in the background, tells you the run id and the STOP command, and reports how the run ended. Without that request it still hands you the launch command. If the launch is refused, you get the command to paste.
+
 ## v1.6.14 (2026-10-22)
 
 **Re-run `./setup-rules.sh` after pulling.** It now merges `settings/user-settings.json` into `~/.claude/settings.json`: narrow allow rules for Flutter builds and the `flutter-builder` fastlane lanes, plus auto-mode exceptions. It needs `jq`.

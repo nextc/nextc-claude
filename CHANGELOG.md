@@ -5,6 +5,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-10-23
 
 ### Changed
+- **Released 1.6.15.** All 8 plugins and the marketplace moved from 1.6.14 to 1.6.15, so installed copies get the autopilot launch change below. `RELEASELOG.md` has the summary.
 - **`/autopilot` can launch the run when you ask.** Plan mode still hands over the launch command by default. If, after approving the plan, you ask Claude in that session to launch it ("launch the run for me"), it runs the launcher in the background, tells you the run id and the STOP command, and reports how the run ended when it finishes. Approving the plan alone doesn't count as that request. If the launch is refused (a declined prompt, or auto mode blocking it), Claude gives you the command instead of trying another way. The old text said auto mode always blocks an agent from launching; in the 2026-10-22 demo run it didn't, so that line was removed. Updated: autopilot `SKILL.md` step 7, `README.md`, `CLAUDE.md`.
 
 ## 2026-10-22
