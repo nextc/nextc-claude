@@ -152,7 +152,7 @@ rm ~/.claude/rules/nextc-claude ~/.claude/nextc-claude-references
 
 /bug-fix --> /cleanup (if 3+ files changed)
 
-/blueprint --> /autopilot plan --> (you start the run) --> report
+/blueprint --> /autopilot plan --> (you start the run, or ask Claude to) --> report
 ```
 
 All from **nextc-core**. Skills auto-chain.
@@ -161,7 +161,7 @@ All from **nextc-core**. Skills auto-chain.
 
 `/autopilot plan <plan-file>` turns an approved plan into an unattended run.
 - **Approval:** you approve the steps once.
-- **Starting it:** you start the run yourself from a terminal with the command it prints.
+- **Starting it:** you start the run from a terminal with the command it prints. Or ask Claude in that session to launch it ("launch the run for me"), and it runs the command in the background and tells you when the run ends.
 - **During the run:** it implements, verifies and commits every step on its own branch `autopilot/<run-id>`. The `autopilot-decider` agent (Fable) answers every question the run would have asked you.
 - **Containment:** Claude Code's OS sandbox and a scope hook keep everything, destructive commands included, inside the run's own clone of the repo. The launcher fetches the run branch back when the run ends.
 - **Deploys:** they run only after passing a backward-compatibility check.

@@ -81,7 +81,9 @@ Goal: turn the plan into steps the user can approve in one look, then hand them 
    - `touch ~/.claude/autopilot/<run-id>/STOP` stops it.
    - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost, records it in `~/.claude/autopilot/<run-id>/result.json`, and writes it into the report's Cost line. It commits the run folder on the branch, including a report written after a STOP.
 
-   Don't start the run yourself. Starting a session with every permission check off is the user's decision, and Claude Code's auto mode blocks an agent from doing it.
+   Starting a session with every permission check off is the user's decision, so the default is to hand over the command and stop.
+   - **The user asks you to launch it** in so many words ("launch it", "start the run for me"), after the plan was approved: run the same command with `Bash` and `run_in_background: true`. Approving the plan alone is not that request. Then tell the user the run id and the STOP command. When the background task ends, read its output and the ledger's last entries, and tell them how the run ended and where the report is.
+   - **The launch is refused** (a permission prompt is declined, or auto mode blocks it): give the user the command to paste. Don't try another way to start it.
 
 ## Mode: run
 
