@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-10-24
+
+### Changed
+- **TestFlight uploads are now whitelisted.** A build session's `bundle exec fastlane release_testflight` was blocked by auto mode as a production deploy, so build 32 never uploaded. The command had no `ios` word, so it didn't match the `fastlane ios …` allow rule. It then went to the auto mode check, whose exception only covered builds "the user asked for in this session", which a builder subagent can't show. `settings/user-settings.json` adds allow rules for the lanes without `ios` (`release_testflight`, `build_adhoc`, `build_appstore`, each with and without arguments). It also replaces the exception: TestFlight uploads are allowed in any session and from builder agents, including the `cd ios &&`, `FL_CHANGELOG="$(cat …)"` and log-redirect forms and the external-tester step. Release builds still need a request in the session. `setup-rules.sh` only appends, so a machine with the old exception has to delete it by hand. `README.md` updated. Autopilot's hard stop on store uploads (`stop-and-diagnose.md`) is unchanged.
+
 ## 2026-10-23
 
 ### Changed

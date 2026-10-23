@@ -35,7 +35,7 @@ git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 ```
 
-`setup-rules.sh` also merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). That file holds narrow allow rules for release build commands and an auto mode exception for builds and TestFlight uploads you asked for. It only adds entries; it never removes yours. In auto mode, broad rules such as `"Bash"` or `"Bash(flutter *)"` are dropped, and an allow rule can't match past a `FL_CHANGELOG=…` prefix, so without these the auto mode check can refuse a build you asked for.
+`setup-rules.sh` also merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). That file holds narrow allow rules for release build commands and an auto mode exception that pre-authorizes TestFlight uploads (the `release_testflight`, `build_adhoc` and `build_appstore` fastlane lanes, from any session or builder agent, including the external-tester step) and allows release builds you asked for. It only adds entries; it never removes yours, so if an older copy of the exception is already in your settings, delete it by hand. In auto mode, broad rules such as `"Bash"` or `"Bash(flutter *)"` are dropped, and an allow rule can't match past a `FL_CHANGELOG=…` prefix, so without these the auto mode check can refuse a build you asked for.
 
 This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, save-session, etc.).
 

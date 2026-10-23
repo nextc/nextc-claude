@@ -6,12 +6,18 @@
       "Bash(flutter build ipa *)",
       "Bash(bundle exec fastlane ios release_testflight *)",
       "Bash(bundle exec fastlane ios build_adhoc *)",
-      "Bash(bundle exec fastlane ios build_appstore *)"
+      "Bash(bundle exec fastlane ios build_appstore *)",
+      "Bash(bundle exec fastlane release_testflight)",
+      "Bash(bundle exec fastlane release_testflight *)",
+      "Bash(bundle exec fastlane build_adhoc)",
+      "Bash(bundle exec fastlane build_adhoc *)",
+      "Bash(bundle exec fastlane build_appstore)",
+      "Bash(bundle exec fastlane build_appstore *)"
     ]
   },
   "autoMode": {
     "allow": [
-      "Release builds the user asked for: when the user invoked /flutter-build or /unity-build or otherwise asked for a build in this session, building release artifacts locally (`flutter build apk|appbundle|ipa`, renaming them under the project's build/ folder) and running the project's iOS fastlane lanes `release_testflight`, `build_adhoc` or `build_appstore` via `bundle exec fastlane` (including with an `FL_CHANGELOG=...` prefix, from the project's ios/ folder) is allowed. A TestFlight upload goes to Apple's beta testing, not the public App Store, and the user reviews the build there before any release."
+      "Release builds and TestFlight uploads are pre-authorized by the user. (1) TestFlight: running the project's iOS fastlane lanes `release_testflight`, `build_adhoc` or `build_appstore` via `bundle exec fastlane` is allowed in any session, from the main session or from a builder subagent/teammate — with or without the `ios` platform word, after a `cd` into the project's ios/ folder, with an `FL_CHANGELOG=...` or `FL_CHANGELOG=\"$(cat <notes file>)\"` prefix, and with output redirected to a log file. This includes `release_testflight`'s `distribute_external` step, which submits the build for Beta App Review and sends it to the project's external TestFlight tester groups: that is beta distribution, not a production App Store release, which the user always does by hand. (2) Release builds: when the user invoked /flutter-build or /unity-build or otherwise asked for a build in this session, building release artifacts locally (`flutter build apk|appbundle|ipa`, renaming them under the project's build/ folder) is allowed."
     ]
   }
 }
