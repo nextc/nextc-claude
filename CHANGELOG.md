@@ -2,6 +2,17 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-11-02
+
+### Changed
+- **Released 1.6.16.** All 8 plugins and the marketplace moved from 1.6.15 to 1.6.16, so installed copies get the `/flutter-kickoff` iOS signing offer below. `RELEASELOG.md` has the summary.
+
+## 2026-10-30
+
+### Added
+- **`/flutter-kickoff` offers to set up iOS signing.** After the scaffolder creates the project, the kickoff agent offers to run `setup-ios-signing.sh` (the fastlane-ios-signing project's script, which writes `ios/Gemfile`, `ios/fastlane/{Appfile,Matchfile,Fastfile}`, `.gitignore` entries and the bundle ID, then runs `bundle install`). That is the `ios/fastlane/Fastfile` `/flutter-build` already looks for, so a new project builds iOS through fastlane from its first build. New Phase 2b in `flutter-kickoff-agent.md`; a new `--ios-signing <team>` flag runs it without asking, and is the only way it runs in `--auto` modes. The offer lists the team keys from `teams.json` (keys only, never values) and passes the identity gate's `app_id`, since the script rewrites the bundle ID. Kickoff never runs `create_app_id`, `signing_bootstrap` or `configure_signing`; the summary lists them for the user. The script's failure is shown once, recorded as `ios_signing.status: failed` in `decisions.json`, and not retried.
+- **The kickoff asks when the script isn't found.** Preflight (`SKILL.md`, Optional Checks) looks for the script at `$IOS_SIGNING_SETUP_SCRIPT`, `~/.fastlane-nextc/setup-ios-signing.sh`, then on `PATH`; the repo never hardcodes a checkout path. If none matches, it asks the user for the path or to skip (one retry on a bad path), and also records whether the signing config exists without reading it. The spawn prompt carries `iOS signing script`, `iOS signing config` and `iOS signing team`. `CLAUDE.md` and `README.md` dependency tables list the script.
+
 ## 2026-10-24
 
 ### Changed

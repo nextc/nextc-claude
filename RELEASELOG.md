@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.6.16 (2026-11-02)
+
+**`/flutter-kickoff` offers to set up iOS signing (nextc-project-kickoff).** After scaffolding, the kickoff offers to run `setup-ios-signing.sh` (the fastlane-ios-signing project's script) for one of the teams in your `~/.fastlane-nextc/config/teams.json`, so the new project has the `ios/fastlane/Fastfile` that `/flutter-build` builds iOS through. The script is found via `$IOS_SIGNING_SETUP_SCRIPT`, `~/.fastlane-nextc/setup-ios-signing.sh` or `PATH`; if none matches, the kickoff asks you for the path or to skip. `--ios-signing <team>` runs it without asking and is the only way it runs in `--auto` modes. The `create_app_id`, `signing_bootstrap` and `configure_signing` lanes are still yours to run; the summary lists them.
+
 ## v1.6.15 (2026-10-23)
 
 **`/autopilot` can launch the run for you (nextc-core).** After you approve the plan, ask Claude in that session to launch it ("launch the run for me"). It runs the launcher in the background, tells you the run id and the STOP command, and reports how the run ended. Without that request it still hands you the launch command. If the launch is refused, you get the command to paste.

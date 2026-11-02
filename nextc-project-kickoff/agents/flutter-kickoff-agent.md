@@ -169,6 +169,69 @@ succeeded but a later step failed — `--resume` can retry from where it stopped
 
 ---
 
+## Phase 2b: iOS Signing Setup (optional)
+
+Offers to run the nextc iOS signing setup (`setup-ios-signing.sh`, from the
+`fastlane-ios-signing` project) in the new project. It writes `ios/Gemfile` and
+`ios/fastlane/{Appfile,Matchfile,Fastfile}`, adds secret/cert patterns to `.gitignore`,
+stamps the bundle ID into the pbxproj and runs `bundle install`. `/flutter-build` detects
+the resulting `ios/fastlane/Fastfile` and builds iOS through it, so the project builds
+iOS on any laptop from day one. The skill resolved the script path in preflight and
+passed it as `iOS signing script`.
+
+**Skip, and say why in the summary, when any of these holds:**
+- the platforms don't include iOS
+- mode is `minimal` (it stops after Phase 2)
+- `iOS signing script` is `skipped`, `not found` or `n/a`
+- mode is `auto` or `auto-full` and no `iOS signing team` was given (the team key cannot be
+  guessed, and auto mode asks nothing beyond the identity gate)
+- `ios/fastlane/Fastfile` already exists (a resumed run already did this)
+
+**If `iOS signing config` is `missing`:** don't offer — the script exits before writing
+anything. Say once: "iOS signing config not found at `~/.fastlane-nextc/config/teams.json`
+(or `$IOS_SIGNING_CONFIG`). Create it from the fastlane-ios-signing project's
+`teams.example.json`, then run `setup-ios-signing.sh <team> [app_id]` from the project
+root." Continue to Phase 3.
+
+**Otherwise, offer.** List the team keys in the config — keys only:
+```bash
+ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0])).keys' "${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}"
+```
+SECURITY: the config holds `match_password`; never read, print or log any value from it,
+only the top-level keys. Then ask with `AskUserQuestion`:
+```
+Set up iOS signing (fastlane + match) for [app_id] now?
+  Teams in your signing config: [key1], [key2]
+
+  1. Yes — team [key1]
+  2. Yes — team [key2]
+  3. No — skip, set up later
+```
+When `iOS signing team` was given in the spawn prompt, skip the question; if that team is
+not one of the keys, STOP and show the keys so the user can pick.
+
+**Run** — the user's yes (or the `--ios-signing` flag) is the approval for this script,
+including its `bundle install`:
+```bash
+cd [project dir] && bash "[script path]" [team] [app_id]
+```
+Pass exactly the `app_id` from the identity gate: the script rewrites
+`PRODUCT_BUNDLE_IDENTIFIER` in the pbxproj, so any other value would undo the scaffolder's
+Step 1b. Show the script's preflight lines (`[x]`/`[ ]` for `match_password` and the API
+key) as printed — it never prints secret values. On a non-zero exit: don't retry, show the
+output, mark the setup failed and continue to Phase 3 — the Flutter project is still valid.
+
+Record the outcome in `decisions.json`:
+```json
+"ios_signing": {"team": "[team]", "script": "[path]", "status": "done|skipped|failed"}
+```
+
+**Kickoff never runs the lanes the script lists next** — `create_app_id`,
+`signing_bootstrap`, `configure_signing`. They talk to App Store Connect and push to the
+team's match repo, so the user runs them; the summary lists them.
+
+---
+
 ## Phase 3: Spawn Doc Seeder
 
 Spawn the `flutter-doc-seeder` to write architectural blueprints and project docs.
@@ -234,6 +297,15 @@ Update `decisions.json`: `"completed_phases": [0, 1, 2, 3]`.
 | Entities | [N] defined in docs/architecture.md |
 | Docs | AGENTS.md (canonical) + CLAUDE.md (imports it) + docs/ seeded from proposal |
 | Architecture | docs/architecture.md — patterns for /feature-dev |
+| iOS signing | fastlane + match for team [team] (ios/fastlane/) — or: not set up ([reason]) |
+
+## iOS signing — next steps (only when it was set up)
+
+> From `[dir]/ios/`, once per app: `bundle exec fastlane create_app_id`, then
+> `bundle exec fastlane signing_bootstrap`, then `bundle exec fastlane configure_signing`
+> and commit the pbxproj change. After that `/flutter-build` offers the fastlane lanes.
+> When it was not set up: `setup-ios-signing.sh <team> [app_id]` from the project root
+> does it later.
 
 ## Your First Move
 
@@ -306,6 +378,7 @@ Single-pass check. Append warnings to summary.
 | `flutter pub add` fails (one package) | Continue. Report at end. |
 | `flutter pub get` fails | Stop. Dependency conflict. |
 | `flutter analyze` fails | Scaffolder fixes inline. |
+| `setup-ios-signing.sh` fails | Don't retry. Show its output, record `ios_signing.status: failed`, continue to Phase 3. |
 | User cancels mid-pipeline | Preserve files. `--resume` works. |
 
 ## Adaptive Rules
@@ -314,6 +387,7 @@ Single-pass check. Append warnings to summary.
 |-----------|-----------|
 | Proposal specifies tech stack | Pre-fill, confirm instead of asking |
 | `--org` flag provided | Skip the org question in the Identity Gate, still confirm product name |
+| `--ios-signing <team>` provided | Run the iOS signing setup without asking, in every mode but `minimal`, after checking the team key exists |
 | No MVP features | Stop: "Add features to proposal or tell me what to build." |
 | Fast-mode proposal | More manual decisions. `--auto` not recommended. |
 | Proposal says "offline-first" | Default to Drift, add offline-first section to architecture |

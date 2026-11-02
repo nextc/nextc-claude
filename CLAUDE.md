@@ -54,6 +54,7 @@ setup-rules.sh                    — Symlinks rules into ~/.claude/rules/ and r
 | **pm-skills** (6 sub-plugins) | `nextc-product` | user-personas, market-sizing, competitor-analysis, job-stories, pre-mortem, beachhead-segment, product-vision, value-proposition, lean-canvas, positioning-ideas, identify-assumptions, brainstorm-experiments |
 | **marketingskills** | `nextc-product` | customer-research |
 | **aso-skills** | `nextc-aso` | 27 ASO skills |
+| **fastlane-ios-signing** (`setup-ios-signing.sh`, optional, not a plugin) | `nextc-project-kickoff` (`/flutter-kickoff` offers to run it after scaffolding; `--ios-signing <team>` runs it unasked), `nextc-flutter` (`/flutter-build` uses the `ios/fastlane/Fastfile` it writes) | Found via `$IOS_SIGNING_SETUP_SCRIPT`, `~/.fastlane-nextc/setup-ios-signing.sh` or `PATH`; otherwise the kickoff asks for the path or skips. Its config lives in `~/.fastlane-nextc/config/teams.json` (`$IOS_SIGNING_CONFIG`) |
 | **dart-flutter** (official, optional) | `nextc-project-kickoff` (`/flutter-kickoff` offers it) | Dart/Flutter MCP server (analyzer, tests, runtime inspection), Flutter skills, a11y agent. Install: `claude plugin marketplace add flutter/agent-plugins` then `claude plugin install dart-flutter@dart-flutter` (source: docs.flutter.dev/ai/get-started) |
 
 ## Plugins

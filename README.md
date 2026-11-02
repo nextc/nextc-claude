@@ -76,6 +76,7 @@ These marketplaces provide skills that power specific nextc plugins. Install the
 | [pm-skills](https://github.com/phuryn/pm-skills) | `nextc-product` — 12 PM skills for market research, personas, competitor analysis | `claude plugin marketplace add phuryn/pm-skills` then install 6 sub-plugins |
 | [marketingskills](https://github.com/coreyhaines31/marketingskills) | `nextc-product` — customer-research skill | `claude plugin marketplace add coreyhaines31/marketingskills` then `claude plugin install marketing-skills@marketingskills` |
 | [aso-skills](https://github.com/Eronred/aso-skills) | `nextc-aso` — 27 ASO skills for keywords, metadata, creatives | `claude plugin marketplace add Eronred/aso-skills` then `claude plugin install aso-skills@aso-skills` |
+| fastlane-ios-signing (`setup-ios-signing.sh`, optional, not a plugin) | `nextc-project-kickoff` — `/flutter-kickoff` offers to run it after scaffolding (or `--ios-signing <team>` runs it unasked); `nextc-flutter` — `/flutter-build` builds iOS through the `ios/fastlane/Fastfile` it writes | Put the script at `~/.fastlane-nextc/setup-ios-signing.sh`, on `PATH`, or point `$IOS_SIGNING_SETUP_SCRIPT` at it; otherwise the kickoff asks for the path or skips. Needs `~/.fastlane-nextc/config/teams.json` |
 
 ### Recommended Plugins
 

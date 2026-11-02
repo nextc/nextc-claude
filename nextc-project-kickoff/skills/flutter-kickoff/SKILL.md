@@ -5,7 +5,7 @@ description: >-
   Flutter app or going from proposal to code. Creates project with deps and
   docs/architecture.md that guides /feature-dev.
 user-invocable: true
-argument-hint: [--auto/--full/--minimal/--proposal path/--resume/--org id]
+argument-hint: [--auto/--full/--minimal/--proposal path/--resume/--org id/--ios-signing team]
 allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
@@ -39,6 +39,10 @@ Additional flags (combinable with modes):
 - `--org <identifier>` — organization identifier for the package/bundle ID (e.g. `com.mgvlabs`,
   or a bare `mgvlabs`). If omitted, the kickoff agent asks for it in the identity gate before
   scaffolding — even in `--auto` mode, since a bundle ID cannot be guessed from a proposal.
+- `--ios-signing <team>` — run the nextc iOS signing setup (`setup-ios-signing.sh`, see
+  Optional Checks) for that team key without asking. This is the only way the setup runs in
+  `--auto` modes; without the flag, interactive modes offer it after scaffolding and `--auto`
+  modes skip it.
 
 ## Phase 0: Preflight Check
 
@@ -138,6 +142,39 @@ Check if cwd is inside a git repo. If yes, Phase 8 skips `git init`.
 - **FVM:** If `fvm` is detected on PATH, offer: "FVM detected. Use it for Flutter
   version management? (creates .fvmrc)"
 
+- **iOS signing script** (only when the proposal targets iOS and the host is macOS): the
+  kickoff agent can drop the nextc fastlane + match signing setup into the new project by
+  running `setup-ios-signing.sh` from the `fastlane-ios-signing` project — the same setup
+  `/flutter-build` detects via `ios/fastlane/Fastfile`. This check only **locates** it; the
+  offer to run it comes later, in the agent, because the script needs the created `ios/`.
+
+  Resolve the script path, first match wins:
+  ```bash
+  s="${IOS_SIGNING_SETUP_SCRIPT:-}"
+  [ -f "$s" ] || s="$HOME/.fastlane-nextc/setup-ios-signing.sh"
+  [ -f "$s" ] || s="$(command -v setup-ios-signing.sh || true)"
+  echo "${s:-not-found}"
+  ```
+  1. `$IOS_SIGNING_SETUP_SCRIPT` — a file path to the script
+  2. `~/.fastlane-nextc/setup-ios-signing.sh` — next to the config the script reads
+  3. `setup-ios-signing.sh` on `PATH`
+
+  If none matches, **ask the user** with `AskUserQuestion` — never guess a path, never
+  `find` the disk for it:
+  ```
+  setup-ios-signing.sh not found (checked $IOS_SIGNING_SETUP_SCRIPT,
+  ~/.fastlane-nextc/setup-ios-signing.sh, PATH).
+
+    1. Enter the path to setup-ios-signing.sh
+    2. Skip — set up iOS signing later
+  ```
+  A path the user gives must exist as a file. If it doesn't, say so and ask once more;
+  a second miss means skipped.
+
+  Also record whether the signing config exists:
+  `${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}` — `found` or `missing`.
+  SECURITY: never read or print that file's contents here; it holds the match passphrase.
+
 ### Resume Check
 
 If `--resume` flag: look for `.flutter-kickoff/decisions.json` in cwd. If found,
@@ -177,6 +214,7 @@ Preflight passed.
   Proposal: docs/proposal.md (full)
   FVM: detected / not detected
   Git: new repo / inside existing repo
+  iOS signing: script at [path], config found / skipped / not found / n/a (no iOS target)
   Target: [name]/ (clean)
 ```
 
@@ -198,6 +236,9 @@ Agent(
   Git context: [new/existing]
   Target dir: [derived name]
   Org: [--org value, or "ask" if not provided]
+  iOS signing script: [absolute path | skipped | not found | n/a (no iOS target)]
+  iOS signing config: [found | missing]
+  iOS signing team: [--ios-signing value, or "ask" if not provided]
 
   [For resume mode:]
   Existing state: .flutter-kickoff/decisions.json exists
