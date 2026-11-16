@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.8.1 (2026-11-16)
+
+**`/hud watch` now says why no pane opened.** With no build, explore, ASO or kickoff run in the project it answers "Nothing to watch, so no pane was opened", lists where it looked and points to `/autopilot-watch` for autopilot runs. When the window has no room for a pane it says so before the text report. The watched run is recorded before the pane opens, so the pane's first draw shows the run rather than a placeholder.
+
 ## v1.8.0 (2026-11-16)
 
 **`nextc-hud` is now an always-on HUD.** A row above the prompt is visible in every interactive session and shows context used, compactions this session, the session cost estimate, rate-limit use, and running or idle agents. It fits any width without wrapping.

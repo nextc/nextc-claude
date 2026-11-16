@@ -12,7 +12,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
   - A new immediate `/hud` command (`status`, `on`, `off`, `compact`, `handoff`, `coach`, `runs`, `watch`). The compact and fresh-start actions fill `/strategic-compact` (or a focused `/compact`) and `/session-handoff save` into an empty prompt box. They never send a prompt and never replace a draft.
   - Compactions are counted from the `session.compact` event, or from a sharp drop in context tokens where that event is not visible to the mod, and never twice.
   - The project run monitor reads what the skills already write: `/flutter-build` and `/unity-build` buildlogs and log times, `/product-explore` and `/idea-explore` state and evidence index, the ASO pipeline state and kickoff state. One live run shows as a segment in the row; `/hud watch` opens a read-only pane. A quiet run says "quiet Nm" before it is marked stale.
-  - Still observe-only: no process, network or model calls, no prompt submitted, and the autopilot `STOP` file remains the only file it writes. `$.prompt.fill` is the one new capability. In `claude -p` and cloud sessions it starts no timers and reads no files. 84 tests (was 31).
+  - Still observe-only: no process, network or model calls, no prompt submitted, and the autopilot `STOP` file remains the only file it writes. `$.prompt.fill` is the one new capability. In `claude -p` and cloud sessions it starts no timers and reads no files. 85 tests (was 31).
 - **`/autopilot`: relaunch recovery, standing defaults, live status and launcher commands** (`nextc-core/skills/autopilot`, `nextc-core/scripts/autopilot-*.mjs`).
   - When a launch ends mid-step, the launcher writes an `R` ledger entry and the next launch continues from the earlier worker's uncommitted edits. It no longer starts a second worker blind (four duplicate workers were spawned this way in past runs).
   - Plan mode asks a few standing defaults once (error shapes, user-facing copy, defaults and limits, order of checks, config and logging, tests for uncovered code). In past runs 25 of 63 decider questions arose only because the plan was silent on these.
@@ -98,6 +98,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **`CLAUDE.md`** — the nextc-aso "Specs" block is now "References" and states that `specs/` is gitignored working material that nothing shipped may read.
 
 ### Fixed
+- **`/hud watch` in `nextc-hud` gave no clear reason when no pane opened.** With no project run in the folder it now says "Nothing to watch, so no pane was opened", lists where it looked and points to `/autopilot-watch` for autopilot runs. When the window has no room for a pane it says so before the text report. The watched run is also recorded before the pane opens, so the pane's first draw shows the run instead of the "no run is being watched" placeholder.
 - **`scripts/bump-version.mjs` ignored its target when run without `--root`** and printed the usage text. A missing `--root` no longer swallows the first argument; a test now runs the CLI that way.
 - **Leftover organisation name** in `nextc-project-kickoff/scripts/identity.mjs` and its test replaced with a neutral example.
 - **Fake tokens in `tests/aso-asc.test.mjs`** moved into named constants so the commit secret scan does not flag test fixtures.

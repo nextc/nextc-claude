@@ -1,6 +1,6 @@
 {
   "name": "nextc-hud",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), and a 'used this turn' line. Observe-only.",
   "author": {
     "name": "nextc"

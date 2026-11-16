@@ -365,6 +365,14 @@ test('/hud runs lists what the scan sees; /hud watch opens a read-only pane', as
   expect((await $.command.run(cmd('hud', 'watch nonsense'))).text).toContain('is not a run kind')
 })
 
+test('/hud watch with no project run says why no pane opened', async ($, on) => {
+  world(on, {})
+  await start($)
+  const text = (await $.command.run(cmd('hud', 'watch'))).text ?? ''
+  expect(text).toContain('Nothing to watch, so no pane was opened.')
+  expect(text).toContain('/autopilot-watch')
+})
+
 test('two live runs share one segment in the row', async ($, on) => {
   const w = world(on, { ...BUILD_FILES, ...EXPLORE_FILES })
   await start($)

@@ -385,14 +385,16 @@ async function hudCommand($: $, args: string): Promise<string> {
     if (arg !== '' && !kinds.includes(arg)) return `"${truncate(arg, 20)}" is not a run kind. Kinds: ${kinds.join(', ')}.`
     const runs = await scanNow($)
     const run = pickRun(runs, arg, now)
-    if (run === null) return arg === '' ? runsText(runs, now) : `No ${arg} run found in this project. /hud runs lists what there is.`
+    if (run === null) return arg === '' ? `Nothing to watch, so no pane was opened. ${runsText(runs, now)} For an autopilot run use /autopilot-watch.` : `No ${arg} run found in this project. /hud runs lists what there is.`
     if (!(await canDraw($))) return runReport(run, now)
+    // ORDER: the pane's first render reads watchId, so it is set before the pane opens.
+    await update($, projects, (cur) => ({ ...(cur ?? { runs, scannedAtMs: now }), watchId: run.id }))
     const opened = await $.ui.open({ id: RUN_PANE, title: run.title })
     if (!opened.isPlaced) {
+      await update($, projects, (cur) => ({ ...(cur ?? { runs, scannedAtMs: now }), watchId: null }))
       await $.ui.close({ id: RUN_PANE })
-      return runReport(run, now)
+      return `No room for a pane in this window, so here is the run as text.\n${runReport(run, now)}`
     }
-    await update($, projects, (cur) => ({ ...(cur ?? { runs, scannedAtMs: now }), watchId: run.id }))
     ensureScanner($)
     return `Watching ${run.title} in a pane.`
   }
