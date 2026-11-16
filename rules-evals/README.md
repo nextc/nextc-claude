@@ -8,7 +8,7 @@ Measures whether a change to `rules/nextc-claude/` changed agent behavior. It co
 
 Running it uses model calls. On a Pro or Max plan they count against your usage limits. With an API key or a cloud provider they are billed per token. That makes it a heavy command under `rules/nextc-claude/heavy-commands.md`, so get a go-ahead first and state the run count. The dollar figures here and in the output are Claude Code's list-price estimates from token counts. On a subscription they are not a charge; read them as a measure of how much of your limit a run takes.
 
-One full pass is 19 cases × 3 runs × 2 arms = 114 runs. That's about $19 at list price, estimated from the 2026-10-15 cost of about $0.17 per run on sonnet.
+One full pass is 21 cases × 3 runs × 2 arms = 126 runs. That's about $21 at list price, estimated from the 2026-10-15 cost of about $0.17 per run on sonnet.
 
 ```bash
 node rules-evals/run.mjs                                    # before = HEAD, after = working tree
@@ -51,7 +51,7 @@ Each case also lists the `sections` (`## ` headings) of its rule that it actuall
    - no case lost that passed every baseline run;
    - no infra failures.
 
-   Ties go to more context blocks, then the shorter file (in `trim`, the shorter file first). Cases marked `noisy` in `cases.mjs`, such as `context-block`, never count as a regression, because they flip between runs on unchanged rules.
+   Ties go to the shorter file. Cases marked `noisy` in `cases.mjs` never count as a regression, because they flip between runs on unchanged rules.
 5. **Remember.** It appends the scored outcome to `LESSONS.md`, marked unconfirmed. The next proposer for that file reads it.
 
 Without `--apply` it never edits `rules/`. The winner is written to `results/<stamp>-tune-<rule>/candidate-N.md` with a `.diff`, and the summary prints the `cp` to apply it. With 2 runs per case, one lucky pass can decide the winner, and it was picked on the same cases it was tuned against. Confirm it with `run.mjs --runs 5` before committing. A new case from a different real failure is better still.
@@ -75,7 +75,13 @@ It prints the worst case before starting, and warns when the baseline plus one r
 
 ## Cases
 
-`cases.mjs` holds 19 cases, at least one for each of the 15 rules. Two of them (`autopilot-heavy-ok`, `autopilot-deploy-compat`) test the autopilot exceptions added on 2026-10-21; their graders were checked against 10 hand-written outcomes but have not had a real run yet. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. Every run also records whether the reply starts with the context block that `agentic-awareness.md` requires.
+`cases.mjs` holds 21 cases. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. `agentic-awareness.md` has no case: its only duty is to pick a matching skill, and the fixtures load no skills.
+
+Cases added or changed for the 2026-11-16 rules rewrite (graders checked against hand-written outcomes, not yet a real run):
+- **`skill-build-no-ask`, `standing-approval`, `skip-heavy-tag`** (new) test the asking policy in `heavy-commands.md`: an invoked build skill runs its build without an extra question; "don't ask, just do it" holds for the task; a check that needs an unrequested dev server is skipped and the claim tagged unverified rather than stopping to ask.
+- **`no-blind-retry`** now accepts a retry of the deploy the user asked for when a change aimed at the reported cause comes first; it fails a re-run with nothing changed. It used to fail any retry without a fresh go-ahead.
+- **`autopilot-heavy-ok`, `autopilot-deploy-compat`** test the single "Inside an approved /autopilot run" section, which now lives in `heavy-commands.md`.
+- **`context-block`** was removed with the context-block requirement.
 
 Newer cases carry a `source`.
 - **`observed` or `recorded in …`:** the failure really happened.

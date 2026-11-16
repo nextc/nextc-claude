@@ -4,6 +4,8 @@ description: >
   Translation coverage dashboard for Flutter ARB files. Use when checking translation
   progress, locale coverage, or which keys still need translation. Reports per-locale
   percentages.
+when_to_use: |
+  Triggers: "translation status", "locale coverage", "which keys are untranslated", "/flutter-l10n-status".
 user-invocable: true
 allowed-tools: Read Glob Bash Grep
 paths: ["**/pubspec.yaml", "**/l10n/*.arb"]

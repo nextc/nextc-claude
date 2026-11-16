@@ -1,128 +1,41 @@
 ---
 name: adversarial-review
-description: Require independent review approval before high-stakes output ships, breaking the single-reviewer blind-spot problem. Use when about to ship output where a missed defect is costly.
+description: Two-independent-reviewer gate for high-stakes artifacts that are not a plain diff (specs, migrations, security-sensitive designs, release checklists), or for a diff where the user wants two separate passes. Use when a missed defect would be costly and one author-adjacent pass is not enough.
 when_to_use: |
-  Use before shipping output where a missed defect is costly — production code without human review, customer-facing copy, claims/stats/API references, compliance-sensitive text, or batch-generated content. Also when the user says "make sure this is right", "double-check this", "review this twice", "is this safe to ship", or "adversarial review". Skip for internal drafts, exploration, and anything a build/test/lint already verifies deterministically — use `verification-loop` for those.
-allowed-tools: Agent Read Grep Glob
+  Triggers: "make sure this is right", "review this twice", "is this safe to ship" (for a plan, spec, migration, release checklist), "adversarial review". Skip for an ordinary diff (use built-in `/code-review`, which reviews in a fresh subagent and can verify findings, and `/security-review`), for drafts, and for anything a build/test/lint decides.
+allowed-tools: Agent Read Grep Glob Bash
 ---
 
 # Adversarial Review
 
-> Source: adapted from the "Santa Method" in affaan-m/ecc `skills/santa-method` (MIT),
-> originally by Ronald Skelton. Wired to our `Agent()` model+effort conventions (`agents.md`).
+What this adds over `/code-review`: that command is for diffs. This is the gate for artifacts with no diff to review (a migration plan, a data model, an auth design, a store-release checklist), using two reviewers that share no context with each other or with the author, both of which must pass.
 
-**Core principle:** a single agent reviewing its own output shares the biases and blind spots
-that produced the output. **Two independent reviewers, with no shared context, both required to
-pass**, break that failure mode. One reviewer catching an issue means the issue is real — the
-other's miss is exactly the blind spot this exists to eliminate.
+Run deterministic checks first (`/verification-loop`); this covers what they cannot: wrong claims, missing requirements, unsafe sequencing, contradictions.
 
-Run **deterministic checks first** (`verification-loop` — build, typecheck, lint, tests). This
-skill is for the *semantic* layer those can't catch: correctness of claims, hallucinated APIs,
-completeness against the spec, compliance, internal consistency.
+## Inputs each reviewer gets (and nothing else)
 
-## The Loop
+- The artifact (path or text).
+- The acceptance criteria: what it must do or guarantee, as checkable statements. If none exist, write them from the user's request and show them in the result.
+- A lens, different per reviewer: A = correctness and completeness against the criteria; B = failure modes (security, data loss, rollback, ordering, edge cases).
 
-1. **Produce** the deliverable (normal workflow — this is a post-generation verification layer).
-2. **Build the rubric** — objective pass/fail criteria (see below). The rubric is the most
-   important input; vague rubrics produce vague reviews.
-3. **Dual independent review** — spawn TWO reviewers in parallel. Neither sees the other.
-4. **Verdict gate** — both PASS → ship. Otherwise collect all flagged issues and fix.
-5. **Fix only what was flagged**, then re-review with **fresh** reviewers. Loop up to 3 rounds.
-6. **Escalate to the user** if still not passing after 3 rounds — do not keep spinning.
+Not the author's reasoning, not earlier review rounds, not each other's output.
 
-## Spawning the two reviewers
+## Run
 
-Launch both in a single message (parallel). For genuine independence, give them **different
-models or different lenses** — identical reviewers share blind spots. Per `agents.md`, every
-`Agent()` call sets `model`.
+Two `Agent()` calls in one message, explicit models (`sonnet` for A, `opus` for B when the stakes justify it), `subagent_type: "nextc-ecc:security-reviewer"` or `"architect"` where they fit, else `"general-purpose"`. Read-only. Prompt: "Find problems; default to FAIL when unsure. Every finding needs evidence: quote the artifact line, run the command, or cite the doc. Return: verdict PASS|FAIL; findings as {severity, location, evidence, fix}; criteria you could not check."
 
-```
-Agent(subagent_type: "nextc-ecc:code-reviewer", model: "sonnet",
-      description: "Adversarial reviewer A",
-      prompt: REVIEWER_PROMPT with lens="correctness + completeness")
-Agent(subagent_type: "nextc-ecc:code-reviewer", model: "opus",
-      description: "Adversarial reviewer B",
-      prompt: REVIEWER_PROMPT with lens="security + edge cases + hallucinated references")
-```
+## Resolve
 
-For non-code output (copy, docs, claims), use `subagent_type: "claude"` reviewers with the same
-prompt shape.
+1. Merge findings, drop any without evidence.
+2. For each remaining finding, verify it against the artifact yourself (open the file, run the command). Disagreement between reviewers is settled by that check, not by majority.
+3. Fix confirmed findings only, then re-review with fresh reviewers. Stop after 3 rounds and bring the user the open findings; new findings every round means the artifact or criteria are wrong, not that another round will help.
 
-### Reviewer prompt contract
+## Output
 
-Each reviewer receives the **original spec** AND the **output**, the **rubric**, and returns a
-**structured verdict** — not prose:
+Verdict (SHIP / BLOCK), confirmed findings with fixes applied, findings rejected and why, criteria no reviewer could check (unverified).
 
-```
-You are an INDEPENDENT reviewer. You have NOT seen any other review of this output.
-Your job is to FIND PROBLEMS, not to approve. Default to FAIL when uncertain.
+## Gotchas
 
-## Spec / requirements
-{spec}
-
-## Output under review
-{output}
-
-## Rubric (evaluate EACH criterion)
-{rubric}
-
-Return:
-{ "verdict": "PASS" | "FAIL",
-  "checks": [ {"criterion": "...", "result": "PASS|FAIL", "detail": "exact problem"} ],
-  "critical_issues": ["blockers that must be fixed"],
-  "suggestions": ["non-blocking"] }
-```
-
-Invariants: **context isolation** (neither reviewer sees the other), **identical rubric**,
-**same inputs**, **structured output**.
-
-## Rubric design
-
-Every criterion needs an objective pass/fail condition. Baseline set:
-
-| Criterion | Pass condition | Failure signal |
-|---|---|---|
-| Factual accuracy | Claims verifiable against source/common knowledge | Invented stats, wrong versions, nonexistent APIs |
-| Hallucination-free | No fabricated entities, quotes, URLs, references | Links to nonexistent pages, unsourced quotes |
-| Completeness | Every spec requirement addressed | Missing sections, skipped edge cases |
-| Internal consistency | No self-contradiction | Section A says X, section B says not-X |
-| Technical correctness | Code compiles/runs, logic sound | Syntax/logic errors, wrong complexity claims |
-| Compliance | Project constraints honored | Banned terms, tone/regulatory violations |
-
-Extend per domain (code: type safety, error handling, secrets, input validation; content: brand
-voice, no trademark misuse; regulated: required disclaimers, no unsubstantiated guarantees).
-
-## Verdict gate
-
-**Both reviewers must PASS. No partial credit.** If either FAILs, merge and dedupe both reviewers'
-`critical_issues`, fix those (suggestions are optional), and re-review.
-
-## Fix-and-converge
-
-- Fix **only the flagged issues** — do not refactor or add unrequested changes.
-- Re-review with **fresh** reviewers each round (no memory of prior rounds — prior context creates
-  anchoring bias).
-- **Max 3 rounds.** Still failing → stop and escalate to the user with the outstanding issues.
-  Reviewers that keep finding *new* issues after fixes is itself a signal to escalate, not loop.
-
-## Failure modes
-
-| Mode | Symptom | Mitigation |
-|---|---|---|
-| Infinite loop | New issues every round | 3-round cap → escalate |
-| Rubber-stamping | Both pass everything | Adversarial prompt: "find problems, default to FAIL" |
-| Subjective drift | Flags style, not defects | Tight, objective rubric only |
-| Fix regression | Fix A introduces B | Fresh reviewers each round catch it |
-| Shared blind spot | Both miss the same thing | Use different models/lenses; add a 3rd reviewer or human spot-check for critical output |
-
-## Cost
-
-~2–3× generation token cost per cycle. For high-stakes output that's a bargain. For large batches,
-review a stratified sample (10–15%, min 5), classify failures, fix the whole batch by pattern, then
-re-sample until a clean sample passes.
-
-## Relationship to other skills
-
-- `verification-loop` — deterministic checks (build/lint/test). Run it FIRST; this skill is semantic.
-- `council` — divergent decision-making among advisors. This skill is convergent pass/fail verification.
-- `code-reviewer` / `security-reviewer` agents — the natural reviewer subagents for code output.
+- Reviewers given the same lens share the same blind spot; the lenses must differ.
+- Style complaints inflate FAIL; the criteria bound what counts as a defect.
+- Cost is roughly two to three times one review per round; for a batch of similar outputs, review a sample and fix by pattern.

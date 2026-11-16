@@ -13,194 +13,114 @@ allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill
 
 An approved plan runs to the end with nobody watching. The user approves once, starts the run from their terminal, and reads the report when it ends.
 
-Two sessions are involved, and each mode below belongs to one of them:
-
 | Mode | Runs in | Who starts it |
 |---|---|---|
 | `plan <plan-file>` | the user's normal session | the user |
 | `run <run-dir>` | the unattended session `autopilot-run.mjs` starts | the launcher only |
 | `status <run-id>`, `report <run-id>` | any session | the user |
 
-The unattended session runs with permission checks off. What keeps it safe is set up by `${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-run.mjs`, not by this skill:
+`${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-run.mjs` (the launcher) sets up what keeps the unattended session safe:
 
-- **A local clone of the repo.** The run works in a clone with its own `.git`, so no git command it runs can touch the user's checkout. The launcher fetches the run branch back into the repo when the run ends.
-- **The OS sandbox.** It confines shell commands and every process they start to the clone. A destructive command can only damage the clone.
-- **A guard hook.** It confines Edit and Write to the clone, and keeps them away from `.claude/`, `.mcp.json` and `.git/`. It also reads every shell command and blocks `git push`, `gh`, store uploads and package publishing, including behind `sh -c`, `$(…)` and git aliases. A command that only mentions one of them, such as `git log --grep=push`, still runs. It also refuses a deploy step's commands and scripts until that step has passed the compatibility check. Reading those scripts is still allowed.
-- **Deny rules and removed tools.** Deny rules back the hook up. MCP tools and web fetches are removed. The network allowlist is the plan's own host list, which also stops anything a script runs that the hook can't see.
-- **A state folder outside the clone.** The approved config, the run's settings and the `STOP` file live in `~/.claude/autopilot/<run-id>/`, where the run can't write.
+- **A local clone** with its own `.git`, so no git command the run makes can touch the user's checkout. The clone has no active git hooks. The launcher's own git commands there run with hooks, fsmonitor and pager disabled, after restoring `.git/config` if the run changed it.
+- **The OS sandbox.** Shell commands and every process they start can only write inside the clone, and reach only the plan's network hosts.
+- **A guard hook** (`autopilot-hooks.mjs`), on every tool call. It confines Edit and Write to the clone, away from `.claude/`, `.mcp.json` and `.git/`. It parses every shell command, including keywords, groups, `$(…)`, heredocs, `find -exec`, `xargs`, `env -S` and git aliases, and blocks `git push`, GitHub actions, store uploads, package publishing and live-service CLIs (`firebase deploy`, `wrangler deploy`, …). A command that only mentions one, in an `echo`, a commit message or heredoc text, still runs. A command it can't read (a variable or glob in command position, `eval` of a variable, interpreter code that starts processes) is denied with a request to write it plainly. It also keeps every subagent in the foreground, counts decider calls, and enforces the end-of-run order.
+- **Deny rules and removed tools.** Deny rules back the hook up. Removed: MCP tools, `WebFetch`, `WebSearch`, `PushNotification`, `ScheduleWakeup`, `Monitor`, `Workflow`, `SendToProject`, `EnterWorktree`, `AskUserQuestion` and the other outward or scheduling tools listed in the launcher.
+- **A state folder** `~/.claude/autopilot/<run-id>/` the run can't write: approved config, settings, `STOP`, the decider counter, `result.json`, `status.json`, the transcript.
+- **A budget for the whole run.** Each launch gets what is left of the approved budget; the launcher refuses to start without one.
 
-The autopilot exceptions in `git-workflow`, `heavy-commands`, `stop-and-diagnose`, `testing-policy`, `project-docs` and `agents` apply only inside that unattended session.
+The autopilot exceptions in the `heavy-commands` rule ("Inside an approved /autopilot run") apply only inside that unattended session.
 
 ## Mode: plan
 
-Goal: turn the plan into steps the user can approve in one look, then hand them the command that starts the run.
+Goal: one approval, with everything the run will need decided up front, then the command that starts it. `references/plan-mode.md` has the full procedure and the file formats; follow it.
 
-1. **Read the plan** the user named. If it has no concrete steps, stop and suggest `/blueprint` to write one. Autopilot executes a plan; it does not invent one.
-2. **Check the repo.** It must be a git repo with a clean working tree, because the run branches from `HEAD`. If it isn't clean, ask the user to commit or stash first.
-3. **Split the plan into steps.** Each step must be something one worker can finish and verify in one go. Give each an id (`S1`, `S2`, …), a goal, how to verify it, and a kind:
-   - `build`: ordinary work, run fully on autopilot.
-   - `deploy`: runs only after it passes the compatibility check in `references/compat-gate.md`. Name its rollback command, and read it to check that it can undo this deploy, including a first deploy with nothing to restore. If it can't, say so at the approval gate: the run would block the deploy. Also list every command that deploys or rolls back, and the scripts they run, read from `package.json`, the `Makefile` or wherever the plan's commands are defined. For example, `npm run deploy:docs` and `npm run rollback:docs` run `scripts/deploy-docs.sh` and `scripts/rollback-docs.sh`. The guard hook refuses these until the step passes the check.
-   - `hard-stop`: git push, store uploads (TestFlight, App Store, Play), and anything the plan says needs the user. Never executed; listed in the report as left for the user.
-4. **List what the run needs from outside**:
-   - **Network hosts:** the sandbox starts with none allowed. List the package registries, API hosts and deploy targets the steps need. Never list App Store Connect, TestFlight or Google Play hosts; leaving them out is what stops a store upload hidden inside a script, where the guard hook can't see it.
-   - **Excluded commands:** tools that can't work in the sandbox, such as Docker. Each one runs with the user's full access, so keep each pattern narrow and say why it's needed.
-   - **Environment variables:** the launcher strips anything that looks like a credential (tokens, keys, `AWS_*`, `GH_*`, …). List the names a step really needs, for example a deploy token, as `passEnv`.
-   - **Budget:** propose a `--max-budget-usd` cap for the run. Without one, an unattended run has no spend limit. On a subscription the cap is measured in list-price dollars, but it still stops the run.
-   - **Dependencies:** for each step, the earlier steps it needs (`dependsOn`).
-5. **Approval gate.** Show the user, in this order:
-   - the steps table: id, kind, goal, how it's verified, dependencies;
-   - the branch `autopilot/<run-id>` and the clone path;
-   - the network hosts, the excluded commands with their reasons, `passEnv`, and the budget;
-   - the hard stops;
-   - what the run does without asking: every command inside the clone (builds, tests, installs, deletes), commits on the run branch, deploys that pass the check, and one doc-keeper pass at the end;
-   - that `autopilot-decider` (Fable, falling back to Opus) answers every question the run would have asked them.
-
-   Ask with `AskUserQuestion`: approve, edit, or cancel. Only an explicit approve continues.
-6. **Create the run.** On approval:
-   - `run-id` = `YYYYMMDD-HHMM-<slug>`.
-   - Clone: `git clone --quiet --local "$(git rev-parse --show-toplevel)" .claude/autopilot-runs/<run-id>`, then `git -C <clone> switch -c autopilot/<run-id>`.
-   - Add `.claude/autopilot-runs/` to `.git/info/exclude` if it isn't ignored already (check with `git check-ignore`), so the clone doesn't show as untracked in the main checkout.
-   - Write `~/.claude/autopilot/<run-id>/approved.json`: `{ id, approvedAt, sourceRepo, clone, allowedDomains, excludedCommands, passEnv, maxBudgetUsd, model: "opus", deploys }`, with absolute paths, readable only by the user (`chmod 600`). This is the only copy the launcher and the guard trust.
-     - `deploys` is one entry per deploy step: `{ step: "S3", commands: ["npm run deploy:docs", "npm run rollback:docs"], scripts: ["scripts/deploy-docs.sh", "scripts/rollback-docs.sh"] }`, where `scripts` are paths relative to the clone.
-   - In the clone, create `docs/autopilot/<run-id>/` with:
-     - `plan.md`: a copy of the plan;
-     - `run.json`: the same fields plus `steps`, `hardStops` and `planNotes`, for the orchestrator to read:
-       - `hardStops`: the ids of the `hard-stop` steps, for example `["S5"]`. Each step's `goal` says what is left for the user.
-       - `planNotes`: the warnings you gave at the approval gate, one string each, starting with the step id. For example: `"S3: rollback-docs.sh:4-7 exits 1 when there is no previous release, so the deploy is expected to block."` Use `[]` when there are none.
-     - `state.json`: `{ id, steps: [{ id, kind, goal, verify, dependsOn: [], status: "pending", attempts: 0 }] }`, plus `gate: null` on deploy steps;
-     - `ledger.md`: the header from `references/ledger.md`.
-   - Commit those four files on the run branch.
-7. **Hand over the command.** Tell the user to start the run from a terminal:
-
-   ```
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-run.mjs" <run-id>
-   ```
-
-   - Print the real absolute script path.
-   - Running the same command again resumes the run, and `--dry-run` shows what it would start.
-   - `touch ~/.claude/autopilot/<run-id>/STOP` stops it.
-   - When the run ends, the branch `autopilot/<run-id>` appears in this repo, ready to review and push. The launcher prints the run's cost, records it in `~/.claude/autopilot/<run-id>/result.json`, and writes it into the report's Cost line. It commits the run folder on the branch, including a report written after a STOP.
-
-   Starting a session with every permission check off is the user's decision, so the default is to hand over the command and stop.
-   - **The user asks you to launch it** in so many words ("launch it", "start the run for me"), after the plan was approved: run the same command with `Bash` and `run_in_background: true`. Approving the plan alone is not that request. Then tell the user the run id and the STOP command. When the background task ends, read its output and the ledger's last entries, and tell them how the run ended and where the report is.
-   - **The launch is refused** (a permission prompt is declined, or auto mode blocks it): give the user the command to paste. Don't try another way to start it.
+1. **Read the plan.** No concrete steps: stop and suggest `/blueprint`. Autopilot executes a plan; it does not invent one.
+2. **Check the repo**: a git repo with a clean working tree (the run branches from `HEAD`).
+3. **Split into steps** (`S1`, `S2`, …), each one worker can finish and verify in one go: goal, verify command, `dependsOn`, kind `build`, `deploy` (see `references/compat-gate.md`) or `hard-stop` (git push, store uploads, anything the plan reserves for the user).
+4. **List what the run needs**, using the launcher's helpers, not memory:
+   - excluded commands: `node <launcher> sandbox-check <repo> --verify "<cmd>" …` proposes the narrowest patterns the steps need and says what each exposes;
+   - network hosts, `passEnv`, and whether test servers need `allowLocalBinding`;
+   - budget: `node <launcher> estimate --build-steps <n>` gives expected cost and duration from earlier runs;
+   - per step, **what this run cannot verify**: live services, device behaviour, third-party API facts.
+5. **Ask the standing defaults** in the same approval, one batched `AskUserQuestion`: error shapes, user-facing copy, defaults and limits, order of checks, config and logging, tests for uncovered code. For each the user gives a rule or picks "decider decides". These answer most questions a run would otherwise send to the decider.
+6. **Approval gate.** Show the steps table, branch and clone, hosts, excluded commands with what each exposes (warn on `node *`, `npx *`, `python *`, `bash *` and other interpreter wildcards), `passEnv`, budget with expected cost and duration, decider cap (default 30), standing defaults, what the run cannot verify, the hard stops, and what runs without asking. Ask: approve, edit, or cancel. Only an explicit approve continues.
+7. **Create the run**: clone and branch, `approved.json` (0600) in the state folder, and the run folder `docs/autopilot/<run-id>/` with `plan.md`, `run.json`, `state.json`, `ledger.md`, committed on the run branch.
+8. **Hand over the command**: `node "${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-run.mjs" <run-id>` with the real absolute path. Running it again resumes; `--dry-run` shows what it would start; `touch ~/.claude/autopilot/<run-id>/STOP` stops it. If the `nextc-hud` mod is installed, `/autopilot-watch <run-id>` shows the run live and has a Stop button. Starting a session with permission checks off is the user's decision: launch it yourself (`Bash`, `run_in_background: true`) only when the user asks in so many words after approving. If that launch is refused, give the command to paste and try nothing else.
 
 ## Mode: run
 
-You are the orchestrator of an unattended run. Nobody will answer a question. The user reads `ledger.md` and `report.md` afterwards, so everything they would have been asked or told goes there.
+You orchestrate an unattended run. Nobody will answer a question. Everything the user would have been asked or told goes into `ledger.md` and `report.md`.
 
-**Keep your own context small.** Workers do the steps; you keep the state. Everything you need lives on disk: `state.json`, `ledger.md`, `plan.md`. After each step, keep only its one-line outcome in mind. Following `strategic-compact`, a step boundary is the right moment for context to compact, and nothing is lost because the state is on disk. When you start (or resume after a compaction or crash), re-read `state.json` and the ledger's last entries before doing anything.
+**Keep your context small.** Workers do the steps; you keep the state on disk (`state.json`, `ledger.md`, `run.json`, `plan.md`). After each step keep only its one-line outcome. On every start, resume or compaction, re-read `state.json` and the ledger's last entries first.
+
+**Write the ledger with the helper**, never by hand: `node "$AUTOPILOT_HOOKS" ledger <kind> <step|-> "<title>" Field=value …`, or `-` with `Field: value` lines on stdin. It numbers the entry, stamps the real UTC time and refuses an entry missing a required field. Kinds and fields: `references/ledger.md`.
+
+**Every subagent runs in the foreground** (`run_in_background: false`), and you wait for its result. The guard refuses anything else: a background subagent can be stopped when this session ends its turn.
+
+### Resume
+
+A step `in_progress` when you start means a previous launch ended mid-step. The launcher has already added an `R` entry saying what it found. Do not dispatch a second worker blind:
+
+1. Run `git status` and `git diff` in the clone.
+2. If the edits finish the step, run its verify command and go to "Commit".
+3. If they are partial, dispatch one worker to continue from them, naming the files and what is left.
+4. If there are none, dispatch one worker from the start.
+
+A resume is not a retry: `attempts` stays as it was.
 
 ### Loop
 
 For each step in `state.json` order whose status isn't `done`, `blocked`, `hard-stop` or `skipped`:
 
-1. **Hard stop?** Mark it `hard-stop`, log it, and move on. Don't attempt it, even partly.
-2. **Check dependencies.** If a step in its `dependsOn` is `blocked`, `skipped` or `hard-stop`, mark it `skipped` with that reason.
-3. **Mark it `in_progress`** in `state.json` and append a step-start entry to the ledger.
-4. **Dispatch one worker** (`Agent`, `model: "sonnet"`; `opus` for a step the plan calls complex). The prompt must be self-contained:
-   - the step goal and how to verify it;
-   - the clone path, as absolute paths;
-   - "follow feature-dev phases 4 to 7: read `${CLAUDE_PLUGIN_ROOT}/skills/feature-dev/SKILL.md`, and skip its user gates";
-   - "do not commit, do not push, do not ask the user";
-   - the rule for choices: "a choice the plan leaves open about what a user, caller or operator sees (behavior, output, errors, defaults, API or data shape) is a question: return `needs-decision` before building that part, with the full question block below. Settle it yourself, as a DECISIONS line, only when one of these holds:
-     - nobody outside the code would notice it (names, file layout, helpers);
-     - it copies a pattern already in the code or the plan, and you cite the file and line it copies. For example, `farewell` returning `Goodbye, ${name}` beside `greet` returning `Hello, ${name}` (greet.js:1).
-
-     If two patterns compete, or copying one would change what someone sees, it is a question. When unsure, ask: a wrong guess costs more than a question";
-   - the step's `planNotes` entries from `run.json`, if any, so the worker starts from what plan mode found;
-   - for a `deploy` step, the instruction to run the checklist in `${CLAUDE_SKILL_DIR}/references/compat-gate.md` and return its evidence before deploying.
-
-   Return contract:
-   ```
-   STATUS: done | failed | needs-decision
-   CHANGED: <files>
-   VERIFIED: <the commands run and their results>
-   DECISIONS: <each choice the worker made itself, one line each, with the reason or the file:line it copies>
-   QUESTIONS: <one question block per open question, below>
-   FAILURE: <for failed: what failed, the evidence, its diagnosis>
-   ```
-
-   The decider sees only what it is given and what it reads, so each question block carries everything that bears on the answer:
-   ```
-   QUESTION: <one line>
-   OPTIONS: <each option, with what it would mean in practice>
-   PLAN: <the plan's exact words on this, or "silent">
-   CODE: <file:line of each piece of code the answer depends on: callers, similar features, tests, config>
-   CONSTRAINTS: <what an answer must satisfy: the verify command, existing tests, API consumers, earlier ledger decisions>
-   TRIED: <what the worker already built or ruled out, and why>
-   LEAN: <the option the worker would pick, and why>
-   ```
-
-   The worker runs in the background. End your turn to wait for it: its result arrives as a notification and starts your next turn. Don't poll with `sleep` or `Monitor`, and don't start another step until it returns.
-5. **Log the return.** Every DECISIONS line becomes a ledger decision entry, marked `by: worker`, with its reason or the pattern it copies. Some lines settle something a user, caller or operator sees that the plan left open, without citing a pattern that decides it. Each of those was a question: put it to the decider as in step 6, building the question block yourself from the worker's return and the code. If the answer differs from what the worker built, dispatch the worker again with the answer.
-6. **Questions** (`needs-decision`): first check each question block is complete: every field filled, and `CODE` names real files. If a field is missing, fill it yourself from the code and the ledger, or send the worker back for it. Don't send the decider a thin question. Then ask `autopilot-decider` (`Agent`, `model: "fable"`), one call per question, passing:
-   - the run-folder path;
-   - the step id, its goal and its verify command;
-   - the question block, as the worker wrote it.
-
-   Log the question and the full answer block as a Q entry, then dispatch the worker again with the answer. There is no limit on decider calls: every real question goes to it.
-
-   If the Fable call fails (unavailable, or the usage cap is hit), call it again with `model: "opus"` and log the fallback.
+1. **Hard stop?** Mark it `hard-stop`, log it, move on. Never attempt it.
+2. **Dependencies.** A `dependsOn` step `blocked`, `skipped` or `hard-stop`: mark this one `skipped` with that reason.
+3. **Start.** Mark it `in_progress` and log a `start` entry.
+4. **Dispatch one worker** (`Agent`, `model: "sonnet"`, or `opus` for a step the plan calls complex; `run_in_background: false`). Build the prompt from `references/worker-brief.md`: it carries the goal, verify command, clone path, standing defaults, the step's `planNotes`, the rule for when a choice is a question, and the return contract.
+5. **Log the return.** Each DECISIONS line becomes a `D` entry. A line that settles something a user, caller or operator sees, without citing a standing default or a pattern that decides it, was a question: treat it as one (step 6), and re-dispatch if the answer differs from what was built.
+6. **Questions** (`needs-decision`, or an UNCOVERED list when the project has tests):
+   - **Standing defaults first.** If `run.json` `standingDefaults` answers it, give the worker that answer and log a `D` entry citing the default. No decider call.
+   - **Then the decider.** Check the question block is complete (`references/worker-brief.md`); fill gaps from the code. Call `autopilot-decider` (`model: "fable"`; its effort is `high`), one call per question, passing: the run folder, the step id, goal and verify command, the question block, the standing defaults, and only the earlier ledger decisions that bear on it (same step, same files or same topic), quoted in full. Log a `Q` entry with every field, then re-dispatch the worker with the answer.
+   - **Fable unavailable** (model not available, usage limit): set `"deciderModel": "opus"` in `state.json`, log a `FALLBACK` entry with the error, and ask again with `model: "opus"`, `effort: "xhigh"`. Stay on Opus for the rest of the run.
+   - **Cap.** The guard warns once at 80% of the cap (log the `WARN` entry it asks for, then repeat the call). At the cap it refuses the call: take the asker's LEAN (or the plan's default), log a `NODECIDER` entry, give the worker that answer and carry on. Never stop the run for the cap.
 7. **Failures**, following `stop-and-diagnose` with its autopilot exception:
-   - Attempts 1 and 2: the worker's own diagnosed retries. Each needs a diagnosis and one change; a retry without both doesn't count as an attempt, it's a violation.
-   - Attempts 3 to 5: before each, ask the decider for the diagnosis and the single change to try, and log it. Pass it the evidence in full: the failing command, the full output or the path to its log, each earlier attempt's diagnosis and change, and the files those changes touched.
-   - After attempt 5, or as soon as the decider says the evidence doesn't support a diagnosis: mark the step `blocked` with the last diagnosis and move on.
-   - **Cause outside the run's reach.** Sometimes, at any attempt, the diagnosis says no change inside the run can fix it: a missing tool with no allowed host to fetch it, credentials the run doesn't have, or a service that is down. Don't retry. Ask the decider to confirm. Pass it the same evidence as for attempts 3 to 5, plus each change you ruled out and why. If it confirms, mark the step `blocked` and log what the user must do. If it names a change, that change is the next attempt. Don't block a step on your own diagnosis alone: a fixable step blocked as "out of reach" is a step skipped.
+   - Attempts 1 and 2 are the worker's own diagnosed retries: a diagnosis and one change each.
+   - Attempts 3 to 5: first ask the decider for the diagnosis and the single change, passing the failing command, the full output or its log path, every earlier diagnosis and change, and the files those changes touched.
+   - After attempt 5, or when the decider says the evidence supports no diagnosis: mark the step `blocked` and move on.
+   - **Cause outside the run's reach** (a tool it can't fetch, credentials it lacks, a service that is down): don't retry. Ask the decider to confirm, passing the same evidence plus each change you ruled out. If it confirms, block the step and log what the user must do; if it names a change, that is the next attempt.
 
-   `attempts` in `state.json` counts the diagnosed retries, so it matches the numbers above. The first try isn't one: a step that passes on its first try has `attempts: 0`, and so does a step blocked as out of reach after its first try. Log a first-try failure as `F <step> first try`.
-8. **Commit when done.** After a `done` return:
-   - Check the claimed verification yourself: run the verify command again.
-   - Then `git add -A && git commit -m "<type>: <step id> <goal>"` on the run branch.
-   - Mark the step `done` with the commit hash.
-   - The pre-commit hooks still run. If one blocks the commit, treat that as a failure (step 7).
+   `attempts` counts diagnosed retries; a first-try failure is logged `F <step>` with title "first try" and leaves `attempts: 0`.
+8. **Commit when done.** Run the verify command yourself, then `git add -A && git commit -m "<type>: <step id> <goal>"`, mark the step `done` with the hash, and log a `done` entry. A failing verify is a failure (step 7).
 
-### Deploy steps
-
-A deploy runs only with the compatibility evidence from `references/compat-gate.md` in the ledger. Missing evidence, or a failed item, means the step is `blocked`, not deployed.
-
-1. **Gather the evidence by reading, never by running.** Don't run the deploy or rollback commands, or the scripts they call, while checking, not even in a copy or a temp folder. A "dry run" that lands in the wrong folder is a real deploy. Tell the worker that checks the step this, in its prompt.
-2. **Log the DEPLOY entry.**
-3. **Only when every item passes:** set `"gate": "pass"` on the step in `state.json`, then deploy. The guard hook refuses the step's commands and scripts, listed in `approved.json` `deploys`, until the step is `in_progress` with `"gate": "pass"`.
-
-After a deploy that has a URL, run `canary-watch` against the baseline. On a regression:
-- roll back with the recorded rollback command;
-- log what happened;
-- mark the step `blocked`.
+**Deploy steps** run only after the compatibility check in `references/compat-gate.md` passes, gathered by reading, never by running the deploy. The guard refuses a deploy step's commands until the step is `in_progress` with `"gate": "pass"`.
 
 ### End of run
 
-When every step is `done`, `blocked`, `hard-stop` or `skipped`:
+When every step is `done`, `blocked`, `hard-stop` or `skipped`, in this order (the guard and the Stop hook enforce it):
 
-1. **Docs.** If any step finished, spawn `doc-keeper` once (`model: "sonnet"`) to bring `CHANGELOG.md` and `docs/` up to date with the run's commits. Commit its changes. Approving the plan covered this one run.
-2. **Report.** Write `report.md` in the run folder from `references/report-template.md`, built from the ledger and `state.json`, then commit it.
-3. **Stop.** End the session. The Stop hook lets it end once every step is finished and the report exists.
+1. **Docs.** If any step is `done`: spawn `doc-keeper` once (`model: "sonnet"`, foreground) to bring `CHANGELOG.md` and `docs/` up to date with the run's commits, commit its changes, set `"docs": "done"` in `state.json`, and log a `DOCS` entry. With nothing done, set `"docs": "skipped"`.
+2. **Report.** Write `report.md` from `references/report-template.md`, built from the ledger and `state.json`, and commit it.
+3. **End.**
 
-If the run is stopped (tools denied with a stop message), only reading and writing the run folder still works:
-- log the stop;
-- write the report with the unfinished steps marked as such;
-- end without committing, since git is refused now.
+If the run is stopped (tools denied with a STOP message), only the run folder can still be written: log a `STOP` entry, write the report with the unfinished steps marked, and end without committing. If the session dies instead, the launcher logs why. Either way the launcher commits the run folder before fetching the branch back.
 
-If the session dies instead (Ctrl-C, a crash, or the budget runs out), the launcher appends the reason to the ledger. However the session ends, the launcher then commits the run folder's uncommitted changes, and nothing outside it, before fetching the branch back, so the branch carries the report and ledger.
-
-**Paths:** the guard accepts only absolute file paths inside the clone, with no `..`, and refuses `.claude/`, `.mcp.json` and `.git/`. Pass workers absolute paths.
+**Paths:** the guard accepts only absolute file paths inside the clone with no `..`. Pass workers absolute paths.
 
 ## Mode: status
 
-Find the run folder from `clone` in `~/.claude/autopilot/<run-id>/approved.json` (`<clone>/docs/autopilot/<run-id>/`). Read `state.json` and the last ledger entries, then print:
-- each step and its status;
-- the current step;
-- the number of questions answered;
-- any blocked steps and their reasons.
-
-Change nothing.
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-run.mjs" status <run-id>`: one line plus `status.json` (current step, steps finished, live worker, decider calls, estimated cost against the budget, last error). Then read `state.json` and the ledger's last entries for blocked steps and their reasons. Change nothing. If the repo was moved or renamed, the command prints the `relocate` command that fixes it.
 
 ## Mode: report
 
-Print `report.md` if it exists. If it doesn't, build one from the ledger and `state.json` with the template, mark it as partial, and don't commit it.
+Print `report.md` if it exists. If not, build one from the ledger and `state.json` with the template, mark it partial, and don't commit it.
+
+## Housekeeping
+
+`node <launcher> clean` lists finished runs' clones and transcripts with their sizes; `clean --yes` deletes the clones whose branch is already in the source repo, and the transcripts. Nothing is deleted unless the user asks for it.
 
 ## References
 
-- `references/ledger.md`: ledger entry formats (step, Q, decision, failure, deploy, stop).
-- `references/compat-gate.md`: the backward-compatibility checklist every deploy must pass.
+- `references/plan-mode.md`: plan mode in full: standing defaults, sandbox and budget proposals, what a run cannot verify, `approved.json`, `run.json` and `state.json` formats.
+- `references/worker-brief.md`: the worker prompt, the question block, the return contract.
+- `references/ledger.md`: ledger entry kinds and their required fields.
+- `references/compat-gate.md`: deploy steps: the compatibility checklist, the gate and the canary.
 - `references/report-template.md`: the final report's structure.

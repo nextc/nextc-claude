@@ -1,115 +1,70 @@
 ---
 name: strategic-compact
-description: Suggest a manual `/compact` at logical task boundaries instead of waiting for arbitrary auto-compaction. Use when context approaches limits or when switching between unrelated tasks.
+description: Keeps a long session cheap and coherent by deciding what to do about context size and recording what a compaction would lose. Use when context is high, compactions are piling up, or the task is changing.
 when_to_use: |
-  Use when context approaches limits, between major task phases, after a milestone, or when switching between unrelated tasks. Also when user says "compact", "fresh start", "clean context", "wrap this section", "starting something new", or "context is getting heavy".
-allowed-tools: Read Bash
+  Triggers: "compact", "context is getting heavy", "fresh start", "starting something new", "is this session too long", the `/context` grid or status line shows context high, or this is the second compaction on the same task. Skip when the work is mid-edit with a clear next step and context is not high; never raise it twice in one session after the user declines.
+allowed-tools: Read Write Edit Bash Glob
 ---
 
-# Strategic Compact Skill
+# Strategic Compact
 
-Suggests manual `/compact` at strategic points in your workflow rather than relying on arbitrary auto-compaction.
+Gives you what built-in `/compact` does not: a decision (compact, clear, fork or continue) from observable signals, and a written record of what a summary would drop, so you pick the focus text instead of letting auto-compaction guess. Context bloat is the main cost driver in long sessions: every message re-pays for everything in context.
 
-## When to Activate
+`$ARGUMENTS` may name the next task ("next: billing webhooks") or force a path ("clear", "fork").
 
-- Running long sessions that approach context limits (200K+ tokens)
-- Working on multi-phase tasks (research → plan → implement → test)
-- Switching between unrelated tasks within the same session
-- After completing a major milestone and starting new work
-- When responses slow down or become less coherent (context pressure)
+## 1. Read the signals
 
-## Why Strategic Compaction?
+- Context percent: `/context` (breakdown by category) or the status line. A heuristic, not a Claude Code rule: above roughly half the window, or when `/context` flags large tool results or memory bloat, a decision is due.
+- Compactions so far on this task: after the second, the summary is a summary of a summary; prefer fresh + handoff.
+- Did the task change? Old exploration is dead weight for unrelated work.
+- Are big tool outputs (file reads, logs, search dumps) still needed? If not, compaction pays off.
 
-Auto-compaction triggers at arbitrary points:
-- Often mid-task, losing important context
-- No awareness of logical task boundaries
-- Can interrupt complex multi-step operations
+## 2. Pick one path
 
-Strategic compaction at logical boundaries:
-- **After exploration, before execution** — Compact research context, keep implementation plan
-- **After completing a milestone** — Fresh start for next phase
-- **Before major context shifts** — Clear exploration context before different task
+| Situation | Do |
+|---|---|
+| Same task, context high, stale tool output | `/compact <focus>` |
+| Next task is unrelated | `/clear` (or a new session) after writing the handoff; `/resume` still reaches the old one |
+| 2+ compactions on this task, or work resumes tomorrow | Fresh session + handoff file (`/session-handoff save`) |
+| Side task that needs this conversation | `/fork <prompt>` (separate background session) or `/subtask` (subagent, result returns here) |
+| A quick question | `/btw`, which adds nothing to history |
+| Only the early part is stale | `/rewind`, pick a message, "Summarize up to here" |
+| Mid-edit, tests half-run, a command in flight | Finish or park it first; do not compact |
+| Compaction keeps triggering too early or late | `/autocompact <tokens>` tunes the window |
 
-## How It Works
+Large upcoming reads (a whole module, logs) go to a subagent so they never enter this context.
 
-The `suggest-compact.js` script runs on PreToolUse (Edit/Write) and:
+## 3. Before compacting or clearing: write the block
 
-1. **Tracks tool calls** — Counts tool invocations in session
-2. **Threshold detection** — Suggests at configurable threshold (default: 50 calls)
-3. **Periodic reminders** — Reminds every 25 calls after threshold
+Compaction can lose conversational state that is not on disk. Write this to `.claude/handoff.md` (project-local; add it to `.gitignore` if missing), or as an auto-memory entry if it is a durable preference:
 
-## Hook Setup
+```
+## Pinned (<date>)
+Task + acceptance criteria:
+Constraints and decisions the user stated in conversation (with why):
+Approvals in force (what the user already OK'd, and its scope):
+In flight (background commands/agents, half-finished edits, branch):
+Files being edited:
+Next step:
+```
 
-This plugin includes a PreToolUse hook that automatically runs on Edit and Write tool calls. The hook is configured in `hooks/hooks.json` and runs `hooks/scripts/suggest-compact.js`, which counts tool invocations and suggests compaction when the threshold is reached. No manual setup needed — the hook activates when the plugin is installed.
+Facts only, from this session. Do not paste logs or diffs; point to paths and commands.
 
-## Configuration
+## 4. Give the exact command
 
-Environment variables:
-- `COMPACT_THRESHOLD` — Tool calls before first suggestion (default: 50)
+Output the ready-to-run line, e.g.
 
-## Compaction Decision Guide
+`/compact Keep: the task and acceptance criteria, the decisions listed in .claude/handoff.md "Pinned", the failing test name and its error, files under src/billing. Drop: exploration of the unrelated auth module and full file contents already on disk.`
 
-Use this table to decide when to compact:
+Claude cannot run `/compact` itself; the user does. After it, re-read the Pinned block before continuing and say so in one line.
 
-| Phase Transition | Compact? | Why |
-|-----------------|----------|-----|
-| Research → Planning | Yes | Research context is bulky; plan is the distilled output |
-| Planning → Implementation | Yes | Plan is in TodoWrite or a file; free up context for code |
-| Implementation → Testing | Maybe | Keep if tests reference recent code; compact if switching focus |
-| Debugging → Next feature | Yes | Debug traces pollute context for unrelated work |
-| Mid-implementation | No | Losing variable names, file paths, and partial state is costly |
-| After a failed approach | Yes | Clear the dead-end reasoning before trying a new approach |
+## Gotchas (facts from the Claude Code docs, checked 2026-11-16)
 
-## What Survives Compaction
-
-Understanding what persists helps you compact with confidence:
-
-| Persists | Lost |
-|----------|------|
-| CLAUDE.md instructions | Intermediate reasoning and analysis |
-| TodoWrite task list | File contents you previously read |
-| Memory files (`~/.claude/memory/`) | Multi-step conversation context |
-| Git state (commits, branches) | Tool call history and counts |
-| Files on disk | Nuanced user preferences stated verbally |
-
-## Best Practices
-
-1. **Compact after planning** — Once plan is finalized in TodoWrite, compact to start fresh
-2. **Compact after debugging** — Clear error-resolution context before continuing
-3. **Don't compact mid-implementation** — Preserve context for related changes
-4. **Read the suggestion** — The hook tells you *when*, you decide *if*
-5. **Write before compacting** — Save important context to files or memory before compacting
-6. **Use `/compact` with a summary** — Add a custom message: `/compact Focus on implementing auth middleware next`
-
-## Token Optimization Patterns
-
-### Trigger-Table Lazy Loading
-Instead of loading full skill content at session start, use a trigger table that maps keywords to skill paths. Skills load only when triggered, reducing baseline context by 50%+:
-
-| Trigger | Skill | Load When |
-|---------|-------|-----------|
-| "test", "tdd", "coverage" | tdd-workflow | User mentions testing |
-| "security", "auth", "xss" | security-review | Security-related work |
-| "deploy", "ci/cd" | deployment-patterns | Deployment context |
-
-### Context Composition Awareness
-Monitor what's consuming your context window:
-- **CLAUDE.md files** — Always loaded, keep lean
-- **Loaded skills** — Each skill adds 1-5K tokens
-- **Conversation history** — Grows with each exchange
-- **Tool results** — File reads, search results add bulk
-
-### Duplicate Instruction Detection
-Common sources of duplicate context:
-- Same rules in both `~/.claude/rules/` and project `.claude/rules/`
-- Skills that repeat CLAUDE.md instructions
-- Multiple skills covering overlapping domains
-
-### Context Optimization Tools
-- `token-optimizer` MCP — Automated 95%+ token reduction via content deduplication
-- `context-mode` — Context virtualization (315KB to 5.4KB demonstrated)
-
-## Related
-
-- Memory persistence hooks — For state that survives compaction
-- `continuous-learning` skill — Extracts patterns before session ends
+- Survives, re-injected from disk: project-root CLAUDE.md, unscoped rules, auto memory, the plan-mode plan. Skill descriptions are rebuilt.
+- Invoked skill bodies come back capped at 5,000 tokens each and 25,000 total, oldest dropped first; truncation keeps the start of the file.
+- Up to five recently read or edited files are re-read; one over 5,000 tokens returns as a path only.
+- Rules with `paths:` frontmatter and nested CLAUDE.md load on demand and are summarized away; put must-keep rules in the root CLAUDE.md.
+- Context that hooks added earlier is summarized with everything else.
+- Background commands and subagents keep running through compaction; Claude is reminded they exist.
+- Not preserved reliably: instructions given only in conversation ("don't touch X", "ask before Y"), what was tried and failed, and approvals. This is why section 3 exists.
+- `/clear` keeps CLAUDE.md and memory but drops the whole conversation.

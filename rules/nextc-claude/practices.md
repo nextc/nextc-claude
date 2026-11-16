@@ -1,77 +1,44 @@
 # Practices
 
-## Immutability (CRITICAL)
+Write immutable code, reuse proven solutions, settle what the request means before building, and judge feedback on its merits.
 
-ALWAYS create new objects, NEVER mutate existing ones:
+## Immutability
 
-```
-// Pseudocode
-WRONG:  modify(original, field, value) → changes original in-place
-CORRECT: update(original, field, value) → returns new copy with change
-```
+Return new objects instead of mutating existing ones (`update(original, field, value)` returns a copy), because hidden side effects make bugs hard to trace and concurrency unsafe.
 
-Rationale: Immutable data prevents hidden side effects, makes debugging easier, and enables safe concurrency.
+## Research and reuse
 
-## Research & Reuse
+Search before hand-rolling common infrastructure (auth, payments, uploads, caching), animations and visual effects, a choice between competing libraries, an unfamiliar ecosystem, or anything you are not confident about. Order: Context7 for library docs; then GitHub and package registries (`gh search`, npm, PyPI, pub.dev, crates.io); then the web. Prefer battle-tested packages to hand-rolled code. Skip the search only when the local repo alone proves every fact you need.
 
-This covers *"do I need a new library or pattern?"*. Asserting facts you haven't proven is `verify-before-claim.md`; both apply.
+## Think before coding
 
-**Search before coding** when the task involves:
-- Common infrastructure (auth, payments, file upload, caching, etc.)
-- Animations, transitions, or visual effects
-- Choosing between competing libraries
-- Unfamiliar ecosystems or frameworks
-- Any solution you're not confident about
+For anything beyond a trivial change:
 
-**Skip searching** only when every fact and pattern you need can be verified from the local repo state alone. "Known stack" is **not** a skip condition.
+- When a request has more than one reasonable reading, or leaves the outcome to your judgment ("make it great", "clean this up"), pick the reading the request, the code and sensible defaults support. If a real product or design choice remains, put it in the one batched question (`heavy-commands.md`) instead of guessing.
+- If a simpler path meets the need, say so before building the larger one.
+- Make sure you are solving the actual problem, not the symptom in front of you.
 
-**Search order:**
-1. **Context7** — library/API docs, usage examples, version details (if it isn't signed in, see `verify-before-claim.md` → How to Verify).
-2. **GitHub/registries** — `gh search repos`, `gh search code`, npm/PyPI/pub.dev/crates.io
-3. **Web** — WebFetch/WebSearch only when 1-2 are insufficient
+## Substance over ceremony
 
-Prefer battle-tested packages over hand-rolled code.
+The deliverable comes first. Process obligations (doc updates, changelog entries, lint gates) are real, but never let them replace looking at and verifying the actual result.
 
-## Think Before Coding
+## Receiving review feedback
 
-Before implementing anything beyond a trivial change:
+Treat review feedback, from the user, a reviewer agent or a person, as suggestions to evaluate.
 
-- **Surface competing interpretations.** When a request has more than one reasonable reading, present them and let the user choose — never silently pick one and build on it.
-- **Push back when a simpler path exists.** If the ask is more complex than the problem requires, say so and propose the smaller version *before* writing the larger one.
-- **Name what's unclear.** If something blocks a correct implementation, stop and ask rather than guess.
-- **A vague instruction is not a mandate to guess.** When an ask like "make it great", "clean this up", or "fix it" leaves the outcome to your judgment, surface your reading and confirm *before* executing — don't fill the gap with your own opinion and call it obvious.
-- **Spending reasoning tokens is not thinking.** Deep reasoning aimed at the wrong question is wasted. Establish *which* problem you are actually solving before optimizing an artifact — don't symptom-fix the thing in front of you when the real issue is the system it sits in.
-
-This rule is about interpreting the *request and design*. For asserting *facts* — external (library/API/service) or internal (what code in this repo does, what's in a file, what a command outputs) — see `verify-before-claim.md`. For a full requirements interview, use the `/clarify` skill — this is the always-on floor beneath it.
-
-## Substance Over Ceremony
-
-The deliverable is the point; the rule-set's own overhead exists in service of it, never as a substitute for it. Context blocks, doc updates, memory writes, changelog entries, and passing a lint gate are all real obligations — but when the ritual starts crowding out the one thing that matters (does the actual output work, look right, and answer the question), the output wins. Never let ceremony displace *looking at and verifying the real result*. If you notice most of your effort going to process while the deliverable drifts, stop and re-center on the deliverable.
-
-## Receiving Review Feedback
-
-> Source: distilled from obra/Superpowers `skills/receiving-code-review` (MIT).
-
-Review feedback — from the user, the `code-reviewer`/`security-reviewer` agents, or an external
-reviewer — is a set of suggestions to **evaluate**, not orders to obey and not applause to return.
-
-- **No performative agreement.** Never open with "You're absolutely right!", "Great point!",
-  "Thanks for catching that!", or any gratitude/praise. Actions speak — state the fix or just make it.
-  If you catch yourself about to type "Thanks", delete it and state the fix instead.
-- **Verify before implementing.** Check each suggestion against the actual codebase: is it correct
-  for *this* stack, does it break existing behavior, is there a reason the current code is the way it is?
-  If a suggestion is wrong, push back with technical reasoning — don't implement it to be agreeable.
-- **YAGNI-check "do it properly" asks.** When a reviewer says "implement this properly," grep for
-  real usage first. If nothing calls it, propose removing it rather than building it out.
-- **Clarify the whole batch before starting.** If any item in multi-item feedback is unclear, ask
-  about the unclear items *before* implementing the clear ones — items may be related, and partial
-  understanding produces wrong implementations. Then fix one item at a time (blockers → simple → complex).
-- **If you can't verify**, say so and name what you'd need ("can't confirm without X — investigate, ask, or proceed?").
-- **If you pushed back and were wrong**, correct factually and move on — no long apology, no defending the pushback.
-
-This composes with `verify-before-claim.md` (verify the suggestion is true before acting on it).
+- Do not open with agreement or thanks ("You're absolutely right!", "Great catch!"); state the fix or make it.
+- Check each suggestion against the codebase before implementing it; if it is wrong for this stack or breaks behavior, push back with the technical reason.
+- When asked to "implement this properly", grep for real usage first; if nothing uses it, propose removing it.
+- If any item in a batch is unclear, clarify those items before implementing the rest, since items may be related. Then fix blockers first, then simple items, then complex ones.
+- If you pushed back and were wrong, correct it plainly and move on.
 
 ## Workflow
 
-1. **Plan** — Use **planner** agent for multi-file features or architectural changes. Skip for single-file changes.
-2. **Code Review** — Use **code-reviewer** agent after writing code. Fix CRITICAL and HIGH issues. MEDIUM/LOW are optional.
+Use the `planner` agent for multi-file features or architectural changes, not for single-file changes.
+
+Review your own code changes before you call the work done, at a depth that matches the risk, and without asking first:
+
+- **Small and contained** (one file, no auth, payments, user data, concurrency or schema): re-read the diff yourself. No reviewer agent.
+- **Anything larger, or touching those areas**: spawn `code-reviewer` on the diff and untracked files, and in parallel `security-reviewer` when auth, payments, secrets or user data are involved. Give them the diff and the acceptance criteria, not your reasoning.
+- Fix CRITICAL and HIGH findings after checking each against the code; push back on wrong ones (see "Receiving review feedback"). In your report say what was reviewed, what you fixed, and what you left with the reason.
+- One review pass per piece of work. Re-review only the parts a fix changed materially.

@@ -1,9 +1,9 @@
 ---
 name: clarify
-description: >
-  Socratic requirements gathering with ambiguity scoring. Use when the user has a vague
-  idea, wants help thinking through requirements, or when a task is too unclear to implement
-  directly. Interviews the user to produce a clear spec.
+description: Socratic requirements interview with ambiguity scoring that produces a spec in docs/spec/. Use when the user has a vague idea or a task is too unclear to implement directly.
+when_to_use: |
+  Triggers: "clarify", "interview me", "ask me everything", "don't assume", "help me think through requirements", or a request that fails /feature-dev's vagueness check. Skip when the request already has file paths, acceptance criteria, or a spec, when the user says "just do it", and for bugs (use /bug-fix).
+argument-hint: "[idea]"
 user-invocable: true
 allowed-tools: Agent AskUserQuestion Read Glob Grep Write
 ---
@@ -14,26 +14,9 @@ Socratic deep interview that turns vague ideas into crystal-clear specifications
 Asks one targeted question at a time, scores ambiguity mathematically, and refuses
 to proceed until clarity meets threshold. Outputs a spec to `docs/spec/`.
 
-Inspired by the Ouroboros principle: specification quality is the primary bottleneck
-in AI-assisted development.
-
-## When to Use
-
-- User has a vague idea and wants thorough requirements before building
-- User says "clarify", "interview me", "ask me everything", "don't assume"
-- Task is complex enough that jumping to code would waste cycles on scope discovery
-- User wants to avoid "that's not what I meant" outcomes
-
-## When NOT to Use
-
-- User has a specific request with file paths, function names, or acceptance criteria — execute directly
-- User says "just do it" or "skip the questions" — respect their intent
-- User already has a PRD or spec file — implement from that
-- Single-file fix or trivial change — delegate directly
-
 ## Phase 1: Initialize
 
-1. Parse the user's idea from `{{ARGUMENTS}}`
+1. Take the user's idea from `$ARGUMENTS`
 2. Detect **brownfield vs greenfield**:
    - Spawn an `Explore` agent (model: haiku): check if cwd has existing source code, package files, or git history relevant to the idea
    - If source files exist AND the idea references modifying/extending something: **brownfield**
@@ -147,66 +130,7 @@ When ambiguity <= threshold (or hard cap / early exit):
 1. Generate the specification from the full interview transcript
 2. Write to `docs/spec/{slug}.md` using this structure:
 
-```markdown
-# {Title}
-
-## Metadata
-- Interview Rounds: {count}
-- Final Ambiguity: {score}%
-- Type: greenfield | brownfield
-- Generated: {date}
-- Status: {PASSED | EARLY_EXIT}
-
-## Clarity Breakdown
-| Dimension | Score | Weight | Weighted |
-|-----------|-------|--------|----------|
-| Goal Clarity | {s} | {w} | {s*w} |
-| Constraint Clarity | {s} | {w} | {s*w} |
-| Success Criteria | {s} | {w} | {s*w} |
-| Context Clarity | {s} | {w} | {s*w} |
-
-## Goal
-{crystal-clear goal statement}
-
-## Constraints
-- {constraint 1}
-- {constraint 2}
-
-## Non-Goals
-- {explicitly excluded scope 1}
-- {explicitly excluded scope 2}
-
-## Acceptance Criteria
-- [ ] {testable criterion 1}
-- [ ] {testable criterion 2}
-- [ ] {testable criterion 3}
-
-## Assumptions Exposed & Resolved
-| Assumption | Challenge | Resolution |
-|------------|-----------|------------|
-| {assumption} | {how questioned} | {what decided} |
-
-## Technical Context
-{brownfield: relevant codebase findings}
-{greenfield: technology choices and constraints}
-
-## Data Model (if applicable)
-| Entity | Type | Fields | Relationships |
-|--------|------|--------|---------------|
-| {name} | {type} | {fields} | {relationships} |
-
-## Interview Transcript
-<details>
-<summary>Full Q&A ({n} rounds)</summary>
-
-### Round 1
-**Q:** {question}
-**A:** {answer}
-**Ambiguity:** {score}%
-
-...
-</details>
-```
+Use the template in [references/spec-template.md](references/spec-template.md) (metadata, clarity breakdown, goal, constraints, non-goals, acceptance criteria, assumptions resolved, technical context, optional data model, transcript).
 
 ## Phase 5: Next Steps
 
@@ -221,7 +145,7 @@ Options:
 
 If user chooses "Implement now":
 - Use the spec as the source of truth for planning and implementation
-- Follow the development workflow: plan → implement → review → commit
+- Continue with `/feature-dev` using the spec
 - Reference the spec's acceptance criteria for verification
 
 ## Principles
@@ -245,4 +169,3 @@ If ambiguity stalls (same score ±5% for 3 consecutive rounds), activate Ontolog
 | 60-80% | Very unclear | May need reframing (Ontologist) |
 | 80-100% | Almost nothing known | Early stages, keep going |
 
-Task: {{ARGUMENTS}}

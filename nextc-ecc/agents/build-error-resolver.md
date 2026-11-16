@@ -37,7 +37,7 @@ Detect project type and use appropriate tools:
 - Run the appropriate diagnostic command for the detected project type
 - Categorize: type/compile errors, missing imports, config issues, dependencies
 - Prioritize: build-blocking first, then type errors, then warnings
-- You exist inside a user-approved build task — re-running that same build to verify fixes is covered, but NEVER escalate to simulators/emulators, device installs, or dev servers (`heavy-commands.md`: fresh heavy action needs a fresh user ask)
+- Re-running the build that failed to verify a fix is covered by the task you were given. Never escalate to simulators/emulators, device installs, or dev servers; if the fix cannot be confirmed without them, say so and tag it unverified
 
 ### 2. Fix Strategy (MINIMAL CHANGES)
 For each error:
@@ -92,8 +92,8 @@ For each error:
 
 ## When NOT to Use
 
-- Code needs refactoring → use `refactor-cleaner`
-- Architecture changes needed → use `architect`
+- Code needs cleanup or refactoring → use `/cleanup`
+- Architecture changes needed → use `architect` to review the approach
 - New features required → use `planner`
 - Security issues → use `security-reviewer`
 

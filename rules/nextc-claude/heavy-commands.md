@@ -1,50 +1,39 @@
-# Heavy Commands Require Approval (CRITICAL — ALWAYS ENFORCE)
+# Approvals and Heavy Commands
 
-## The One Line (read this first)
+Do what the user asked without adding permission questions of your own, and do not start heavy processes nobody asked for.
 
-NEVER start a build, launch an app on a simulator/emulator/device, start a dev server or watcher, or kick off any other long-running resource-heavy process without the user's explicit request or approval — these commands hog the user's machine (CPU, RAM, fans, battery) while they are trying to work.
+## When to ask the user
 
-**Why:** agents repeatedly launched builds and simulator runs unprompted, making the laptop crawl. A heavy command the user didn't ask for isn't diligence — it's an interruption they have to sit through.
+Ask only in these two cases:
 
-## Requires an Ask (gate list)
+1. **The permission settings mark the action `ask`.** Claude Code prompts for those itself; do not add your own question on top.
+2. **A real product or design choice** that the request, the code and a sensible default cannot settle. Gather every open choice into one question, and keep working on whatever does not depend on the answer.
 
-Ask the user and wait for approval before running any of:
+Everything else proceeds without asking:
 
-- **Product builds** — `flutter build *`, `xcodebuild`, `./gradlew assemble*`/`build`, Unity batch-mode builds, `npm`/`yarn`/`pnpm run build`, `cargo build`, `docker build`, or any command whose primary purpose is compiling/bundling the product
-- **Running apps on simulators, emulators, or devices** — `flutter run`, `open -a Simulator`, booting an iOS Simulator or Android emulator, `emulator`, `adb install`/`adb shell am start`, `ios-deploy`, `xcrun simctl` boot/install/launch
-- **Dev servers and watchers** — `npm run dev`/`start`, `vite`, `next dev`, `nodemon`, `flutter run` (also a watcher), anything with `--watch` or that runs until killed
-- **Any other long-running or CPU/RAM-heavy process** — full test suites (also governed by `testing-policy.md`), large codegen sweeps, `docker compose up`, database seeds/migrations against local services
+- Builds, uploads, test runs and commits that are the stated purpose of a skill the user invoked, or that the user asked for in words.
+- Routine steps: reading, searching, editing, static checks (analyzers, type checks, linters, formatters), git inspection, scripts that finish in seconds.
+- Anything under a standing approval. When the user says "don't ask", "approve all", "full auto" or similar, that holds for the rest of the session's task until they say otherwise.
 
-## Allowed Without Asking
+Check your own work rather than handing it back: when a command, file or tool can confirm something, run it instead of asking the user to check.
 
-Fast, bounded, low-load commands stay automatic — they are the verification backbone:
+## Heavy processes nobody asked for
 
-- Static checks: `flutter analyze`, `tsc --noEmit`, linters, formatters, `dart format`
-- `git` operations, file reads/searches, scripts that finish in seconds
-- The Case-2 affected-tests run permitted by `testing-policy.md` (small, scoped)
+Do not start a heavy process that the user did not ask for and no invoked skill requires, because it slows the machine the user is working on. Heavy means product builds (`flutter build`, `xcodebuild`, `./gradlew assemble`, `npm run build`, `cargo build`, `docker build`), running an app on a simulator, emulator or device, dev servers and watchers (`npm run dev`, `vite`, anything that runs until killed), full test suites, `docker compose up`, and local database seeds or migrations.
 
-If a command sits in the gray zone, treat it as heavy and ask — a wasted question costs seconds; an unwanted build costs minutes of a slow machine.
+When checking a change would need one of these, skip it and tag the claim, for example "(unverified — needs a run on the simulator)", or add it to the one batched question. Do not stop the task just to ask about it.
 
-## What Counts as Approval
+A request or skill invocation covers the heavy actions that task needs, including a re-run after a diagnosed fix. It does not cover a different kind of heavy action: an approved build does not start the simulator.
 
-- **The user's own words or invocation.** "Build the APK", "run the app", "npm run dev", or invoking a skill whose stated purpose is the heavy action (`/flutter-build`, `/unity-build`, `/verification-loop`, `/run`) approves the heavy actions that skill's purpose requires — and only those.
-- **Approval is scoped to the requested task.** Re-running the same approved build after a *diagnosed* fix (per `stop-and-diagnose.md`) is covered. Escalating to a *different* heavy action is not — an approved build does NOT authorize launching the simulator, and an approved simulator run does NOT authorize starting a dev server. Fresh action, fresh ask.
-- **Approval does not persist** across tasks or sessions.
-- **An approved `/autopilot` plan approves every heavy command its run needs.** Inside the run the launcher starts, builds, simulators, dev servers, full test suites and installs all run without asking. The OS sandbox keeps them inside the run's clone of the project. This covers only that run; in a normal session, the gate above applies.
+When you brief a subagent, pass on the user's approval if there is one, and do not tell it to run a heavy command nobody asked for.
 
-## Subagents Inherit the Gate
+## Inside an approved /autopilot run
 
-- Never put an unapproved heavy command in a subagent's prompt — spawning an agent instructed to build IS running the build.
-- An agent that discovers mid-task it needs a heavy command must stop and surface the ask, not run it.
-- Orchestrator skills (feature pipelines, verification loops) pass the user's approval down explicitly when it exists, and gate when it doesn't.
+Approving an `/autopilot` plan approves what its run needs; the autopilot skill holds the procedure, and these are the only exceptions to the other rules:
 
-## Composes With Verification Rules
-
-`verify-before-claim.md` #9 and `ui-ux-design.md` #7 require judging UI against the *rendered screen* — which may need a build + simulator launch. The verification obligation does NOT override this gate. Ask first: "To verify the layout I need to build and run the app on the simulator — go ahead?" If the user declines, tag the claim `(unverified — needs a run on simulator)` instead of launching anyway. An unverified-and-tagged claim is compliant; an unapproved build is not.
-
-## Enforcement
-
-- Before any Bash call matching the gate list: confirm the user's request or approval for that specific action exists in this session. If not, ask.
-- Running a gated command without approval is a CRITICAL violation — equal to a missing error log under `safety.md`.
-- A stale approval (different task, different action, or a previous session) does not count — re-ask.
-- Code review / skill audit: flag any skill or agent definition that instructs an unconditional build/run/dev-server launch as a defect to fix.
+- Builds, simulators, dev servers, full test suites and installs run without asking, inside the run's sandboxed clone.
+- The run works on its branch `autopilot/<run-id>`, commits after each step that passes its verification, and runs `doc-keeper` once at the end, which also updates `CHANGELOG.md`.
+- Questions, including the offer to add tests, go to `autopilot-decider` instead of the user. After 30 decider calls in a run, the run proceeds on the asker's stated lean and flags each such decision for review in the report.
+- Every retry still needs a diagnosis. After two diagnosed attempts the decider may direct up to three more; then the step is marked blocked and the run moves on. A cause outside the run's reach blocks the step without retries.
+- A deploy runs only when it is backward compatible: API changes ship as new versions, migrations only add, behavior changes sit behind flags that default to the old behavior, and a rollback command exists. Missing evidence for any of these blocks it.
+- Git push and store uploads (TestFlight, App Store, Play) are hard stops, left for the user.

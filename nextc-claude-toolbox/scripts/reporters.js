@@ -22,8 +22,13 @@ function formatTable(results) {
   lines.push('');
 
   for (const [plugin, items] of Object.entries(grouped)) {
+    // Count distinct items (one skill with five checks is one skill), not check results.
+    const seen = new Set();
     const counts = {};
     for (const item of items) {
+      const itemKey = item.component + ':' + (item.name || '');
+      if (seen.has(itemKey)) continue;
+      seen.add(itemKey);
       const cat = item.component + 's';
       counts[cat] = (counts[cat] || 0) + 1;
     }

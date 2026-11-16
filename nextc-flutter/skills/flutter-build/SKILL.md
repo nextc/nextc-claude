@@ -1,399 +1,160 @@
 ---
 name: flutter-build
-description: Build a Flutter APK or IPA with changelog and version bump. Use when building the app, cutting a release, or producing a test build.
+description: Build and ship a Flutter app (APK, AAB, IPA, TestFlight) with a version bump, release notes and buildlog entry. Use when building the app, cutting a release, or producing a test build.
 when_to_use: |
-  Use when building the app, cutting a release, or producing a test build. Triggers: "build the app", "make a release", "ship it", "build APK", "build IPA", "release build", "test build", "/flutter-build".
+  Use when building the app, cutting a release, or producing a test build. Triggers: "build the app", "make a release", "ship it", "build APK", "build AAB", "build IPA", "release build", "test build", "upload to TestFlight", "/flutter-build". Arguments may pre-answer the intake (e.g. "testflight both, notes approved"). Skip for l10n work (use /flutter-l10n) and for Unity projects (use /unity-build).
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash Read Glob Agent SendMessage
+allowed-tools: Bash Read Edit Write Glob Grep Agent AskUserQuestion SendMessage TaskStop ListAgents
 paths: ["**/pubspec.yaml"]
 ---
 
 # /flutter-build
 
-Interactive build pipeline: gather build parameters, spawn the flutter-builder agent to build, log, and commit.
+Invoking this skill is the user's approval for everything it does: the version bump, the builds, the TestFlight upload,
+the commit and the tag. It asks ONE batched question up front and nothing afterwards unless something fails.
+It never pushes.
 
-> **Buildlog is drafted BEFORE the build.** The "What's new" content is derived from the git
-> commit range, not from artifacts, so it is drafted and approved *first* — before any build runs.
-> This makes the approved text available to feed a TestFlight upload as `FL_CHANGELOG`, and makes a
-> cancel at the review gate abort *before* wasting a build. Only the mechanical metadata (status,
-> artifact sizes) is filled in after the build. See Step 4 (Single) / Step 4b (Both).
->
-> **Background builders MUST be shut down — but never mid-lane.** The parallel (both-platforms)
-> path spawns two background teammates. A finished teammate parks idle rather than exiting, so after
-> their FINAL results are consumed the skill stops each with `TaskStop` — otherwise they keep running,
-> holding their context, long after the build. For an iOS `testflight` lane, "final" means the fastlane process exited: it keeps running
-> after the upload to distribute the build to external testers, and shutting the builder down while
-> it polls kills that step. See the Step 4e completion gate.
+Templates live in `references/`: `release-notes.md` (drafting), `buildlog-template.md` (entry, status values, lint),
+`fastlane-env.md` (lanes, signing preflight, env, how to run a lane), `report.md` (post-upload verification, report table).
 
-## Step 1: Read Current State
+> **Design: the lead waits, nobody goes idle.** A TestFlight lane keeps running 5-15+ minutes after the binary uploads
+> (Apple processing, release notes, tester distribution), longer than a foreground Bash call may run (10 min). A subagent
+> cannot ask or be re-woken for it, so the lead runs the iOS lane itself with Bash `run_in_background: true`; Claude Code
+> re-invokes the session when the background task exits. Never poll with `sleep`. Only the Android build goes to a
+> Haiku builder subagent, and it runs in the foreground of its own turn and returns a fixed result block.
 
-Run in parallel:
-- Read `pubspec.yaml` — extract current `version:` line (format: `X.Y.Z+N`) AND the `name:` line
-- Run `git log --oneline -5` — show recent commits for context
+## Step 0: Read state
 
-> **Do NOT auto-detect `.env` for the build.** A `.env` in the project root holds
-> secrets (service-role keys, API secrets) and must never be fed to
-> `--dart-define-from-file` — that embeds every value into the shipped client
-> binary. Publishable runtime config belongs in committed Dart constants. See the
-> Secrets Guard in Step 2.
+Run in parallel: read `pubspec.yaml` (`name:` = `{appname}`, used verbatim for filenames; `version:` `X.Y.Z+N`);
+`git log --oneline -5`; `git status --porcelain`; the last tag
+`git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null`; the top of `docs/buildlog.md`;
+`test -f ios/fastlane/Fastfile`; `grep -oE "lane :[a-z_]+" ios/fastlane/Fastfile`.
 
-Parse the current version into:
-- `current_version` — the semantic version part (before `+`)
-- `current_build` — the integer build number (after `+`)
-- `next_build` — `current_build + 1`
+- `current_version`, `current_build`, `next_build = current_build + 1`.
+- `ios_fastlane` = the Fastfile exists. Android never uses fastlane here.
+- **Resume:** if the top buildlog entry has `Status: in progress` and its `{version}+{build}` equals the `pubspec.yaml`
+  version, an earlier run was cut off (for example a context reset). Skip intake and the bump, read
+  `build/logs/*.log`, and continue at Step 5 with the entry's recorded platforms and lane.
+- Never feed `.env` to the build (Secrets Guard below). Publishable config belongs in committed Dart constants.
 
-Also extract:
-- `appname` — the exact value of `name:` from `pubspec.yaml`, used verbatim for artifact filenames (no transformation, no lowercasing beyond what's already written). This is the canonical `{appname}` passed to build agents.
+## Step 1: Intake (one batched question)
 
-### Fastlane detection (iOS only)
+Parse the invocation arguments first. Defaults: platforms both, Mode release, version `{current_version}`, build `{next_build}`,
+Android artifact `apk`, dart defines none, iOS lane `release_testflight` when the Fastfile has it, else `build_appstore`, else
+`build_adhoc`. Arguments override defaults (`version 1.3.0`, `profile`, `aab`, `no upload`).
 
-Check whether the project ships a fastlane setup for iOS:
+Draft the release notes now, yourself, following `references/release-notes.md`.
 
-```bash
-test -f ios/fastlane/Fastfile && echo "fastlane" || echo "no-fastlane"
-```
+Ask with a single `AskUserQuestion` call containing only the items the arguments did not already answer:
 
-- `ios_fastlane = true` when `ios/fastlane/Fastfile` exists, else `false`.
-- This only affects **iOS** builds. Android always uses the Gradle/`flutter build apk` path regardless.
-- **Why it matters:** a fastlane setup wires up shared code-signing (typically via `match`), which is what lets iOS build on any laptop without per-machine cert juggling. When present, prefer it for iOS; when absent, fall back to the current `flutter build ipa` method.
+1. **Platforms** - both (default) / android / ios.
+2. **iOS lane** (only when `ios_fastlane` and iOS is in play) - TestFlight upload (default) / App Store IPA only / Ad Hoc IPA.
+3. **Android artifact** (only when Android is in play) - APK (default) / AAB.
+4. **Release notes** - put the full draft in the question text, with a header line `Build {version}+{build}, {mode}`
+   and any warning (empty commit range, `pubspec.yaml` or `docs/buildlog.md` already modified, so the bump commit will include those edits).
+   Options: Approve / Edit / Cancel.
 
-## Step 2: Gather Parameters
+Handling the answer: Approve -> use the draft. Edit -> the user's typed corrections are the final notes; apply them and
+continue without asking again. Cancel -> stop; nothing has changed on disk. If the arguments answer everything
+(e.g. "testflight both, notes approved"), skip the call. If the arguments pre-approve the notes, use the draft without showing it first.
 
-Present the current state and ask the user for build configuration in a single prompt:
+Without Fastfile, iOS is `flutter build ipa --export-method ad-hoc` (the only lane); skip question 2.
+State plainly in the question text when the fastlane path applies: iOS is always a release build there, and a dart-defines
+file reaches Android only.
 
-```
-Current version: {current_version}+{current_build}
-Recent commits:
-  {last 5 commits}
+### Secrets Guard (SECURITY, always)
 
-Build configuration:
-  1. Platform: android / ios / both (default: both)
-  2. Mode: release / profile / debug (default: release)
-  3. Version: {current_version} (press enter to keep)
-  4. Build number: {next_build} (press enter to auto-increment)
-  5. Dart defines file: none / <path to a NON-SECRET config file> (default: none)
+`--dart-define-from-file` bakes every value into the shipped binary. Never pass `.env`, `.env.*`, `secrets.json`, `*.local.*`,
+`service-account*.json`, `*-service-account.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks` (case-insensitive). If a supplied
+path matches, stop and refuse, explaining that publishable config belongs in committed Dart constants. Accept a file only
+when the user explicitly names it and it plainly holds non-secret config; when in doubt treat it as secret.
 
-Please provide your choices (e.g., "android, release" or just press enter for defaults).
-```
+## Step 2: Pre-flight (no questions, nothing modified yet)
 
-Wait for user response. Parse their choices — use defaults for anything not specified.
+1. `flutter --version` works. Otherwise stop.
+2. Re-run the Secrets Guard on any dart-defines path; the file exists, with an absolute path.
+3. iOS via fastlane: resolve the lane and run the signing preflight in `references/fastlane-env.md`. Missing signing config stops the run here.
+4. `mkdir -p build/logs` and save the approved notes to `build/logs/whatsnew.txt` (used for `FL_CHANGELOG` and the buildlog).
+5. Note `date +%s` as `start_epoch` (artifact freshness check).
 
-> **Default is `none`.** Do not offer or assume `.env`. Only set a
-> `--dart-define-from-file` path if the user explicitly names a file AND it passes
-> the Secrets Guard below.
+A dirty working tree is not a blocker. Only `pubspec.yaml` and `docs/buildlog.md` are ever staged.
 
-### iOS lane selection (only when `ios_fastlane = true` AND iOS is being built)
+## Step 3: Bump and write the in-progress entry (before any wait)
 
-When fastlane was detected (Step 1) and the platform selection includes iOS, ask one
-additional question — the fastlane lane controls the iOS export method and signing:
-
-```
-This project has fastlane. How should the iOS build run?
-  1. ad-hoc     — signed Ad Hoc IPA, installable on registered devices (default)
-  2. app-store  — signed App Store IPA (no upload)
-  3. testflight — build the App Store IPA AND upload to TestFlight
-```
-
-Record the choice as `ios_lane` ∈ {`ad-hoc`, `app-store`, `testflight`}. Default `ad-hoc`
-(closest to the current `flutter build ipa --export-method ad-hoc` behavior).
-
-> **Two consequences of the fastlane path — state them to the user, do not hide them:**
-> - **iOS is always a release build.** The lanes build `--release` internally, so the
->   release/profile/debug "Mode" choice applies to **Android only** when iOS goes
->   through fastlane.
-> - **`--dart-define-from-file` is NOT applied to iOS.** The Fastfile owns the
->   `flutter build ios` invocation, so a dart-defines file (even a cleared non-secret
->   one) reaches Android but **not** the fastlane iOS build. If the user supplied a
->   dart-defines file together with a fastlane iOS build, warn them in Step 3 that it
->   won't affect the IPA.
-
-When `ios_fastlane = false`, skip this question entirely — iOS uses the current method.
-
-> **Fastlane signing preflight.** The nextc fastlane setup reads per-team secrets from
-> `~/.fastlane-nextc/config/teams.json` (override via `$IOS_SIGNING_CONFIG`) and the ASC key from
-> `~/.fastlane-nextc/private-keys/` — nothing secret lives in the repo, and the Fastfile self-seeds
-> `MATCH_PASSWORD`. The flutter-builder verifies this config exists in its Phase 1 and STOPS with
-> setup instructions (`setup-ios-signing.sh <team> <bundle-id>`) if it's missing. See the builder's
-> "Fastlane Signing & Env" section. For the `testflight` lane, pass the build's curated "What's new"
-> so external testers get real release notes (see Step 4 `Changelog` field).
-
-### Secrets Guard (SECURITY — always enforce)
-
-`--dart-define-from-file` bakes every key/value into the compiled client binary.
-Anything embedded is shippable and extractable — so a secret fed this way is a
-leak, not a config.
-
-- **Never** pass `.env` or any secret-bearing file to `--dart-define-from-file`.
-  Blocked patterns (case-insensitive): `.env`, `.env.*`, `secrets.json`,
-  `*.local.*`, `service-account*.json`, `*-service-account.json`, `*.pem`,
-  `*.p12`, `*.keystore`, `*.jks`.
-- If the user-supplied dart-defines path matches a blocked pattern, **STOP** and
-  refuse: explain that the file holds secrets that would be embedded in the
-  binary, and that publishable config should be committed Dart constants instead.
-- A dart-defines file is acceptable ONLY when it is explicitly non-secret build
-  config (e.g. a feature-flag or environment-name file the user confirms carries
-  no credentials). When in doubt, treat it as a secret and refuse.
-
-## Step 3: Confirm
-
-Show a summary:
-
-```
-Build plan:
-  Platforms   : {platforms}
-  Mode        : {mode}
-  Version     : {version}+{build}
-  Dart defines: {non-secret config file or none}
-  iOS method  : {fastlane ({ios_lane}) | flutter build ipa (ad-hoc)}   ← only show this row when iOS is being built
-
-Proceed?
-```
-
-- Show the `iOS method` row only when iOS is in the platform selection.
-- When `ios_fastlane = true`, the row reads `fastlane ({ios_lane})`; otherwise `flutter build ipa (ad-hoc)`.
-- If the fastlane path is selected AND a dart-defines file was provided, add a one-line
-  warning here: `Note: dart-defines won't apply to the iOS (fastlane) build.`
-
-Wait for user confirmation. If they say no or want changes, go back to Step 2.
+1. Edit `pubspec.yaml` to `version: {version}+{build}` (Edit tool).
+2. Write the buildlog entry with `Status: in progress`, `Built: pending`, `Uploaded: no`, `Distributed: none`
+   (`references/buildlog-template.md`), then lint it. This is what survives a context reset.
 
 ## Step 4: Build
 
-### Single platform (android or ios)
+Start both platforms together, then wait for both.
 
-Spawn one flutter-builder agent in foreground with the full pipeline:
-
-```
-Agent(
-  subagent_type: "flutter-builder",
-  model: "haiku",
-  description: "Build Flutter {platform}",
-  run_in_background: false,
-  prompt: """
-Build the Flutter app with the following configuration:
-- Platform: {platform}
-- Build mode: {mode}
-- Version: {version}
-- Build number: {build}
-- App name: {appname}  (use EXACTLY this string for artifact filenames — do not transform)
-- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
-- iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
-- iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
-- Changelog: {curated "What's new" if lane=testflight and pre-resolved, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG)
-- Project root: {absolute path to project}
-
-Target artifact names:
-- Android: {appname}_{version}_{build}.apk
-- iOS:     {appname}_{version}_{build}.ipa
-
-Follow your full process in phase order: validate, bump version, DRAFT & APPROVE the buildlog "What's new" (Phase 5A — before the build, so the review gate can abort early and the approved text can feed a TestFlight upload), build, rename artifacts, WRITE the buildlog entry (Phase 5B), report, commit, and tag.
-"""
-)
-```
-
-### Both platforms (parallel)
-
-When building both platforms, the skill orchestrates shared steps and spawns two agents in parallel:
-
-**Step 4a: Pre-build validation (in skill)**
-
-Run these checks before drafting the buildlog or spawning agents:
-1. Read `pubspec.yaml` — confirm version line exists
-2. If a dart-defines file was specified, verify it exists AND re-run the Step 2 Secrets Guard against its path — if it matches a blocked secret pattern, STOP and refuse (do not build with it)
-3. Run `flutter --version` — verify Flutter is available
-4. Run `git status` — if uncommitted changes, ask user before proceeding
-
-Validation runs before the review gate on purpose: don't ask the user to review a "What's new" draft only to discover Flutter is missing.
-
-**Step 4b: Draft the buildlog "What's new" (in skill, review gate — BEFORE building)**
-
-The "What's new" content comes from the git commit range, not from artifacts, so draft and approve it now — before the build. A cancel here aborts before any build work; an approve makes the text available to feed the iOS TestFlight lane as `FL_CHANGELOG`.
-
-Resolve the last tag first:
-
-```bash
-last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
-```
-
-Then spawn the flutter-builder in `whats-new` mode (foreground) to draft the content and run the review gate. There are no artifacts yet, so pass `Status: pending` and no sizes:
+**Android** - spawn the builder (omit `name`, so it is a plain background subagent and not a parked teammate):
 
 ```
-Agent(
-  subagent_type: "nextc-flutter:flutter-builder",
-  model: "haiku",
-  run_in_background: false,
-  prompt: """
-  Mode: whats-new
-  Project root: {cwd}
-  Last build tag: {resolved tag, or empty string}
-  Version: {version from Step 2}
-  Build number: {build}
-  Platforms: both
-  Mode (build): {release/profile/debug}
-  Dart defines: {non-secret config file or "none"}
-  Status: pending
-  """
-)
+Agent(subagent_type: "nextc-flutter:flutter-builder", model: "haiku", run_in_background: true,
+  description: "Build Flutter Android",
+  prompt: "Platform: android\nArtifact: {apk|aab}\nMode: {mode}\nVersion: {version}\nBuild number: {build}\n
+  App name: {appname}\nDart defines: {non-secret path or none}\nProject root: {absolute path}\n
+  Log file: build/logs/android.log\nStart epoch: {start_epoch}")
 ```
 
-The agent returns either:
-- `STATUS: APPROVED` with the approved content between `===WHATSNEW_START===` / `===WHATSNEW_END===` delimiters — hold this as `approved_whatsnew`. Do NOT write it to disk yet; Step 4f assembles and writes the full entry after the build.
-- `STATUS: CANCELLED` — STOP. Do NOT bump the version, do NOT build, do NOT commit or tag. Nothing has changed on disk yet. Report the cancellation and stop.
+Substitute every placeholder with a concrete value before sending. It returns the `===BUILD_RESULT===` block described in its definition.
 
-**Step 4c: Version bump (in skill)**
+**iOS** - the lead runs it, in the background, per `references/fastlane-env.md` ("Running the lane"):
+fastlane `ios {lane}` from `ios/` with `FL_CHANGELOG="$(cat ../build/logs/whatsnew.txt)"` for the TestFlight lane, output to
+`build/logs/ios-{lane}.log`; or, with no Fastfile, `flutter build ipa --export-method ad-hoc {dart_define_flag}` to
+`build/logs/ios-flutter.log`. Dart defines go only to `flutter` commands, never the fastlane path.
 
-Only after `STATUS: APPROVED`. Update `pubspec.yaml` version line to `version: {version}+{build}` using the Edit tool. This happens once, before agents are spawned.
+Tell the user in one line what is running, then end the turn. Resume when each completion notification arrives. If Android
+finished first, record its result and keep waiting for iOS; the build is done only when every started process has exited.
+A builder that is still listed after returning its result: `TaskStop` it (check with `ListAgents`). Never stop anything that is still running a lane.
 
-**Step 4d: Spawn two agents in parallel**
+**Android artifacts** (read from the builder's block): `build/{appname}_{version}_{build}.{apk,aab}`.
+**iOS artifact:** after the lane exits, move the IPA fastlane printed (else the newest of `ios/*.ipa build/ios/ipa/*.ipa`
+newer than `start_epoch`) to `build/{appname}_{version}_{build}.ipa` with `mv`.
 
-Launch BOTH agents in a single message (parallel tool calls). Both run in background:
+## Step 5: Verify, then update the buildlog
 
-CRITICAL: before constructing the prompts, substitute `{appname}` (from Step 1) and `{version}` / `{build}` as concrete strings. Do NOT leave placeholder tokens in the prompt text sent to the agents — both agents MUST receive the SAME authoritative app name so APK and IPA filenames match.
+For an iOS upload lane follow `references/report.md`: derive Built / Uploaded / Distributed from the log, not from the exit
+code, and mark anything the log does not prove `unconfirmed`. A failed lane follows `stop-and-diagnose.md` (did the upload
+reach Apple before any retry?). Verify each artifact exists, is newer than `start_epoch`, and is non-empty.
 
-```
-Agent(
-  subagent_type: "flutter-builder",
-  model: "haiku",
-  name: "build-android",
-  description: "Build Flutter APK",
-  run_in_background: true,
-  prompt: """
-Build the Flutter app with the following configuration:
-- Platform: android
-- Build mode: {mode}
-- Version: {version}
-- Build number: {build}
-- App name: {appname}  (use EXACTLY this string for the APK filename — do not transform)
-- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
-- Project root: {absolute path to project}
+Update the entry written in Step 3 in place: Status (`success` / `partial` / `failed`), Built (sizes or one-line causes),
+Uploaded, Distributed, and the What's new block per the failed/partial rules in the template. Lint again.
 
-Target artifact name: {appname}_{version}_{build}.apk
+## Step 6: Commit and tag
 
-PARTIAL MODE — the skill is orchestrating a parallel build:
-- SKIP Phase 1 (pre-build validation) — already done by skill
-- SKIP Phase 2 (version bump) — already done by skill
-- SKIP Phase 5A (draft "What's new") — skill already drafted & approved it (Step 4b)
-- DO Phase 3 (build) — Android only
-- DO Phase 4 (artifact rename) — Android only, rename to the target artifact name above
-- SKIP Phase 5B (write build log) — skill will handle
-- DO Phase 6 (build report) — report Android results
-- SKIP Phase 7 (git commit & tag) — skill will handle
-"""
-)
+- At least one platform built (`success` or `partial`): `git add pubspec.yaml docs/buildlog.md`, commit
+  `chore: bump version to {version}+{build}`, then `git tag build/{version}+{build}`. No prompt: invoking the skill is the request.
+- Nothing built (`failed`): leave the bump and the failed buildlog entry uncommitted and untagged, and say so in the report
+  (the user can inspect, fix and re-run; Step 0's resume rule does not apply to `failed` entries).
 
-Agent(
-  subagent_type: "flutter-builder",
-  model: "haiku",
-  name: "build-ios",
-  description: "Build Flutter IPA",
-  run_in_background: true,
-  prompt: """
-Build the Flutter app with the following configuration:
-- Platform: ios
-- Build mode: {mode}
-- Version: {version}
-- Build number: {build}
-- App name: {appname}  (use EXACTLY this string for the IPA filename — do not transform)
-- Dart-define-from-file: {non-secret config path or "none"}  (NEVER .env — secrets must not be embedded)
-- iOS build method: {fastlane | flutter}  (fastlane only when ios_fastlane=true)
-- iOS fastlane lane: {ad-hoc | app-store | testflight | n/a}  (only meaningful when iOS build method = fastlane)
-- Changelog: {approved_whatsnew from Step 4b if lane=testflight, else "none"}  (only used for the fastlane testflight lane → FL_CHANGELOG; always available now because Step 4b drafts before the build)
-- Project root: {absolute path to project}
+## Step 7: Report
 
-Target artifact name: {appname}_{version}_{build}.ipa
+Use the table and the three-facts lines from `references/report.md`.
 
-PARTIAL MODE — the skill is orchestrating a parallel build:
-- SKIP Phase 1 (pre-build validation) — already done by skill
-- SKIP Phase 2 (version bump) — already done by skill
-- SKIP Phase 5A (draft "What's new") — skill already drafted & approved it (Step 4b)
-- DO Phase 3 (build) — iOS only. For the testflight lane the build is complete ONLY when the fastlane process exits — it keeps running after the upload to poll Apple processing, set release notes, and distribute to the external tester group
-- DO Phase 4 (artifact rename) — iOS only, rename to the target artifact name above
-- SKIP Phase 5B (write build log) — skill will handle
-- DO Phase 6 (build report) — report iOS results, ONLY after the fastlane process has fully exited (your report triggers the skill to stop you; reporting while fastlane polls gets the distribution step killed)
-- SKIP Phase 7 (git commit & tag) — skill will handle
-"""
-)
-```
+## Gotchas
 
-**Step 4e: Consume results, then shut down the background builders**
+- **iPad orientations fail App Store validation.** altool returns 409 unless `UIRequiresFullScreen` is set or all four iPad
+  orientations are listed in `ios/Runner/Info.plist` (`UISupportedInterfaceOrientations~ipad`). Fix the plist, bump the build number, rebuild.
+- **External TestFlight distribution needs the tester group to exist first.** Create the group in App Store Connect before
+  the lane runs, or distribution fails after a successful upload. Check the group name in the log (Step 5).
+- **Apple raises the minimum iOS version over time.** An "SDK/minimum OS" warning or rejection means the deployment
+  target or Xcode is too old: raise `IPHONEOS_DEPLOYMENT_TARGET` and update Xcode; the warning is not a transient.
+- **Builder subagents can be blocked on uploads by a permission layer.** That is why the lead runs the upload lane, in its own session.
+- **Fastlane exit 0 is not delivery.** Prove upload and distribution from the log (`references/report.md`).
+- **Foreground Bash calls time out at 10 minutes.** TestFlight processing is longer; always use `run_in_background`.
+- **`build_adhoc` is not what shipping builds use.** Every real build here goes to TestFlight, so that is the default lane.
+- **A dart-defines file never reaches the fastlane iOS build**; the Fastfile owns that `flutter build ios` call.
 
-After BOTH agents report their Phase 6 results:
+## Rules
 
-1. **TestFlight completion gate (iOS `testflight` lane only):** an iOS report counts as a Phase 6 result ONLY if it states the fastlane lane process exited. `upload_to_testflight(distribute_external: true)` keeps running after the upload transmits — it polls Apple processing (5–15 min), then sets the release notes and submits to the external tester group. A report like "build done, fastlane still polling/uploading" is an in-progress status, not a result: do not record it, and above all do NOT shut that builder down — killing it kills the polling fastlane process, so the release notes and external-tester submission never happen and the user must submit manually in App Store Connect. Wait for the builder's final report.
-2. Record each platform's status (success/failed), renamed artifact path, and size — you need these for the buildlog metadata (Step 4f) and the report (Step 5). For the `testflight` lane, also record the distribution outcome (distributed to external group, or "upload transmitted, distribution unconfirmed").
-3. **Stop both builders before proceeding — do NOT leave them parked.** They were spawned with `run_in_background: true`; a finished teammate parks idle instead of exiting, so it keeps running until stopped. As soon as a builder's final results are consumed (step 1's gate passed), stop it:
-
-   ```
-   TaskStop(task_id="build-android")
-   TaskStop(task_id="build-ios")
-   ```
-
-   `TaskStop` kills the builder and its child processes immediately — which is why step 1's TestFlight gate must pass first. Stop them here, not at the end of the run, then confirm with `ListAgents` that neither is still listed.
-
-**Step 4f: Write the buildlog entry (in skill, post-build assembly)**
-
-The content was already drafted and approved in Step 4b; here you only assemble the mechanical metadata around it and write. Do NOT re-draft or re-run the review gate.
-
-Resolve the write timestamp:
-
-```bash
-today=$(date +%Y-%m-%d)
-now=$(date +%H:%M)
-```
-
-**On success (both platforms built):** assemble the entry and append it below the `# Build Log` header in `docs/buildlog.md` (newest-first — never edit past entries):
-
-```markdown
-## Build #{build} — {version}+{build} ({today} {now})
-
-- **Platforms:** both
-- **Mode:** {mode}
-- **Dart defines:** {non-secret config file or none}
-- **Status:** success
-
-{approved_whatsnew — the block between the Step 4b delimiters, verbatim}
-```
-
-**On failure (either platform failed):** the pre-approved "What's new" describes changes that did not ship, so do NOT write it. Instead write the same header + metadata with `**Status:** failed` and replace the "What's new" block with a one-line error summary of the platform that failed.
-
-**Post-write lint** (both cases): read `docs/buildlog.md` back and verify — `# Build Log` header present at top; entries newest-first (dates monotone decreasing); every entry date ≤ `$today`; current entry has all required fields (version, build, platforms, mode, status, and a non-empty "What's new" or error line). If any check fails: `git checkout -- docs/buildlog.md` to revert, report, and abort (no commit, no tag).
-
-**Step 4g: Git commit & tag**
-
-1. **Git commit** — Stage `pubspec.yaml` and `docs/buildlog.md`, commit with `chore: bump version to {version}+{build}`. (Committed on both success and failure — the failed entry keeps the buildlog history intact.)
-2. **Git tag** — Only if BOTH builds succeeded: `git tag build/{version}+{build}`. If either platform failed, do NOT tag — report which failed.
-
-## Step 5: Report
-
-After the agent completes, report:
-
-**Build report table:**
-
-```
-| Platform | Status  | Artifact                        | Path                              |
-|----------|---------|---------------------------------|-----------------------------------|
-| Android  | success | {appname}_{version}_{build}.apk | build/                            |
-| iOS      | success | {appname}_{version}_{build}.ipa | build/                            |
-```
-
-- Both artifacts live at the root of `build/` (the builder's Phase 4 moves them there — the standard drop location — regardless of the flutter/fastlane path)
-- **Path column shows the directory only** (no filename) — clickable in file explorer
-- **Artifact column shows the renamed filename**
-- Show paths relative to project root
-- If a platform failed, show `failed` with a one-line error summary instead of artifact/path
-
-**Additional info:**
-- Version committed: `{version}+{build}`
-- Tag created: `build/{version}+{build}` (only if build succeeded)
-- Remind user to `git push && git push --tags` when ready
-
-## Fallback
-
-If the flutter-builder agent is unavailable, execute the build steps inline:
-1. Draft & approve the "What's new" content first (curated from the `last_tag..HEAD` range, not a git-log dump) — before building, so a cancel aborts early and the approved text can seed a TestFlight `FL_CHANGELOG`
-2. Update pubspec.yaml version
-3. Run the build commands — `flutter build apk` for Android; for iOS use the selected fastlane lane (`cd ios && bundle exec fastlane ios {ios_lane-as-lane-name}`) when `ios_fastlane = true`, otherwise `flutter build ipa --export-method ad-hoc`
-4. Rename **and move** each artifact to the root of `build/` — the standard location (`build/{appname}_{version}_{build}.{apk,ipa}`), regardless of the flutter/fastlane path — see flutter-builder Phase 4
-5. Write docs/buildlog.md — the approved "What's new" plus the resolved status/sizes metadata
-6. Report in table format
-7. Commit and tag (tag only on success)
+- Never push. Commit only `pubspec.yaml` and `docs/buildlog.md`. Tag only a build where something built.
+- Edit nothing beyond the `pubspec.yaml` version line and the buildlog.
+- Never `git checkout --` anything the user may have edited; to undo a bad buildlog write, restore your own pre-write copy.
+- Never retry a failed upload lane without a diagnosis. A second upload of an already-recorded `{version}+{build}` is
+  denied by the nextc-flutter upload guard hook; if it fires, believe it and read the buildlog.
+- Fastlane secrets stay in `~/.fastlane-nextc/`. Never read them into a report, log or commit, and never set `MATCH_PASSWORD`.
+- If the builder agent is unavailable, run the Android command from its definition inline in the lead.

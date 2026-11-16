@@ -4,6 +4,8 @@ description: >
   Extract user-facing strings from Flutter code into ARB locale files. Use when moving
   hardcoded strings to AppLocalizations, updating ARB files, or as part of the l10n pipeline.
   Incremental — only new/changed keys.
+when_to_use: |
+  Triggers: "extract strings", "move strings to ARB", "update ARB files", "/flutter-l10n-extract".
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
 paths: ["**/pubspec.yaml", "**/lib/**/*.dart", "**/l10n/*.arb"]

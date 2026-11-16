@@ -1,79 +1,45 @@
 # UI/UX Design Principles
 
-Mandatory design constraints for all UI/UX work — every project, every stack. These apply on top of, and **override**, any conflicting suggestion from a design skill (e.g. `ui-ux-pro-max`): if a generated palette wants a vibrant accent border or a screen drifts past the font caps, these rules win.
+Keep interfaces restrained, consistent across the whole product, and laid out on a measured system; these rules override a design skill's output when they conflict.
 
-## 1. Color restraint — neutral by default
+Reasons and exception history: `~/.claude/nextc-claude-references/ui-ux-design-notes.md`.
 
-Never use accent, vibrant, highlight, or otherwise outstanding colors for borders, dividers, or container outlines. Reserve high-salience color for **exactly one** element per screen — the single most important action or value.
+## 1. Color restraint: neutral by default
 
-**Why:** if everything is emphasized, nothing is. Loud borders compete with the one thing that should draw the eye.
+Do not use accent or vibrant colours for borders, dividers or container outlines. Reserve high-salience colour for one element per screen, the most important action or value, because if everything is emphasized nothing is. Exception: unbordered tappable text (text buttons, inline links) uses the accent and does not count toward the one; a neutral tappable control needs a visible border or fill.
 
-### 1b. A semantic palette must pass three tests before it exists
+### 1b. Semantic palettes must pass three tests
 
-Encoding a *category* as a hue — a type, a family, a status, an owner, a tier — is the most tempting way to make a dense screen legible, and the most common way to break rule 1. Before proposing one, answer all three. A "no" on any is a no.
+Before encoding a category (type, status, owner, tier) as a hue, answer all three; a "no" on any means no palette:
 
-1. **Does the accent already mean something else?** If the accent means *the way forward*, a palette that assigns it to a category makes it mean two things at once on every screen where that category is common. Either the palette takes hues the accent does not use, or the accent stops being the accent.
-2. **Does every hue clear the text-contrast floor at the size it will actually be read?** A brand or status colour picked for a fill is usually *not* legible as small text: check each one at its real size against its real background, and expect to need a lightened variant. A palette that needs new tokens is a bigger change than it looks.
-3. **Could the colour answer a question the screen is asking?** A diagram, a shape, a chart mark or an icon that is *itself the question* must never be coloured by its own answer. A quiz that draws the thing and asks the learner to name it gives the answer away the moment the drawing is colour-coded by category. **This one is a hard stop, not a trade-off** — and the fix is never a per-screen exception, because an exception is a rule someone has to keep remembering. Pull the encoding off that element everywhere.
+1. Does the palette leave the accent's hue alone, so the accent keeps its one meaning?
+2. Does every hue clear the text-contrast floor at the size and on the background where it will be read?
+3. Can the colour avoid answering a question the screen asks? An element that is itself the question is never coloured by its answer; remove the encoding from it everywhere, not per screen.
 
-**If the palette fails, say what the category is carried by instead.** Usually it is already in the content — a suffix, a label, a shape, an ordering — and the honest answer is that colour was going to restate something the screen already said.
+If the palette fails, say what already carries the category (a label, suffix, shape or order).
 
-**Why:** a categorical palette is a system, not a screen. It commits every surface that draws the category, it competes with whatever the accent meant, and — where the product teaches or tests — it can quietly answer the very question the interface exists to ask.
+## 2. Glass styles stay translucent
 
-## 2. Glass / frost styles stay translucent
+In glass or frosted styles, use no solid fills; colour is a low-opacity tint over the blur. Exception: the one primary action on a screen may take an accent tint up to about 0.85 alpha when a faint tint leaves its label illegible, provided it keeps blur, edge light and refraction, it is the only such control in that screen state, the accent is used nowhere else on the screen, and its label measures at least 4.5:1 over black and white backdrops.
 
-When the design style is liquid glass, glass, frosted, or similar, never use solid fills. If color is required, apply it only as a **low-opacity tint layered into the glass material** (tint over blur) — never an opaque block.
+## 3. Sans-serif by default
 
-**Exception — the one primary action.** The single primary-action control on a screen (the rule-1 "one high-salience element") may carry a **high-alpha accent tint** (up to ~0.85) layered into the glass, when a low-opacity tint can't make its label legible over an arbitrary background. Conditions, all required:
-- It stays glass: blur, edge light, and refraction are kept. Only the tint strength changes, and it never becomes an opaque `Container` fill.
-- At most **one** such control is visible per screen state, and the accent is never also used for borders, rings, icons, text, or categories (rules 1 and 1b).
-- Its label clears 4.5:1 against the tinted glass over the worst-case backdrops (black and white at minimum). Measure it; don't eyeball it.
-
-Everything else (cards, sheets, chips, secondary buttons, badges) stays at a low-opacity tint or neutral.
-
-**Why:** a solid fill breaks the material illusion the style depends on. A primary call to action is the one place where hue contrast earns its keep: over a busy photo, a faintly tinted CTA is indistinguishable from the other glass controls. A strongly tinted control that keeps its blur and edge light still reads as glass. (Precedent: iOS 26's prominent glass button style. Added 2026-10-20 after the TripFold PRD V1.2 accent decision.)
-
-## 3. Sans-serif by default; serif only on command; never italic serif
-
-Default to sans-serif for a lighter, modern look and feel. Use serif **only** when the user explicitly asks for it. Never pair italic with serif.
+Use sans-serif. Use serif only when the user asks for it, and do not pair serif with italic.
 
 ## 4. Cap fonts and sizes per screen
 
-- **Max 2 font families** per screen — 3 only if genuinely unavoidable.
-- **Max 3 distinct font sizes** per screen — 4 only if genuinely unavoidable.
-- Define a type scale once and reuse it.
+At most 2 font families (3 only if unavoidable) and 3 font sizes (4 only if unavoidable) per screen, from one type scale defined once.
 
-**Why:** users read each new font size as a new font. 2 families × 5–6 sizes reads like 10+ fonts on one screen — visual chaos.
+## 5. Propose before executing (interactive sessions)
 
-## 5. Propose before executing (SOFT gate)
+A design change the user did not specify gets shown before it is applied, once, and concretely: what changes (tokens, components, type or spacing values), every screen it touches (rule 6), and one alternative when there is a real choice. Put it in the one batched question (`heavy-commands.md`) with your recommendation first.
 
-Unless the user explicitly commands a specific change, **present the proposed design change and get explicit confirmation before applying it** in interactive sessions.
+Apply without proposing when the user named the specific change, when it only brings a screen in line with the existing design system or these rules, or under a standing approval. In autonomous, `--auto` or team runs, design changes proceed without pausing; list them in the report with the screens affected.
 
-**Soft-gate scope:** in explicitly autonomous / `--auto` / team runs, design changes are pre-authorized and may proceed without pausing — the user has already opted into not being asked. The confirm-first behavior applies to normal interactive sessions only. This gate is the *only* part of these rules that relaxes under autonomy; everything else — especially Rule 6 — holds.
+## 6. Consistency is product-wide (every mode)
 
-## 6. Consistency is product-wide (HARD rule — never relaxes)
+A design change is never local, in any mode: apply it everywhere the style appears, define each design value once (tokens, spacing, type scale, shared components) and reuse it, and check that every screen still looks consistent.
 
-This is a **hard rule. It applies in every mode — interactive, `--auto`, autonomous, and team runs alike.** Unlike Rule 5, it is never pre-authorized away. A design change is never local. For any change:
+## 7. Layout is measured; structure before polish
 
-- **(a) Audit the entire product** so the new style is applied everywhere it appears, not just the screen in front of you.
-- **(b) Refactor so each design decision is defined once and reused** — color tokens, spacing, the type scale, shared components. Never duplicate a design value; centralize it and reference it. (See `practices.md` → Research & Reuse / Immutability.)
-- **(c) Verify look-and-feel stays consistent** across all screens after the change.
-
-**Why:** a change that leaves one screen inconsistent with the rest is a regression, not an improvement. This is the most important rule — it is what keeps the product feeling like one product. Skipping the audit because a run is "autonomous" or "just one screen" is exactly the failure this rule exists to prevent.
-
-## 7. Layout is scientific; structure before polish; use the design skill
-
-- **Scientific layout.** Ground every layout decision in a measured system — a spacing scale, an alignment grid, a type scale, actual rendered measurements — not eyeballing or vibes. Positions, gaps, and sizes come from the system and are verified against the **rendered screen** (per `verify-before-claim.md` #9), not asserted from the code or the analyzer. If rendering requires a build or a simulator/emulator launch, get the user's approval first (`heavy-commands.md`) — if declined, tag the visual claim as unverified rather than launching anyway.
-- **Structure before polish.** Get layout, spacing, and position correct *first*; only then touch motion, color, and finish. Polishing an animation or easing curve before the element sits in the right place is wasted work in the wrong order.
-- **Use the installed design skill.** For any design / layout / UI task, check for and use the relevant design skill (e.g. `ui-ux-pro-max`) for palette, type pairing, spacing systems, and stack-specific patterns — don't hand-roll what the skill already systematizes. (Skill selection in general is governed by `agentic-awareness.md`.) These rules still override the skill's output on conflict.
-
-**Why:** layout done by eye drifts and can't be reproduced or audited; polishing before the structure is right optimizes the wrong thing (the exact failure behind `verify-before-claim.md` #9).
-
-## Enforcement
-
-- Before implementing any UI: confirm the screen obeys #1–#4. Treat a vibrant border, a solid fill in a glass style, an italic serif, or a 4th font / 5th size as a defect to fix, not ship.
-- Before proposing or implementing a categorical/semantic colour encoding: run #1b's three tests and state the answers. A palette whose hue could answer a question the screen is asking is a defect regardless of how well it reads. When a palette is rejected, record *why* beside the rule it would have changed, so it is not re-proposed.
-- Before applying a design change (interactive): propose and confirm per #5.
-- After any design change (every mode): run the #6 whole-product audit — apply the change everywhere, deduplicate the design code, verify consistency.
-- Before touching motion / color / finish: confirm the layout and structure are correct and verified against the rendered screen (#7). Polishing before the layout is right is an ordering defect. For a design/layout task, confirm the relevant design skill (e.g. `ui-ux-pro-max`) was consulted (#7).
-- When a design skill's output conflicts with these rules, these rules win — note the override per the global "rule conflict" guidance in `~/.claude/CLAUDE.md`.
+Ground positions, gaps and sizes in a spacing scale, alignment grid and type scale, and judge them on the rendered screen (see `verify-before-claim.md`). Get layout right before touching motion, colour and finish. For design, layout or UI work, use the installed design skill (such as `ui-ux-pro-max`) for palettes, type pairing and spacing systems.

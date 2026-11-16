@@ -32,6 +32,13 @@ The Node.js validator scans rule bodies, agent bodies, and skill bodies for two 
 
 Patterns are defined in `scripts/schema.js` under `CONTENT_ANTIPATTERNS`. Authors can suppress a false positive with `<!-- validate:ignore -->` on the same line, or wrap a block between `<!-- validate:ignore-start -->` and `<!-- validate:ignore-end -->`.
 
+## Other automatic checks
+
+- Agents: `model` and `effort` required, `tools` (when listed) must include `SendMessage`, and model/effort must match `rules-references/agents-roster.md` when it exists (A07/A08/A10/A11/A12).
+- Skills and agents: `{{ARGUMENTS}}` (K01), legacy `Task(` spawns (K02), and `Agent(` spawns of built-in types without `model` (K03). <!-- validate:ignore -->
+- Skills: description needs a "Use when ..." clause and at most 1,024 characters (S13).
+- Hooks: `hooks.json` `modules` entries must exist and end in `.js .mjs .ts .tsx` (H08); `workflows/*.js` must start with `export const meta =` (W01); plugin.json `engines` must map names to strings (P06).
+
 ## Step 1: Run structural validator
 
 Execute the bundled Node.js validator script:

@@ -5,7 +5,7 @@
     {
       "id": 1,
       "should_trigger": true,
-      "query": "I have an idea — a Mahjong-like game for retired folks who want to keep their minds sharp but the existing apps are too noisy and full of ads. is this worth building",
+      "query": "I have an idea — a tile-matching puzzle game for retired folks who want to keep their minds sharp but the existing apps are too noisy and full of ads. is this worth building",
       "expected_output": "Triggers product-explore — raw idea + validation ask"
     },
     {
@@ -42,7 +42,7 @@
       "id": 7,
       "should_trigger": false,
       "query": "explore this idea using multiple frameworks — JTBD, blue ocean, etc",
-      "expected_output": "Should NOT trigger — idea-explore territory (8 frameworks), not proposal pipeline"
+      "expected_output": "Should NOT trigger — idea-explore territory (multi-lens analysis), not the decision memo"
     },
     {
       "id": 8,
@@ -72,7 +72,7 @@
       "id": 12,
       "should_trigger": false,
       "query": "audit my Claude Code setup",
-      "expected_output": "Should NOT trigger — workspace-surface-audit territory"
+      "expected_output": "Should NOT trigger — `/doctor` territory"
     }
   ]
 }

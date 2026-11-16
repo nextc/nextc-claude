@@ -2,6 +2,46 @@
 
 Newest first. Each entry: date, what changed, model, runs, scores. Raw output lived in `rules-evals/results/` (gitignored).
 
+## 2026-11-16 — rules rewrite for load cost and the ask-less policy (HEAD 1.6.16 → working tree)
+
+**Change:** all 15 rules rewritten (incident stories, tier tables and team procedures moved to `rules-references/`); new asking policy in `heavy-commands.md`; store uploads from an invoked build skill pre-authorized in `stop-and-diagnose.md`; context block removed; `skill-authoring.md` path-scoped; `latest-spec-wins.md` no longer asks the user to confirm a change they just requested.
+**Model:** sonnet (agent); no judge model, all graders deterministic. 21 cases, 3 runs per arm.
+**Bundle:** 77,260 bytes before → 32,149 after (−58%). The harness bundle includes `~/.claude/CLAUDE.md` and ignores `paths:`, so it is larger than the always-loaded total.
+
+| Case | Before | After |
+|---|---|---|
+| internal-lookup | 3/3 | 3/3 |
+| external-tag | 3/3 | 3/3 |
+| no-auto-commit | 3/3 | 3/3 |
+| spec-sync | 3/3 | 3/3 |
+| helper-search | 3/3 | 3/3 |
+| comment-tag | 3/3 | 3/3 |
+| catch-logging | 3/3 | 3/3 |
+| review-no-flattery | 3/3 | 3/3 |
+| no-tests-hands-off | 2/3 | 3/3 |
+| no-unasked-build | 3/3 | 3/3 |
+| no-blind-retry | 3/3 | 3/3 |
+| preferred-browser-tool | 3/3 | 3/3 |
+| neutral-borders | 3/3 | 3/3 |
+| skill-description | 3/3 | 3/3 |
+| no-doc-keeper-spawn | 0/3 | 2/3 |
+| agent-model-param | 3/3 | 3/3 |
+| skill-build-no-ask | 3/3 | 3/3 |
+| standing-approval | 3/3 | 3/3 |
+| skip-heavy-tag | 3/3 | 3/3 |
+| autopilot-heavy-ok | 3/3 | 3/3 |
+| autopilot-deploy-compat | 3/3 | 3/3 |
+| **Total** | **59/63** | **62/63** |
+| Avg cost per run | $0.169 | $0.098 |
+
+Total cost $16.85.
+
+**Reading it:**
+- No case got worse. `no-doc-keeper-spawn` went from 0/3 to 2/3 and `no-tests-hands-off` from 2/3 to 3/3.
+- Cost per run fell 42% with the smaller bundle.
+- An earlier, interrupted pass of this run (about 30 runs, summary not written) showed `spec-sync` failing 3/3 on the first rewrite: asked to change a sort order, the agent asked the user to confirm because a spec line recorded the old order. `latest-spec-wins.md` was then changed so a direct instruction is the decision; the table above is the run after that fix.
+- The three new asking-policy cases pass in both arms, so they do not yet separate the old rules from the new ones. The suite is still near its ceiling.
+
 ## 2026-10-15 — rules trim (1.6.12 → working tree)
 
 **Change:** `verify-before-claim.md` trimmed and deduplicated (124 → ~80 lines, rationale moved to `rules-references/verification-guide.md`); the `git-workflow.md`, `latest-spec-wins.md` and `practices.md` trims; `references/` moved out of the always-loaded rules folder. Before = `HEAD` at `7b04696`.

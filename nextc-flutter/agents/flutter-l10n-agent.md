@@ -1,10 +1,6 @@
 ---
 name: flutter-l10n-agent
-description: >
-  Flutter localization specialist. Executes individual l10n pipeline steps
-  (audit, harmonize, extract, translate, status) when spawned by skills.
-  Knows ARB format, ICU MessageFormat, glossary protection, and incremental
-  update semantics. Does NOT auto-run the full pipeline — users drive each step.
+description: Flutter localization specialist that executes one l10n pipeline step (audit, harmonize, extract, translate, verify, status) when spawned by a flutter-l10n skill. Knows ARB format, ICU MessageFormat, glossary protection, and incremental update semantics. Does not auto-run the full pipeline.
 model: sonnet
 effort: medium
 tools:
@@ -36,20 +32,14 @@ Before any operation:
 4. Read `l10n.yaml` for current locale configuration
 5. Scan `lib/l10n/` for existing ARB files
 
-Before scoring text quality or auditing strings, read
-`nextc-flutter/references/l10n-text-principles.md` for the full text-principles
-guide covering voice, terminology, harmonize rules, ICU format, and navigation
-consistency.
+Before scoring text quality or auditing strings, read the text-principles guide
+(voice, terminology, harmonize rules, ICU format, navigation consistency). The
+spawning skill passes its absolute path (`${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md`
+resolved); if it did not, ask the lead for it rather than guessing a path.
 
-## Supported Locales (Default Set — 20)
+## Locales
 
-```
-en, vi, ja, ko, zh-Hans, zh-Hant, th, id, ms, fil,
-hi, fr, es, pt, de, it, ru, ar, tr, uk
-```
-
-Configured in `l10n.yaml`. Projects can override this list.
-`en` is always the source locale.
+Target locales are those in `l10n.yaml` and the existing `lib/l10n/app_*.arb` files. `en` is the source locale and is never translated. Do not add locales on your own.
 
 ## Pipeline Steps (User-Driven)
 
@@ -60,8 +50,9 @@ Each step is a separate skill invoked by the user:
 | 1 | `flutter-l10n-audit` | Scan for hardcoded strings, audit text principles |
 | 2 | `flutter-l10n-harmonize` | Cross-string consistency, deduplication |
 | 3 | `flutter-l10n-extract` | Collect into `app_en.arb`, replace in Dart code, run `flutter gen-l10n` |
-| 4 | `flutter-l10n-translate` | Translate via ChatGPT API |
-| 5 | `flutter-l10n-status` | Coverage dashboard |
+| 4 | `flutter-l10n-translate` | Translate untranslated keys (directly by you, per locale) |
+| 5 | `flutter-l10n-verify` | Cross-locale consistency, dead keys |
+| 6 | `flutter-l10n-status` | Coverage dashboard |
 
 ## Adding a New Locale
 
@@ -105,7 +96,7 @@ Non-en locale files use `"x-translated": true/false` in `@key` metadata to track
 ## Error Handling
 
 - If `flutter gen-l10n` fails, show the error and suggest fixes (missing placeholders, invalid ICU syntax)
-- If translation API fails, retry up to 3 times with exponential backoff, then report failed keys
+- If a key fails validation (placeholders, ICU, glossary), redo it once with the diagnosis; if it still fails, report it instead of writing it
 - If `glossary.md` is missing, warn the user and proceed with only product/brand name protection
 - If `l10n.yaml` is missing, create it with default configuration
 

@@ -1,11 +1,10 @@
 ---
 name: flutter-l10n
-description: >
-  Full Flutter localization pipeline: audit, harmonize, extract, translate, verify, status.
-  Use when localizing a Flutter app, adding translations, or running the l10n workflow.
-  Each step pauses for user review.
+description: Run the full Flutter localization pipeline (audit, harmonize, extract, translate, verify, status) with a review pause at each approval gate. Use when localizing a Flutter app, adding translations, or running the whole l10n workflow.
+when_to_use: |
+  Triggers: "localize the app", "run the l10n pipeline", "add translations", "/flutter-l10n". Skip for a single step (use the step's own skill) or non-Flutter projects.
 user-invocable: true
-allowed-tools: Read Write Edit Bash Grep Glob
+allowed-tools: Agent Skill Read Write Edit Bash Grep Glob
 paths: ["**/pubspec.yaml", "**/lib/**/*.dart", "**/l10n/*.arb"]
 ---
 
@@ -18,7 +17,7 @@ approval gates will WAIT for user confirmation before the pipeline continues.
 
 ### Step 1: Audit
 
-Invoke the `flutter-l10n-audit` skill.
+Invoke the `flutter-l10n-audit` skill (Skill tool).
 
 - Scan `lib/` for hardcoded user-facing strings
 - Audit each string against text principles (tone, glossary, brevity, ICU)
@@ -47,9 +46,9 @@ Invoke the `flutter-l10n-extract` skill.
 
 Invoke the `flutter-l10n-translate` skill with `--all`.
 
-- Translate only untranslated keys across all supported locales
-- Uses ChatGPT API via `scripts/flutter_translate.py`
+- Translate only untranslated keys across the project's target locales, directly in Claude (one `flutter-l10n-agent` per locale)
 - Validates translations (placeholders, ICU syntax, glossary terms)
+- The external OpenAI script is optional (`--api`); the key comes from `OPENAI_API_KEY` only
 
 ### Step 5: Verify
 
@@ -89,7 +88,7 @@ Users can also run any step independently:
 | `/flutter-l10n-extract` | Extract strings only |
 | `/flutter-l10n-translate --all` | Translate all locales |
 | `/flutter-l10n-translate --locale=ja` | Translate single locale |
-| `/flutter-l10n-translate --dry-run` | Preview without API calls |
+| `/flutter-l10n-translate --dry-run` | Preview what would be translated, write nothing |
 | `/flutter-l10n-translate --force` | Re-translate everything |
 | `/flutter-l10n-verify` | Post-translation quality check |
 | `/flutter-l10n-status` | Coverage dashboard only |
@@ -123,11 +122,6 @@ If existing translations are poor quality and the user wants to redo everything:
 
 See the extract skill's "Starting Fresh (Delocalization)" section for details.
 
-## Default Locales (20)
+## Locales
 
-```
-en, vi, ja, ko, zh-Hans, zh-Hant, th, id, ms, fil,
-hi, fr, es, pt, de, it, ru, ar, tr, uk
-```
-
-Configured in `l10n.yaml`. Projects can override.
+Target locales come from `l10n.yaml` and the existing `lib/l10n/app_*.arb` files; `en` is the source. For a new project the translate step offers a common 20-locale starting set.

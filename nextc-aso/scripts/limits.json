@@ -1,0 +1,255 @@
+{
+  "about": "Store limits and policy rules the ASO pipeline relies on. Each entry names its official source and the date it was read. confirmed:false means the value was not found on an official page on that date: the checker reports it as a warning, never a failure, and reports must label it unconfirmed. Re-check entries older than ~6 months before relying on them.",
+  "checkedAt": "2026-11-16",
+  "limits": {
+    "ios.name": {
+      "min": 2, "max": 30, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/app-information",
+      "quote": "The name must be at least two characters and no more than 30 characters."
+    },
+    "ios.subtitle": {
+      "max": 30, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/app-information",
+      "quote": "This can't be longer than 30 characters."
+    },
+    "ios.keywords": {
+      "max": 100, "unit": "bytes", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "One or more keywords (each greater than two characters) describing your app. You can provide up to 100 bytes of content."
+    },
+    "ios.promotionalText": {
+      "max": 170, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "This property can't be longer than 170 characters."
+    },
+    "ios.description": {
+      "max": 4000, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "Limited to 4000 characters. HTML format isn't supported."
+    },
+    "ios.whatsNew": {
+      "max": 4000, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "What's New in this Version: Limited to 4000 characters."
+    },
+    "ios.screenshots": {
+      "min": 1, "max": 10, "unit": "images per device size", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications",
+      "quote": "At least 1 and up to 10 screenshots per device size; .jpeg, .jpg or .png; no alpha. iPhone with Dynamic Island (medium display: 1179 x 2556 or 1206 x 2622 portrait) is the required iPhone size; 13-inch iPad is required if the app runs on iPad."
+    },
+    "ios.appPreviews": {
+      "max": 3, "unit": "videos per localization per device size", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "App Preview: optional; up to three per localization, per device size."
+    },
+    "ios.customProductPages": {
+      "max": 70, "unit": "additional product pages", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/custom-product-pages/",
+      "quote": "You can publish up to 70 additional versions of your product page ... You can also assign keywords to your custom product page ... each keyword combination is unique to a single product page."
+    },
+    "ios.inAppEvent.name": {
+      "max": 30, "unit": "characters", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/in-app-events/",
+      "quote": "Not confirmed: the App Store Connect help page for creating events returned 'Page Not Found' on 2026-11-16."
+    },
+    "ios.inAppEvent.shortDescription": {
+      "max": 50, "unit": "characters", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/in-app-events/",
+      "quote": "Not confirmed (see ios.inAppEvent.name)."
+    },
+    "ios.inAppEvent.longDescription": {
+      "max": 120, "unit": "characters", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/in-app-events/",
+      "quote": "Not confirmed (see ios.inAppEvent.name)."
+    },
+    "android.title": {
+      "max": 30, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9859152",
+      "quote": "App name: 30 characters. ... Character limits apply to both full-width and half-width characters. (Policy page 9898842: 'Your app title must be 30 characters or less.')"
+    },
+    "android.shortDescription": {
+      "max": 80, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9859152",
+      "quote": "Short description: 80 characters."
+    },
+    "android.fullDescription": {
+      "max": 4000, "unit": "characters", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9859152",
+      "quote": "Full description: 4,000 characters."
+    },
+    "android.icon": {
+      "value": "512 x 512 px, 32-bit PNG with alpha, max 1024 KB", "unit": "image", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9866151",
+      "quote": "32-bit PNG (with alpha). Dimensions: 512px by 512px. Maximum file size: 1024KB"
+    },
+    "android.featureGraphic": {
+      "value": "1024 x 500 px, JPEG or 24-bit PNG (no alpha)", "unit": "image", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9866151",
+      "quote": "JPEG or 24-bit PNG (no alpha). Dimensions: 1024px by 500px"
+    },
+    "android.screenshots": {
+      "min": 2, "max": 8, "unit": "images (min across device types; max per device type)", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9866151",
+      "quote": "You must provide a minimum of two screenshots across different device types ... You can add up to 8 screenshots for each supported device type. ... Minimum dimension: 320px. Maximum dimension: 3840px. The maximum dimension of your screenshot can't be more than twice as long as the minimum dimension."
+    },
+    "android.customStoreListings": {
+      "max": 50, "unit": "listings", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/",
+      "quote": "Not confirmed: no official page was read for custom store listings on 2026-11-16; the value is carried over from the earlier pipeline."
+    }
+  },
+  "rules": {
+    "ios.keywords.minWordChars": {
+      "value": 3, "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "each greater than two characters"
+    },
+    "ios.keywords.noNameOrCompany": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "Your app is searchable by app name and company name, so you shouldn't duplicate these values in the keyword list."
+    },
+    "ios.keywords.noOtherAppNames": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "Names of other apps or companies aren't allowed."
+    },
+    "ios.keywords.commaSeparated": {
+      "confirmed": false, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "The page does not say how keywords are separated. Commas without spaces are the long-standing App Store Connect convention; spaces after commas only spend bytes."
+    },
+    "ios.metadata.noTrademarksPricesPopularNames": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.7",
+      "quote": "don't try to pack any of your metadata with trademarked terms, popular app names, pricing information, or other irrelevant phrases just to game the system. App names must be limited to 30 characters. Metadata such as app names, subtitles, screenshots, and previews should not include prices ... App subtitles ... should not ... reference other apps, or make unverifiable product claims."
+    },
+    "ios.metadata.kidsTermsReserved": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.8",
+      "quote": "Use of terms like \"For Kids\" and \"For Children\" in app metadata is reserved in the App Store for the Kids Category."
+    },
+    "ios.descriptionIndexed": {
+      "value": "unknown", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+      "quote": "Apple does not document whether the description affects search. Treat it as conversion copy."
+    },
+    "android.keywordField": {
+      "value": "none", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9859152",
+      "quote": "Product details are app name, short description and full description; there is no keyword field."
+    },
+    "android.descriptionIndexed": {
+      "value": "unknown", "confirmed": false, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9859152",
+      "quote": "Google does not state which fields feed search. It warns: 'Repetitive or irrelevant keyword usage in your app name, short description, or full description' can lead to suspension."
+    },
+    "android.noUnattributedTestimonials": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "We also don't allow unattributed or anonymous user testimonials in the app's description."
+    }
+  },
+  "policyPatterns": [
+    {
+      "id": "android-emoji", "platforms": ["android"], "fields": ["title"], "severity": "fail",
+      "pattern": "\\p{Extended_Pictographic}", "flags": "u", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Don't use emojis, emoticons, or repeated special characters in these metadata elements."
+    },
+    {
+      "id": "android-repeated-special", "platforms": ["android"], "fields": ["title"], "severity": "fail",
+      "pattern": "([^\\p{L}\\p{N}\\s])\\1", "flags": "u", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Don't use emojis, emoticons, or repeated special characters in these metadata elements."
+    },
+    {
+      "id": "android-ranking-claim", "platforms": ["android"], "fields": ["title"], "severity": "fail",
+      "pattern": "#\\s?1\\b|\\bnumber one\\b|\\bapp of the year\\b|\\btop[- ]rated\\b", "flags": "iu", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Images or text that indicate store performance or ranking, such as 'App of the year,' '#1,'"
+    },
+    {
+      "id": "android-price-promo", "platforms": ["android"], "fields": ["title"], "severity": "fail",
+      "pattern": "\\bfree\\b|\\d+\\s?% ?off|\\bsale\\b|\\bdiscount\\b", "flags": "iu", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Images or text that indicate price and promotional information, such as '10% off,' ... 'free for limited time only,'"
+    },
+    {
+      "id": "android-program-reference", "platforms": ["android"], "fields": ["title"], "severity": "fail",
+      "pattern": "editor'?s'? choice", "flags": "iu", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Images or text that indicate Google Play programs, such as 'Editor's choice,' 'New,' etc."
+    },
+    {
+      "id": "android-new", "platforms": ["android"], "fields": ["title"], "severity": "warn",
+      "pattern": "\\bnew\\b", "flags": "iu", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Images or text that indicate Google Play programs, such as 'Editor's choice,' 'New,' etc. (fine when it is part of the brand)"
+    },
+    {
+      "id": "android-best-claim", "platforms": ["android"], "fields": ["title", "shortDescription"], "severity": "warn",
+      "pattern": "\\bbest\\b", "flags": "iu", "confirmed": true,
+      "source": "https://support.google.com/googleplay/android-developer/answer/9898842",
+      "quote": "Don't use repetitive keywords or deceptive claims like 'best game ever.'"
+    },
+    {
+      "id": "ios-price", "platforms": ["ios"], "fields": ["name", "subtitle"], "severity": "fail",
+      "pattern": "[$€£¥]\\s?\\d|\\d+\\s?% ?off|\\bsale\\b|\\bdiscount\\b", "flags": "iu", "confirmed": true,
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.7",
+      "quote": "Metadata such as app names, subtitles, screenshots, and previews should not include prices"
+    },
+    {
+      "id": "ios-free", "platforms": ["ios"], "fields": ["name", "subtitle"], "severity": "warn",
+      "pattern": "\\bfree\\b", "flags": "iu", "confirmed": true,
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.7",
+      "quote": "don't try to pack any of your metadata with ... pricing information"
+    },
+    {
+      "id": "ios-kids-terms", "platforms": ["ios"], "fields": ["name", "subtitle", "keywords", "promotionalText", "description"], "severity": "warn",
+      "pattern": "\\bfor (kids|children)\\b", "flags": "iu", "confirmed": true,
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.8",
+      "quote": "Use of terms like \"For Kids\" and \"For Children\" in app metadata is reserved in the App Store for the Kids Category."
+    },
+    {
+      "id": "ios-emoji-name", "platforms": ["ios"], "fields": ["name", "subtitle"], "severity": "warn",
+      "pattern": "\\p{Extended_Pictographic}", "flags": "u", "confirmed": false,
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.7",
+      "quote": "Not stated on the pages read on 2026-11-16; practitioners report rejections for emoji in app names."
+    },
+    {
+      "id": "ios-unverifiable-claim", "platforms": ["ios"], "fields": ["subtitle"], "severity": "warn",
+      "pattern": "#\\s?1\\b|\\bbest\\b|\\bnumber one\\b|\\bfastest\\b|\\btop[- ]rated\\b", "flags": "iu", "confirmed": true,
+      "source": "https://developer.apple.com/app-store/review/guidelines/#2.3.7",
+      "quote": "App subtitles ... should not include inappropriate content, reference other apps, or make unverifiable product claims."
+    }
+  ],
+  "apis": {
+    "itunes.search": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://performance-partners.apple.com/search-api",
+      "quote": "The Search API is limited to approximately 20 calls per minute (subject to change). limit: 1 to 200, default 50. country: two-letter code, default US.",
+      "observed": "2026-11-16: responses carry cache-control max-age=86400; limit=50 returned 46-47 apps and limit=5 returned 4; fields include trackName, description, releaseNotes, userRatingCount, averageUserRating, screenshotUrls, sellerName, genres, version — no subtitle, keyword field or promotional text; rating counts differ by country (Apple Journal 2026-11-16: US 343,380, GB 41,908); an invalid country returns HTTP 400. The MZSearchHints endpoint returned an empty suggestion list, so no autocomplete is available."
+    },
+    "asc.jwt": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests",
+      "quote": "alg ES256, kid, typ JWT; payload iss (team keys) or sub 'user' (individual keys), iat, exp, aud 'appstoreconnect-v1', optional scope. For most requests, App Store Connect rejects a token with a lifetime greater than 20 minutes."
+    },
+    "asc.customerReviews": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developer.apple.com/documentation/appstoreconnectapi/get-v1-apps-_id_-customerreviews",
+      "quote": "GET /v1/apps/{id}/customerReviews; limit maximum 200; sort rating|-rating|createdDate|-createdDate; filter[territory]."
+    },
+    "play.reviews": {
+      "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developers.google.com/android-publisher/reply-to-reviews",
+      "quote": "access feedback only for production versions ... the API shows only the reviews that include comments ... You can retrieve only the reviews that users have created or modified within the last week. ... GET requests ... 200 per hour"
+    },
+    "play.search": {
+      "value": "none", "confirmed": true, "checked": "2026-11-16",
+      "source": "https://developers.google.com/android-publisher",
+      "quote": "The Google Play Developer API covers your own apps (edits, listings, reviews). Google publishes no public API for Play search results or other developers' listings."
+    }
+  }
+}

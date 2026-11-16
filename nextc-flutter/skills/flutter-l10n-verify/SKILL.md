@@ -4,6 +4,8 @@ description: >
   Post-translation verification for Flutter ARB files. Use when translations are done, to
   catch cross-locale inconsistencies, untranslated domain terms, code-switching, and dead
   keys.
+when_to_use: |
+  Triggers: "verify translations", "check translation consistency", "find dead keys", "/flutter-l10n-verify".
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
 paths: ["**/pubspec.yaml", "**/l10n/*.arb"]
@@ -27,7 +29,7 @@ across locales or cross-referencing with the codebase.
 
 ### Step 1: Load Context
 
-1. Read `nextc-flutter/agents/flutter-l10n-agent.md` for text principles
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md` for the text principles
 2. Read `docs/glossary.md` for term classifications (`[keep]`, `[translate]`, `[technical]`)
 3. Read `lib/l10n/app_en.arb` as the English source of truth
 4. List all locale ARB files under `lib/l10n/`

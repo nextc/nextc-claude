@@ -1,70 +1,43 @@
 ---
 name: canary-watch
-description: Verify a deployed URL against a baseline after a release. Use when you have just deployed, after merging a risky PR, or to confirm a fix in the live environment.
+description: Smoke-checks a deployed URL or API against a stated baseline after a release and reports what regressed and what it could not see. Use when a deploy, risky merge or dependency upgrade just went live and the live environment needs confirming.
 when_to_use: |
-  Use after deploying to production/staging, after merging a risky PR, after a dependency upgrade, or to confirm a fix actually fixed it in the live environment. Triggers: "canary", "smoke test the deploy", "is prod healthy", "check the site after deploy", "post-deploy verification", "did the release break anything". Skip pre-deploy (that's local verification) and when there's no reachable URL.
-allowed-tools: Bash Read
+  Triggers: "canary", "smoke test the deploy", "is prod healthy", "did the release break anything", "check the site after deploy". Arguments: `$ARGUMENTS` = URL, optionally `--baseline <url|file>` and critical endpoints. Skip before deploy (use `/verification-loop`) and when nothing is reachable.
+disable-model-invocation: true
+allowed-tools: Bash Read WebFetch
 ---
 
-# Canary Watch — Post-Deploy Verification
+# Canary Watch
 
-> Source: adapted from affaan-m/ecc `skills/canary-watch` (MIT). Browser-level checks use
-> **cloakbrowser** per `tool-preferences.md` (verify its API in-session before scripting).
+What this adds: a fixed set of live checks with a stated baseline, run read-only in one pass, with a plain statement of what it cannot see. The user invoking it is the approval; it never sends credentialed or mutating requests.
 
-Monitor a deployed URL for regressions after a release. Single-pass by default; can sustain or diff.
+## Inputs
 
-## What it watches
+URL (required). Baseline: a prior report file, a staging URL (compare mode), or "first run": record values as the baseline and say no regression can be judged. Critical endpoints: from `$ARGUMENTS`, else look in the repo (health route, OpenAPI file, Appwrite/Supabase function names) and list the 3-5 you picked.
 
-| # | Check | How |
-|---|-------|-----|
-| 1 | HTTP status (is it 200?) | `curl -sS -o /dev/null -w '%{http_code} %{time_total}s' <url>` |
-| 2 | Static assets return 2xx/3xx with expected content type | HEAD each critical JS/CSS/img/font URL |
-| 3 | API health within SLA | `curl` critical endpoints, compare latency to baseline |
-| 4 | Console errors (new ones) | **cloakbrowser** — load the page, collect console errors |
-| 5 | Key content present (h1, nav, footer, CTA) | cloakbrowser — assert selectors exist |
-| 6 | Core Web Vitals (LCP/CLS/INP) vs baseline | cloakbrowser performance metrics |
-| 7 | SSE / event-stream connects + first heartbeat | `curl -N` the stream, confirm an initial event |
+## Checks (curl; no browser needed)
 
-HTTP/asset/API/SSE checks are pure `curl`. Console/content/Web-Vitals need a real browser — use
-cloakbrowser, not Playwright/Puppeteer (`tool-preferences.md`).
-
-## Modes
-
-- **Quick check** (default) — one pass, report. `canary-watch <url>`
-- **Sustained** — re-check every N min for M hours. `canary-watch <url> --interval 5m --duration 2h`
-- **Diff** — compare two URLs (staging vs prod). `canary-watch --compare <staging> <prod>`
-
-## Thresholds
-
-- **Critical** (alert): HTTP ≠ 200; new console errors > 5; LCP > 4s; any API 5xx; static asset 4xx/5xx;
-  SSE can't connect or drops before first heartbeat.
-- **Warning** (flag): LCP +500ms over baseline; CLS > 0.1; new console warnings; response time > 2× baseline;
-  unexpected asset content-type change; SSE heartbeat latency > 2× baseline.
-- **Info** (log only): minor perf variance; new third-party network requests.
-
-A baseline is the previous healthy run (or the staging side in diff mode). On the first run, record
-the observed values AS the baseline and say so — don't flag a regression with nothing to compare to.
-
-## Output
-
-```markdown
-## Canary Report — myapp.com — <date/time>
-### Status: HEALTHY ✓   (or REGRESSED ✗)
-
-| Check | Result | Baseline | Delta |
-|-------|--------|----------|-------|
-| HTTP | 200 ✓ | 200 | — |
-| Console errors | 0 ✓ | 0 | — |
-| LCP | 1.8s ✓ | 1.6s | +200ms |
-| API /health | 145ms ✓ | 120ms | +25ms |
-| Static assets | 42/42 ✓ | 42/42 | — |
-| SSE /events | connected ✓ | connected | +80ms |
+```bash
+curl -sS -o /dev/null -w '%{http_code} dns=%{time_namelookup} ttfb=%{time_starttransfer} total=%{time_total}\n' "$URL"
+curl -sSI "$URL/<asset>"      # status + content-type for the main JS/CSS bundle and a font/image; get names from the page HTML
+curl -sS "$URL/health"        # body and status of each critical endpoint, unauthenticated
 ```
 
-Lead with the verdict; only the regressed rows need detail. For critical regressions, state the
-single most likely cause and the next action (rollback? hotfix?).
+1. Status and redirect chain of the page and each critical endpoint (`-L -w '%{url_effective}'` to see where it ends).
+2. Key assets referenced by the HTML return 2xx with the right content-type.
+3. Response time of each endpoint against the baseline: flag more than 2x baseline or an absolute total over 2s on first run.
+4. Content sanity: the HTML contains the expected title/heading; an API returns JSON with the expected top-level keys; no stack trace or "error" page body.
+5. Auth edge: a protected endpoint without credentials returns 401/403, not 200 or 500.
+6. Browser console errors and web vitals only if the user asks: use the preferred browser tool (cloakbrowser per `tool-preferences.md`, verify its API first); otherwise list them as not checked.
 
-## Relationship to other skills
+Sustained mode (`--every 5m --for 1h`): use `/loop` rather than sleeping in a shell.
 
-- `production-audit` — pre-launch readiness from the repo; canary-watch verifies the live result.
-- `verification-loop` — local build/lint/test gate before the deploy this checks.
+## Report
+
+Verdict line first (HEALTHY / REGRESSED / UNKNOWN), then one table: check, result, baseline, delta. Only regressed rows get detail, with the most likely cause and the next action (roll back, hotfix, watch). End with "Not checked": logged-in flows, mobile-app behavior, background jobs, database state, third-party callbacks, console/vitals (unless run).
+
+## Gotchas
+
+- A 200 from a CDN edge can serve a stale cached page; add a cache-busting query on one run when verifying a fix.
+- Mobile apps do not update with the server: an API change can break old app versions that this cannot see; check the minimum supported app version separately.
+- Response time from this machine includes your network; compare only against baselines taken the same way.

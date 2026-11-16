@@ -1,170 +1,49 @@
 ---
 name: search-first
-description: Research existing tools, libraries, and patterns before writing custom code. Use when about to build common infrastructure such as auth, payments, file upload, or caching.
+description: Checks the repo and the right package registry for an existing solution, and judges candidates on maintenance, license, platform support and size, before custom code or a new dependency is written. Use when about to add a dependency or hand-write common infrastructure such as auth, payments, uploads, caching, charts or parsing.
 when_to_use: |
-  Use before writing custom code for auth, payments, animations, file upload, charts, caching, or any common infra problem. Also when user says "is there a library for", "before we build this", "search first", "find existing", "any package that does", or proposes building something that's likely solved.
-allowed-tools: Agent Read Grep Glob Bash WebFetch WebSearch
+  Triggers: "is there a package for", "before we build this", "add X support", Claude about to write a utility that sounds solved (date handling, retry, state management, markdown, image resize). Skip for app-specific logic, for packages the user already named and approved, and when the repo already has the helper.
+allowed-tools: Read Grep Glob Bash WebFetch WebSearch
 ---
 
-# /search-first — Research Before You Code
+# Search First
 
-Systematizes the "search for existing solutions before implementing" workflow.
+What this adds over the practices rule's "search before coding": the concrete lookups for this team's ecosystems, the maintenance signals that matter, and a short decision record. Skip it silently for trivial needs; do not narrate.
 
-## Trigger
+## 1. In the repo first
 
-Use this skill when:
-- Starting a new feature that likely has existing solutions
-- Adding a dependency or integration
-- The user asks "add X functionality" and you're about to write code
-- Before creating a new utility, helper, or abstraction
+`rg` for the capability and for existing wrappers (the repo may already depend on a package that does it). Check `pubspec.yaml`, `package.json`, `go.mod`, `Packages/manifest.json`.
 
-## Search Order
+## 2. Look up by ecosystem (official docs first, then registry, then code search)
 
-1. **Context7** — library/API docs (any language)
-2. **Language registry**: npm (JS/TS), PyPI (Python), pub.dev (Dart), crates.io (Rust), pkg.go.dev (Go), Maven Central (Java/Kotlin)
-3. **GitHub**: gh search repos, gh search code
-4. **Web**: WebFetch/WebSearch when 1-3 insufficient
+| Stack | Lookup |
+|---|---|
+| Dart/Flutter | `curl -s https://pub.dev/api/packages/<name>` (latest, published date) and `.../score` (likes, pub points, platform tags); `flutter pub outdated`. Package page shows "discontinued" and "replaced by" |
+| npm | `npm view <pkg> version time.modified license dist.unpackedSize repository.url deprecated` |
+| Go | `go list -m -versions <module>`; `https://pkg.go.dev/<module>` for importers and license; `go list -m -u all` |
+| Unity | Package Manager registry first (`com.unity.*`), then OpenUPM (`https://openupm.com/packages/<id>/`), then GitHub with a UPM-compatible `package.json` |
+| Appwrite / Supabase | Their official SDK and docs before any third-party wrapper |
+| Any | `gh search repos "<need>" --language <lang> --sort stars`; `gh search code "<symbol>"`; library docs via Context7 when it is signed in |
 
-## Workflow
+## 3. Judge a candidate
 
-```
-┌─────────────────────────────────────────────┐
-│  1. NEED ANALYSIS                           │
-│     Define what functionality is needed      │
-│     Identify language/framework constraints  │
-├─────────────────────────────────────────────┤
-│  2. PARALLEL SEARCH (researcher agent)      │
-│     ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│     │ Language │ │  MCP /   │ │  GitHub / │  │
-│     │ Registry │ │  Skills  │ │  Web      │  │
-│     └──────────┘ └──────────┘ └──────────┘  │
-├─────────────────────────────────────────────┤
-│  3. EVALUATE                                │
-│     Score candidates (functionality, maint, │
-│     community, docs, license, deps)         │
-├─────────────────────────────────────────────┤
-│  4. DECIDE                                  │
-│     ┌─────────┐  ┌──────────┐  ┌─────────┐  │
-│     │  Adopt  │  │  Extend  │  │  Build   │  │
-│     │ as-is   │  │  /Wrap   │  │  Custom  │  │
-│     └─────────┘  └──────────┘  └─────────┘  │
-├─────────────────────────────────────────────┤
-│  5. IMPLEMENT                               │
-│     Install package / Configure MCP /       │
-│     Write minimal custom code               │
-└─────────────────────────────────────────────┘
-```
+Adopt only if all hold, otherwise note which failed:
+- Maintained: a release or commit in the last ~12 months, not deprecated or discontinued, issues answered.
+- License compatible with the product (MIT/BSD/Apache fine; GPL/AGPL is a flag for closed-source apps).
+- Supports every platform the app ships on (a Flutter plugin that lacks iOS or web is a miss; a Unity package must support the editor version in `ProjectSettings/ProjectVersion.txt`).
+- Weight proportional to the need: transitive dependencies, binary size (`unpackedSize`, native code), permissions it adds to the manifest.
+- API fits without a heavy wrapper.
 
-## Decision Matrix
-
-| Signal | Action |
-|--------|--------|
-| Exact match, well-maintained, MIT/Apache | **Adopt** — install and use directly |
-| Partial match, good foundation | **Extend** — install + write thin wrapper |
-| Multiple weak matches | **Compose** — combine 2-3 small packages |
-| Nothing suitable found | **Build** — write custom, but informed by research |
-
-## How to Use
-
-### Quick Mode (inline)
-
-Before writing a utility or adding functionality, mentally run through:
-
-0. Does this already exist in the repo? → `rg` through relevant modules/tests first
-1. Is this a common problem? → Search the appropriate language registry
-2. Is there an MCP for this? → Check active MCP configuration
-3. Is there a skill for this? → Check `~/.claude/skills/`
-4. Is there a GitHub implementation/template? → Run GitHub code search for maintained OSS before writing net-new code
-
-### Full Mode (agent)
-
-For non-trivial functionality, launch the researcher agent:
+## 4. Record the decision (three lines, in the PR/answer or `docs/`)
 
 ```
-Task(subagent_type="general-purpose", prompt="
-  Research existing tools for: [DESCRIPTION]
-  Language/framework: [LANG]
-  Constraints: [ANY]
-
-  Search: language registry, MCP servers, Claude Code skills, GitHub
-  Return: Structured comparison with recommendation
-")
+Need: <one line>
+Candidates: <name — version, last release, license> ...
+Decision: adopt | wrap | build — <why, one line>
 ```
 
-## Search Shortcuts by Category
+## Gotchas
 
-### Development Tooling
-- Linting → `eslint`, `ruff`, `textlint`, `markdownlint`
-- Formatting → `prettier`, `black`, `gofmt`
-- Testing → `jest`, `pytest`, `go test`
-- Pre-commit → `husky`, `lint-staged`, `pre-commit`
-
-### AI/LLM Integration
-- Claude SDK → Context7 for latest docs
-- Prompt management → Check MCP servers
-- Document processing → `unstructured`, `pdfplumber`, `mammoth`
-
-### Data & APIs
-- HTTP clients → `httpx` (Python), `ky`/`got` (Node)
-- Validation → `zod` (TS), `pydantic` (Python)
-- Database → Check for MCP servers first
-
-### Content & Publishing
-- Markdown processing → `remark`, `unified`, `markdown-it`
-- Image optimization → `sharp`, `imagemin`
-
-## Integration Points
-
-### With planner agent
-The planner should invoke researcher before Phase 1 (Architecture Review):
-- Researcher identifies available tools
-- Planner incorporates them into the implementation plan
-- Avoids "reinventing the wheel" in the plan
-
-### With architect agent
-The architect should consult researcher for:
-- Technology stack decisions
-- Integration pattern discovery
-- Existing reference architectures
-
-### With iterative-retrieval skill
-Combine for progressive discovery:
-- Cycle 1: Broad search (language registry, MCP)
-- Cycle 2: Evaluate top candidates in detail
-- Cycle 3: Test compatibility with project constraints
-
-## Examples
-
-### Example 1: "Add dead link checking"
-```
-Need: Check markdown files for broken links
-Search: npm "markdown dead link checker"
-Found: textlint-rule-no-dead-link (score: 9/10)
-Action: ADOPT — npm install textlint-rule-no-dead-link
-Result: Zero custom code, battle-tested solution
-```
-
-### Example 2: "Add HTTP client wrapper"
-```
-Need: Resilient HTTP client with retries and timeout handling
-Search: npm "http client retry", PyPI "httpx retry"
-Found: got (Node) with retry plugin, httpx (Python) with built-in retry
-Action: ADOPT — use got/httpx directly with retry config
-Result: Zero custom code, production-proven libraries
-```
-
-### Example 3: "Add config file linter"
-```
-Need: Validate project config files against a schema
-Search: npm "config linter schema", "json schema validator cli"
-Found: ajv-cli (score: 8/10)
-Action: ADOPT + EXTEND — install ajv-cli, write project-specific schema
-Result: 1 package + 1 schema file, no custom validation logic
-```
-
-## Anti-Patterns
-
-- **Jumping to code**: Writing a utility without checking if one exists
-- **Ignoring MCP**: Not checking if an MCP server already provides the capability
-- **Over-customizing**: Wrapping a library so heavily it loses its benefits
-- **Dependency bloat**: Installing a massive package for one small feature
+- A high star count with the last commit two years ago is a worse signal than a small active package.
+- Adding a dependency changes lockfiles and store privacy/permission declarations; mention it when it applies.
+- Registry output is evidence; your memory of a package's API is not (verify its docs before writing calls).

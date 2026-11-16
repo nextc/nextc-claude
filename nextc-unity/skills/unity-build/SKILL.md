@@ -1,492 +1,177 @@
 ---
 name: unity-build
-description: Build a Unity APK or IPA on macOS with changelog and version bump. Use when building a Unity game, cutting a release, or producing a test build.
+description: Build and ship a Unity game for Android and iOS on macOS (APK, IPA, TestFlight) with a version bump, release notes and buildlog entry. Use when building a Unity game, cutting a release, or producing a test build.
 when_to_use: |
-  Use when building a Unity game, cutting a release, or producing a test build. Triggers: "build the game", "Unity build", "ship Unity build", "make a release", "test build", "/unity-build".
+  Use when building a Unity game, cutting a release, or producing a test build. Triggers: "build the game", "Unity build", "ship Unity build", "make a release", "test build", "upload to TestFlight", "/unity-build". Arguments may pre-answer the intake (e.g. "testflight both, notes approved"). Skip for Flutter projects (use /flutter-build).
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash Read Edit Write Glob Grep Agent
+allowed-tools: Bash Read Edit Write Glob Grep Agent AskUserQuestion SendMessage
 paths: ["**/Assets/**", "**/ProjectSettings/ProjectVersion.txt", "**/Packages/manifest.json"]
 ---
 
 # /unity-build
 
-Interactive Unity build pipeline: gather params, pre-flight, invoke Unity in
-batch mode, archive + export for iOS, verify artifacts, log, commit. Companion
-to `/flutter-build` — same UX + buildlog format.
+Invoking this skill is the user's approval for everything it does: the version bump, the builds, the TestFlight upload, the
+commit and the tag. It asks ONE batched question up front and nothing afterwards unless something fails. It never pushes.
+Companion to `/flutter-build`: same intake, buildlog header and tag format.
 
-> **Threading rule.** Run Unity + xcodebuild on the skill's **main thread**; sub-agents only scaffold and draft the buildlog. Spawn those helpers in the **foreground** (`run_in_background: false`, the default) so they return and terminate — never as background teammates. If you ever do background a helper, you MUST stop it with `TaskStop` once its result is consumed — a finished background teammate parks idle instead of exiting. (Unlike `/flutter-build`, this skill has no parallel background builders — Unity can't build two targets on one project at once.)
+Templates live in `references/`: `release-notes.md` (drafting), `buildlog-template.md` (entry, status values, lint),
+`fastlane-signing.md` (signing preflight, env), `ios-export.md` (export commands), `report.md` (post-upload verification, report).
 
-## Step 1: Read Current State
+> **Threading.** Unity and xcodebuild/fastlane run on the skill's main thread, as Bash `run_in_background: true` with a log
+> file, and the lead waits for the completion notification (no `sleep` polling; foreground Bash calls time out at 10 minutes,
+> and a TestFlight lane runs longer). The only subagent is the scaffold helper, in the foreground. There are no parallel
+> builders: Unity cannot build two targets on one project at once.
 
-Run in parallel:
+## Step 1: Read state
 
-- Read `ProjectSettings/ProjectSettings.asset` — extract:
-  - `productName:` → `{appname}` (used verbatim for artifact filenames — no transformation)
-  - `bundleVersion:` → `{current_version}`
-  - `AndroidBundleVersionCode:` → `{current_android_build}` (int)
-  - `buildNumber:` nested map → `iPhone:` → `{current_ios_build}` (string; treat as int)
-  - `appleDeveloperTeamID:` → `{team_id}` (may be empty; required for iOS)
-- Read `ProjectSettings/ProjectVersion.txt` — extract `m_EditorVersion:` → `{editor_version}`
-- Confirm Unity editor binary at `/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity`
-- Detect Xcode major version (needed for iOS export method default):
-  - `xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1` → `{xcode_major}`
-  - If `xcodebuild` is not installed, `{xcode_major}` is empty — iOS unavailable
-- Check if `Assets/Editor/BuildScript.cs` exists (agent will scaffold if missing)
-- Run `git log --oneline -5` — for context display
-- Record `{skill_start_epoch}` via `date +%s` — used for post-build mtime verification
+Run in parallel: read `ProjectSettings/ProjectSettings.asset` for `productName:` (`{appname}`, verbatim), `bundleVersion:`,
+`AndroidBundleVersionCode:`, `buildNumber:` -> `iPhone:` (iOS build, string, treat as int) and `appleDeveloperTeamID:` (may be
+empty); `ProjectSettings/ProjectVersion.txt` `m_EditorVersion:`; the editor binary at
+`/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity`; `xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1`
+(`{xcode_major}`, empty = no iOS); `test -f Assets/Editor/BuildScript.cs`; `git log --oneline -5`; the top of `docs/buildlog.md`;
+`test -f fastlane/Fastfile` and `grep -oE "lane :[a-z_]+" fastlane/Fastfile`; the last tag
+`git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null`; `date +%s` as `{skill_start_epoch}`.
 
-Derive:
+- `next_android_build = current_android_build + 1`, `next_ios_build = current_ios_build + 1`; they move in lockstep unless told otherwise.
+- Default export method (xcodebuild path only): `{xcode_major} >= 15` -> `release-testing`, else `ad-hoc`.
+- `ios_fastlane` = the project-root `fastlane/Fastfile` exists (Unity's fastlane lives at the root, not `ios/`). It is sign-only: Unity
+  regenerates `Builds/iOS/Unity-iPhone.xcodeproj` first, then the lane signs (match) and runs gym. Android never uses fastlane.
+- **Resume:** if the top buildlog entry is `Status: in progress` and its `{version}+{build}` equals the current settings, an earlier
+  run was cut off. Skip intake and the bump, read `Builds/logs/*.log`, and continue at Step 6.
 
-- `next_android_build` = `current_android_build + 1`
-- `next_ios_build` = `current_ios_build + 1`
-- Default export method:
-  - `{xcode_major} >= 15` → `release-testing` (renamed from `ad-hoc` in Xcode 15+)
-  - `{xcode_major} <= 14` → `ad-hoc`
+## Step 2: Intake (one batched question)
 
-Unity uses separate per-platform build numbers (Android int, iOS string). The skill
-keeps them in lockstep by default — user can override.
+Parse the invocation arguments first. Defaults: platforms both, Mode release, version unchanged, next build numbers, iOS lane
+`release_testflight` when the Fastfile has it, else `build_appstore`, else `build_adhoc`; xcodebuild path (no Fastfile): export method
+per Step 1, strip Swift symbols yes, bitcode no. Arguments override (`development`, `version 1.3.0`, `ios 42`).
 
-### Fastlane detection (iOS only)
+Draft the release notes yourself now, following `references/release-notes.md`. Then ask one `AskUserQuestion` containing only the items the
+arguments did not answer:
 
-The nextc fastlane setup (generated by `setup-ios-signing.sh`) supports Unity as a **sign-only**
-path: fastlane lives at the **project root** (`fastlane/Fastfile`, `Gemfile` at root — NOT `ios/`)
-and its lanes sign + export the `Builds/iOS/Unity-iPhone.xcodeproj` Unity regenerates each build.
+1. **Platforms** - both (default) / android / ios.
+2. **iOS lane** (only when `ios_fastlane` and iOS is in play) - TestFlight upload (default) / App Store IPA only / Ad Hoc IPA.
+3. **Release notes** - the full draft in the question text under a header `Build {version} (android {a}, ios {i}), {mode}`, with any
+   warning (empty commit range). Options: Approve / Edit / Cancel.
 
-```bash
-test -f fastlane/Fastfile && echo "fastlane" || echo "no-fastlane"
-```
+Approve -> use the draft. Edit -> the user's typed corrections are final; apply them and continue without asking again. Cancel -> stop;
+nothing has changed on disk. If the arguments answer everything, skip the call. Say in the question text that, on the fastlane path,
+the lane owns signing and export (Mode applies to Android only); without a Fastfile the xcodebuild path uses the defaults above.
 
-- `ios_fastlane = true` when `fastlane/Fastfile` exists at the project root, else `false`. iOS only
-  (Android always uses the Unity/Gradle path).
-- **When `true`:** the fastlane lane replaces the xcodebuild `archive`/`exportArchive`/`ExportOptions.plist`
-  steps (Step 6) — Unity still generates the Xcode project first, then fastlane signs (match) and runs
-  `gym`. See `references/fastlane-signing.md`. **When `false`:** the xcodebuild path is unchanged.
+## Step 3: Pre-flight (no questions, nothing modified yet)
 
-## Step 2: Gather Parameters
+Each failure aborts here, before the bump:
 
-Show current state + build configuration prompt:
-
-```
-App name       : {appname}
-Version        : {current_version}
-Android build #: {current_android_build}
-iOS build #    : {current_ios_build}
-Unity editor   : {editor_version}
-Xcode          : {xcode_major} (iOS only)
-Team ID        : {team_id or "<not set>"} (iOS only)
-Recent commits :
-  {last 5 commits}
-
-Build configuration:
-  1. Platform: android / ios / both (default: both)
-  2. Mode: release / development (default: release)
-  3. Version: {current_version} (press enter to keep)
-  4. Android build #: {next_android_build} (press enter to auto-increment)
-  5. iOS build #: {next_ios_build} (press enter to auto-increment)
-
-If iOS is in platforms, also:
-  6. iOS export method: {default_method} | app-store-connect | debugging | enterprise
-     (default: {default_method})
-  7. Strip Swift symbols: yes / no (default: yes)
-  8. Compile bitcode: yes / no (default: no)
-
-Please provide choices (e.g., "android, release" or press enter for defaults).
-```
-
-Parse response — use defaults for anything unspecified.
-
-### iOS lane selection (only when `ios_fastlane = true` AND iOS is being built)
-
-When fastlane was detected and iOS is in the platform selection, the fastlane lane controls
-signing + export, so **questions 6–8 above do not apply** (the lane and `match` own the export
-method and signing; no `ExportOptions.plist`). Ask instead:
-
-```
-This project has fastlane. How should the iOS build be signed + exported?
-  1. ad-hoc     — signed Ad Hoc IPA, installable on registered devices (default)
-  2. app-store  — signed App Store IPA (no upload)
-  3. testflight — build the App Store IPA AND upload to TestFlight
-```
-
-Record as `ios_lane` ∈ {`ad-hoc`, `app-store`, `testflight`}; default `ad-hoc`. The lane always
-builds **Release** internally, so the release/development "Mode" applies to **Android only** on the
-fastlane path. When `ios_fastlane = false`, skip this question — iOS uses questions 6–8 (xcodebuild).
-
-## Step 3: Confirm
-
-Show summary (only include iOS rows if iOS is in platforms):
-
-```
-Build plan:
-  App name    : {appname}
-  Platforms   : {platforms}
-  Mode        : {mode}
-  Version     : {version}
-  Android #   : {android_build}
-  iOS #       : {ios_build}
-  Unity       : {editor_version}
-  Xcode       : {xcode_major}
-  Team ID     : {team_id}
-  iOS method  : {fastlane ({ios_lane}) | xcodebuild}   ← only show when iOS is being built
-  Export      : {export_method}                        ← xcodebuild path only
-  Swift strip : {strip_swift_symbols}                  ← xcodebuild path only
-  Bitcode     : {compile_bitcode}                      ← xcodebuild path only
-
-- `ios_fastlane = true` → `iOS method` = `fastlane ({ios_lane})`, and the Export / Swift strip /
-  Bitcode rows are omitted (lane + match own signing/export). Otherwise `xcodebuild` + those rows.
-
-Note: Unity may re-serialize scene/meta files when opening. Only
-ProjectSettings.asset, BuildScript.cs (+.meta), and docs/buildlog.md are
-committed; other changes are reverted.
-
-Proceed?
-```
-
-Wait for confirmation. If user says no, loop to Step 2.
-
-### Guardrails before proceeding
-
-- **Team ID required for iOS (xcodebuild path only).** If iOS is in platforms,
-  `ios_fastlane = false`, and `{team_id}` is empty, STOP: "iOS builds require a Team
-  ID. Set `appleDeveloperTeamID: XXXXXXXXXX` (the 10-char identifier from your Apple
-  developer account) in `ProjectSettings/ProjectSettings.asset` first." On the fastlane
-  path this guard is relaxed — the team comes from `fastlane/Appfile` (`team_id`) and
-  `match` handles signing, so an empty `appleDeveloperTeamID` is fine.
-- **Xcode required for iOS.** If iOS is in platforms and `{xcode_major}` is
-  empty, STOP: "iOS builds require Xcode. Install Xcode from the App Store
-  and re-run `xcode-select --install`." (Applies to both paths — the fastlane
-  lane runs `gym`, which drives `xcodebuild` internally.)
-- **Fastlane signing config required (fastlane path only).** If iOS is in platforms
-  and `ios_fastlane = true`, run the signing preflight from `references/fastlane-signing.md`:
-  `cfg="${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}"`; if it does not exist,
-  STOP with the `setup-ios-signing.sh <team> <bundle-id>` instructions.
-
-## Step 4: Pre-Flight Checks
-
-Run BEFORE any build work — each failure aborts:
-
-1. **No Unity Editor already running.** Run:
-
+1. **Editor not running:** `pgrep -fl 'Unity\.app/Contents/MacOS/Unity' || true` must print nothing. An open editor makes batch mode exit 0
+   without building (a silent false success). Close it and re-run.
+2. **No stale lockfile:** `Temp/UnityLockfile` must not exist.
+3. **iOS prerequisites:** Xcode installed. xcodebuild path: `{team_id}` non-empty (`appleDeveloperTeamID` in `ProjectSettings.asset`). Fastlane path: team
+   comes from `fastlane/Appfile`; run the signing preflight in `references/fastlane-signing.md`.
+4. **Scaffold** `Assets/Editor/BuildScript.cs` + `.meta` if missing (foreground):
+   `Agent(subagent_type: "nextc-unity:unity-builder", model: "haiku", prompt: "MODE: scaffold\nProject root: {project_root}")`. They are committed in Step 8.
+5. **Secrets-in-bundle guard (SECURITY):** `Assets/` packs verbatim into the APK/IPA. Stop if this prints anything, listing the paths and asking the user to move the secrets out:
+   `find Assets -type f \( -iname '.env' -o -iname '.env.*' -o -iname 'secrets.json' -o -iname '*.local.*' -o -iname 'service-account*.json' -o -iname '*-service-account.json' -o -iname '*.pem' -o -iname '*.p12' -o -iname '*.keystore' -o -iname '*.jks' \) 2>/dev/null`
+6. **Baseline for cleanup.** A dirty working tree is not a blocker and is not touched. Record which known noise files are clean now:
    ```bash
-   pgrep -fl 'Unity\.app/Contents/MacOS/Unity' || true
+   mkdir -p Builds/logs && : > Builds/logs/clean-before.txt
+   for f in ProjectSettings/ProjectVersion.txt ProjectSettings/EditorBuildSettings.asset Packages/packages-lock.json; do
+     [ -e "$f" ] && git diff --quiet -- "$f" && printf '%s\n' "$f" >> Builds/logs/clean-before.txt
+   done
    ```
+7. Save the approved notes to `Builds/logs/whatsnew.txt`.
 
-   If any PID is returned, abort: "The Unity Editor appears to be open on this
-   system. Batch mode will connect to the running editor's license client and
-   exit 0 without building (silent false success). Close the editor and re-run."
+## Step 4: Bump and write the in-progress entry (before any wait)
 
-2. **No stale lockfile.** If `Temp/UnityLockfile` exists, abort: "Lockfile at
-   `Temp/UnityLockfile` — a prior editor session didn't close cleanly. Close
-   the editor (or `rm Temp/UnityLockfile`) before re-running."
+1. Edit `ProjectSettings/ProjectSettings.asset` in place with the Edit tool (never `sed`; it is structured YAML): `bundleVersion: {version}`;
+   `AndroidBundleVersionCode: {android_build}` (Android in play); inside `buildNumber:` `iPhone: "{ios_build}"` (iOS in play; keep existing quoting).
+2. Write the buildlog entry with `Status: in progress`, `Built: pending`, `Uploaded: no`, `Distributed: none`
+   (`references/buildlog-template.md`) and lint it. This survives a context reset.
 
-3. **Git status.** Run `git status --porcelain`. If any uncommitted changes
-   exist, show the list and ask: "You have uncommitted changes. Commit them
-   first, or proceed (anything Unity re-serializes will be reset, but your
-   pre-existing changes remain)?" Do NOT proceed without confirmation.
+## Step 5: Build
 
-4. **Scaffold BuildScript.cs + .meta if missing.** If
-   `Assets/Editor/BuildScript.cs` does not exist, spawn the unity-builder agent
-   to generate both the `.cs` and a matching `.meta` (deterministic GUID). Stage
-   both for the Phase 10 commit.
+Unity batch mode cannot run concurrently on one project (`Library/` + `Temp/UnityLockfile`). For `both`: Unity iOS (exclusive), then in
+parallel { Unity Android, iOS export on the generated project }. Single platform: that Unity run, then the iOS export. Run each as Bash
+`run_in_background: true` (builds take 5-20+ min cold) and wait for the notification.
 
-   ```
-   Agent(
-     subagent_type: "unity-builder",
-     model: "haiku",
-     description: "Scaffold BuildScript.cs",
-     prompt: """
-       MODE: scaffold
-       Project root: {project_root}
-       Write Assets/Editor/BuildScript.cs and Assets/Editor/BuildScript.cs.meta
-       using your scaffold templates. Do not run any builds. Report the file
-       paths you wrote.
-     """
-   )
-   ```
-
-5. **Secrets-in-bundle guard (SECURITY).** `Assets/` (esp. `Resources/`, `StreamingAssets/`) packs verbatim into the APK/IPA and is trivially extractable, so scan for secret-bearing files (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks` — the full runnable `find Assets ...` command lives in `unity-builder` Phase F1) and **STOP** if any match: list the paths, explain they would ship in the binary, and have the user move the secret out of `Assets/` before building.
-
-## Step 4b: Draft the buildlog "What's new" (before building)
-
-The "What's new" content comes from the git commit range, not from artifacts, so draft and approve it **now — before the version bump and the build**. A cancel at the review gate then aborts before anything is modified on disk (no slow Unity build wasted), and the approved text is available to feed the iOS `testflight` lane as `FL_CHANGELOG` — the upload happens *during* Step 6, so the notes must exist before it.
-
-Resolve the last tag, then delegate the draft + review to the unity-builder in `whats-new` mode (foreground — the agent owns date/tag sanity checks, full commit range, `--stat` reading, vague-subject diff reading, and the Approve / Edit / Cancel gate):
+**Android:**
 
 ```bash
-last_tag=$(git describe --tags --abbrev=0 --match 'build/*' 2>/dev/null || echo "")
+"/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity" -batchmode -quit -nographics \
+  -projectPath "{project_root}" -buildTarget Android -executeMethod BuildScript.BuildAndroid \
+  -logFile "{project_root}/Builds/logs/android.log" -appname "{appname}" -buildVersion "{version}" \
+  -buildNumber "{android_build}" {developmentBuildFlag}
 ```
 
-```
-Agent(
-  subagent_type: "nextc-unity:unity-builder",
-  model: "haiku",
-  prompt: """
-  Mode: whats-new
-  Project root: {project_root}
-  Last build tag: {last_tag or empty}
-  Version: {version}
-  Android build: {android_build}        ← include when android in platforms
-  iOS build: {ios_build}                ← include when ios in platforms
-  Platforms: {android|ios|both}
-  Status: pending
-  """
-)
-```
+`{developmentBuildFlag}` is `-developmentBuild` in development mode, empty in release. `BuildScript.cs` writes
+`Builds/Android/{appname}_{version}_{android_build}.apk`.
 
-The agent returns either:
+**iOS Xcode project (both iOS paths):** same invocation with `-buildTarget iOS -executeMethod BuildScript.BuildIOS -logFile ".../Builds/logs/ios-unity.log"`
+and no `-appname/-buildVersion/-buildNumber`; expect `Builds/iOS/Unity-iPhone.xcodeproj`.
 
-- `STATUS: APPROVED` with the approved content between `===WHATSNEW_START===` / `===WHATSNEW_END===` delimiters — hold this as `approved_whatsnew`. Do NOT write it yet; Step 9 assembles and writes the full entry after the build. For the iOS `testflight` lane, pass this text as `FL_CHANGELOG` in Step 6 (see `references/fastlane-signing.md`).
-- `STATUS: CANCELLED` — STOP before the version bump. Do NOT bump, build, commit, or tag. Nothing has changed on disk. Report the cancellation; the user can re-run after fixing their concern.
+**iOS export:** per `references/ios-export.md` (fastlane lane when `ios_fastlane`, else ExportOptions.plist + xcodebuild archive/export).
+If a platform fails, stop; do not start the next one.
 
-## Step 5: Version Bump
+## Step 6: Verify artifacts and place them
 
-Edit `ProjectSettings/ProjectSettings.asset` in-place via the Edit tool
-(never `sed` — it's structured YAML):
+Unity exit 0 is necessary, not sufficient (an editor-already-open run also exits 0). For every platform built assert: the file exists,
+`stat -f %m` is greater than `{skill_start_epoch}`, and `stat -f %z` is above 10485760. `$ARTIFACT` is `Builds/Android/{appname}_{version}_{android_build}.apk`,
+or the iOS IPA (xcodebuild: `Builds/iOS/ipa/*.ipa`; fastlane: the path gym printed, default `Unity-iPhone.ipa` at the root). Any failed check is a build failure, even with exit 0;
+show the log tail and the failed check. For sandbox signals (`read only`, `licensing mutex`, `permission denied`) report a sandbox restriction; never recommend a Unity reinstall or license cache clear.
 
-- `bundleVersion: <old>` → `bundleVersion: {version}`
-- `AndroidBundleVersionCode: <old>` → `AndroidBundleVersionCode: {android_build}`
-  (only if Android is in platforms)
-- Inside `buildNumber:` block: `iPhone: <old>` → `iPhone: "{ios_build}"`
-  (only if iOS is in platforms; preserve existing quoting)
-
-## Step 6: Build (Unity + xcodebuild)
-
-### Ordering
-
-Unity batch mode cannot run concurrently on the same project — both Android
-and iOS lock `Library/` + `Temp/UnityLockfile`. The iOS export step (xcodebuild
-OR the fastlane lane) does NOT touch `Library/` and may parallelize with Unity
-Android. For `both`: Unity iOS (exclusive) → parallel { Unity Android, iOS export
-on the generated project } → Phase 7. Single-platform: just the one Unity run,
-then the iOS export. Run `mkdir -p Builds/logs` first.
-
-**iOS export branch:** when `ios_fastlane = true`, the iOS export is the fastlane
-lane (see "iOS: fastlane lane" below) and the `ExportOptions.plist` + `xcodebuild
-archive` + `xcodebuild exportArchive` steps are **skipped**. When `false`, those
-xcodebuild steps run as before. Either way the fastlane lane and xcodebuild run on
-the skill's **main thread** (per the threading rule) — never in a sub-agent.
-
-### Android: Unity invocation
+Then `mv` (never `cp`) to `Builds/{appname}_{version}_{build}.{apk,ipa}`; the iOS file uses `{ios_build}`:
 
 ```bash
-"/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity" \
-  -batchmode -quit -nographics \
-  -projectPath "{project_root}" \
-  -buildTarget Android \
-  -executeMethod BuildScript.BuildAndroid \
-  -logFile "{project_root}/Builds/logs/android.log" \
-  -appname "{appname}" \
-  -buildVersion "{version}" \
-  -buildNumber "{android_build}" \
-  {developmentBuildFlag}
+mv "Builds/Android/{appname}_{version}_{android_build}.apk" "Builds/{appname}_{version}_{android_build}.apk"
+ipa=$(ls -t Builds/iOS/ipa/*.ipa ./*.ipa 2>/dev/null | head -1); mv -- "$ipa" "Builds/{appname}_{version}_{ios_build}.ipa"
 ```
 
-`{developmentBuildFlag}` is `-developmentBuild` in development mode, empty in release.
+## Step 7: Verify the upload, update the buildlog
 
-The scaffolded `BuildScript.cs` reads the `-appname / -buildVersion /
--buildNumber` custom args and writes
-`Builds/Android/{appname}_{version}_{android_build}.apk` directly (correct name, no
-rename needed) — Step 8 then moves it up to `Builds/` root, the standard location.
+For the `testflight` lane follow `references/report.md`: Built / Uploaded / Distributed are proven from the lane log, anything unproven is
+`unconfirmed`, and a failed lane starts with "did the upload reach Apple?" (`stop-and-diagnose.md`) before any retry.
+Update the Step 4 entry in place (Status, Built with sizes, Uploaded, Distributed, What's new per the failed rule) and lint again.
 
-### iOS: Unity invocation (Xcode project gen)
+## Step 8: Commit and tag
+
+**8a. Revert only what the build is known to dirty.** The whitelist is exactly three files, and only if Step 3.6 recorded them clean before the build.
+Nothing else is reverted, ever; other dirty files are listed in the report:
 
 ```bash
-"/Applications/Unity/Hub/Editor/{editor_version}/Unity.app/Contents/MacOS/Unity" \
-  -batchmode -quit -nographics \
-  -projectPath "{project_root}" \
-  -buildTarget iOS \
-  -executeMethod BuildScript.BuildIOS \
-  -logFile "{project_root}/Builds/logs/ios-unity.log" \
-  {developmentBuildFlag}
-```
-
-Expected output: `Builds/iOS/Unity-iPhone.xcodeproj` (plus the rest of the Xcode
-project tree). This is required for **both** iOS paths — the fastlane lane's
-`require_export!` also expects this project to exist.
-
-### iOS: export (fastlane or xcodebuild)
-
-The per-method iOS export command blocks + failure handling live in
-**`references/ios-export.md`**. Pick the branch by `ios_fastlane`: `true` → the fastlane
-`match`+`gym` lane from the project root (signing/`{env_exports}` in
-`references/fastlane-signing.md`), skipping xcodebuild; `false` → the xcodebuild
-`ExportOptions.plist` → `archive` → `exportArchive` path.
-
-## Step 7: Post-Build Verification
-
-Unity CLI exit 0 is necessary but not sufficient — a no-op run (editor already
-open, sandbox-blocked writes) also exits 0. For EACH platform built, assert all
-of the following:
-
-1. **File exists:** `[ -f "$ARTIFACT" ]`
-2. **Fresh mtime:** `[ "$(stat -f %m "$ARTIFACT")" -gt "{skill_start_epoch}" ]`
-3. **Reasonable size:** `[ "$(stat -f %z "$ARTIFACT")" -gt 10485760 ]` (> 10 MiB —
-   prevents passing on 0-byte placeholders)
-
-Where `$ARTIFACT` is:
-
-- Android: `Builds/Android/{appname}_{version}_{android_build}.apk`
-- iOS (xcodebuild path): `Builds/iOS/ipa/<scheme>.ipa` (pre-rename)
-- iOS (fastlane path): the IPA `gym` printed — default project-root `Unity-iPhone.ipa` (pre-rename).
-  For the `testflight` lane the build is also uploaded; still verify the local IPA if one was produced.
-
-If ANY check fails, treat as build failure even if exit code was 0. Surface the
-log tail and the check that failed.
-
-## Step 8: Artifact Placement (move both to `Builds/` root)
-
-After Step 7 verification, move each final artifact to the **root of `Builds/`** (the standard
-drop location) with `mv` (never `cp`) — one canonical file per platform:
-
-```bash
-# Android — BuildScript.cs already named it; move up from Builds/Android/
-mv "{project_root}/Builds/Android/{appname}_{version}_{android_build}.apk" \
-   "{project_root}/Builds/{appname}_{version}_{android_build}.apk"
-
-# iOS — rename + move from wherever it landed (xcodebuild → Builds/iOS/ipa/ ; fastlane → project root)
-ipa=$(ls -t "{project_root}/Builds/iOS/ipa/"*.ipa "{project_root}/"*.ipa 2>/dev/null | head -1)
-mv "$ipa" "{project_root}/Builds/{appname}_{version}_{ios_build}.ipa"
-```
-
-Both finals end at `Builds/{appname}_{version}_{build}.{apk,ipa}` (Step 11 reports `Builds/`).
-This supersedes the earlier "rename in place, never move" instruction.
-
-## Step 9: Build Log (assemble & write)
-
-The "What's new" content was already drafted and approved in **Step 4b** (before the build). Here you only wrap it in the metadata that exists once the build ran (status, artifact sizes) and write it — do NOT re-draft or re-run the review gate.
-
-Stamp the write timestamp: `today=$(date +%Y-%m-%d)`, `time=$(date +%H:%M)`.
-
-**On success:** assemble the entry and prepend it below the `# Build Log` header in `docs/buildlog.md` (create with the header if missing; newest-first):
-
-```markdown
-## Build — {version} (android {android_build}, ios {ios_build}) ({today} {time})
-
-- **Platforms:** {android, ios, or both}
-- **Mode:** {release or development}
-- **Unity:** {editor_version}
-- **Xcode:** {xcode_version} (iOS only)
-- **Signing method:** {export_method or `fastlane match ({lane})`} (iOS only)
-- **Artifact sizes:** Android {N} MiB, iOS {N} MiB
-- **Status:** success
-
-{approved_whatsnew — the block between the Step 4b delimiters, verbatim}
-```
-
-**On failure:** the pre-approved "What's new" describes changes that did not ship — do NOT write it. Use the same header + metadata with `**Status:** failed` and replace the "What's new" block with a one-line error summary.
-
-**Post-write lint** (both cases):
-
-- `# Build Log` header present
-- Entries ordered newest-first (entry dates monotone decreasing top-to-bottom)
-- Every entry date ≤ today (catches future-dated bugs — `git checkout -- docs/buildlog.md` to revert if any fail, then abort)
-- Current entry has all required fields (Platforms / Mode / Unity / Status / a non-empty "What's new" or error line)
-
-Never delete or modify past entries.
-
-## Step 10: Commit + Tag
-
-**Precondition:** the "What's new" was approved in Step 4b and the Step 9 buildlog lint passed. If the user cancelled at the Step 4b review gate, the build never ran; if the Step 9 lint failed, skip Step 10 entirely — no commit, no tag.
-
-### 10a. Reset Unity re-serialization noise
-
-Unity may have touched scenes/meta/settings that we don't want in this commit.
-Reset anything dirty that isn't in the commit whitelist:
-
-```bash
-git status --porcelain | awk '{print $2}' | while read -r f; do
+for f in ProjectSettings/ProjectVersion.txt ProjectSettings/EditorBuildSettings.asset Packages/packages-lock.json; do
+  grep -qxF -- "$f" Builds/logs/clean-before.txt && ! git diff --quiet -- "$f" && git checkout -- "$f"
+done
+git diff --name-only -z | while IFS= read -r -d '' f; do          # NUL-safe: paths may contain spaces
   case "$f" in
-    ProjectSettings/ProjectSettings.asset) ;;
-    docs/buildlog.md) ;;
-    Assets/Editor/BuildScript.cs) ;;
-    Assets/Editor/BuildScript.cs.meta) ;;
-    *) git checkout -- "$f" 2>/dev/null || true ;;
+    ProjectSettings/ProjectSettings.asset|docs/buildlog.md|Assets/Editor/BuildScript.cs|Assets/Editor/BuildScript.cs.meta) ;;
+    *) printf '%s\n' "$f" ;;
   esac
 done
 ```
 
-### 10b. Stage + commit
+**8b.** If at least one platform built (`success` or `partial`): `git add -- ProjectSettings/ProjectSettings.asset docs/buildlog.md Assets/Editor/BuildScript.cs Assets/Editor/BuildScript.cs.meta`,
+commit `chore: bump version to {version} (android {android_build}, ios {ios_build})` (drop the unused side on single-platform builds), then
+`git tag build/{version}+{max(android_build, ios_build)}`. No prompt. If nothing built (`failed`): leave the bump and the failed entry uncommitted and untagged, and say so.
 
-```bash
-git add ProjectSettings/ProjectSettings.asset \
-        docs/buildlog.md \
-        Assets/Editor/BuildScript.cs \
-        Assets/Editor/BuildScript.cs.meta
-```
+## Step 9: Report
 
-Commit message:
+Table and fact lines from `references/report.md`, plus the other dirty files from 8a, left untouched.
 
-```
-chore: bump version to {version} (android {android_build}, ios {ios_build})
-```
+## Gotchas
 
-On single-platform builds, drop the unused side: `(android {android_build})` or `(ios {ios_build})`.
-
-### 10c. Tag (success only)
-
-```bash
-git tag build/{version}+{max(android_build, ios_build)}
-```
-
-Do NOT tag partially-failed builds. Do NOT push.
-
-## Step 11: Report
-
-Present a table plus diagnostics:
-
-```
-| Platform | Status  | Size    | Artifact                                    | Path              |
-|----------|---------|---------|---------------------------------------------|-------------------|
-| Android  | success | {N MiB} | {appname}_{version}_{android_build}.apk     | Builds/           |
-| iOS      | success | {N MiB} | {appname}_{version}_{ios_build}.ipa         | Builds/           |
-```
-
-- Path column = directory only (clickable in file explorer); both artifacts are moved to `Builds/` root in Step 8
-- Artifact column = renamed filename
-- Paths relative to project root
-- On failure: `failed` status, one-line error, and the log path
-
-Then append:
-
-```
-Signing       : {export_method} (Team {team_id})            ← iOS only, xcodebuild path
-Signing       : fastlane match ({ios_lane})                 ← iOS only, fastlane path; add "→ uploaded to TestFlight" for the testflight lane
-Logs          : {project_root}/Builds/logs/{android,ios-unity,ios-archive,ios-export}.log  ← xcodebuild path; fastlane prints its own log to the console
-Phase timings : pre-flight {N}s / Unity iOS {N}s / Unity Android {N}s (parallel w/ xcodebuild) / xcodebuild {N}s / verify {N}s
-Committed     : {version} (android {android_build}, ios {ios_build})
-Tagged        : build/{version}+{max_build}
-Reminder      : `git push && git push --tags` when ready
-```
-
-Omit iOS-specific rows when only Android was built, and vice versa.
-
-## Fallback
-
-If unity-builder is unavailable, inline its content tasks (scaffold templates
-for `BuildScript.cs`/`.meta`, walk git log directly). Build invocations are
-already main-thread.
+- **iPad orientations fail App Store validation.** altool returns 409 unless `UIRequiresFullScreen` is set or all four iPad orientations are enabled (Player Settings, or a post-process `Info.plist` step). Fix, bump the build number, rebuild.
+- **External TestFlight distribution needs the tester group to exist first.** Create it in App Store Connect before the lane runs.
+- **Apple raises the minimum iOS version over time.** A minimum-OS warning means the target iOS version in Player Settings or Xcode is too old.
+- **Subagents can be blocked on uploads by a permission layer.** The lead runs the upload lane itself.
+- **Fastlane exit 0 is not delivery.** Prove upload and distribution from the log.
+- **An open Unity Editor makes batch mode exit 0 without building.** Step 3.1 and Step 6 exist for this.
+- **`awk '{print $2}'` on `git status` breaks on paths with spaces.** Use `-z` and `read -d ''`, as in 8a.
 
 ## Rules
 
-- NEVER push to remote — commit and tag locally only
-- NEVER modify source beyond version fields in `ProjectSettings.asset` and the
-  scaffolded `BuildScript.cs`
-- NEVER edit `ProjectSettings.asset` with `sed` — use the Edit tool
-- NEVER skip the build log — mark status "failed" on failures
-- NEVER continue to the next platform if one fails
-- NEVER tag partially-failed builds
-- NEVER dump raw `git log` — always curate
-- NEVER run Unity invocations in parallel on the same project
-- NEVER guess at Unity reinstalls or license cache clears — if a log says
-  `read only` / `licensing mutex` / `permission denied`, it's a sandbox signal
-- NEVER guess iOS signing identity — if xcodebuild prompts interactively, STOP
-- SECURITY: NEVER let secret-bearing files (`.env*`, `secrets.json`, `*.local.*`, `service-account*.json`, `*.pem`, `*.p12`, `*.keystore`, `*.jks`) sit under `Assets/` at build time — they get packed into the shipped binary. The Step 4 secrets-in-bundle guard must pass before building
-- SECURITY (fastlane path): signing secrets live in `~/.fastlane-nextc/` (the `teams.json` `match_password`, the `.p8` key) — NEVER read those values into the report, log, or commit, and NEVER set `MATCH_PASSWORD` yourself. They authenticate signing/upload and never enter the app binary — separate from the `Assets/` bundle guard above
-- On the fastlane path, `match` provides the signing identity non-interactively — the "NEVER guess iOS signing identity" rule still holds: if the lane stalls on an interactive Apple prompt, STOP rather than guessing
-- Unity exit code 0 + a fresh, reasonably-sized artifact is the success bar,
-  not exit code alone
-- Unity builds are slow (5–20+ min on cold compile); don't set tight Bash
-  timeouts — prefer `run_in_background: true` with log tailing, or
-  `timeout: 1800000` (30 min) on Bash
-- Always use absolute paths when invoking the Unity binary
+- Never push. Commit only the four files in 8b. Tag only a build where something built.
+- Never edit source beyond the version fields in `ProjectSettings.asset` and the scaffolded `BuildScript.cs`. Never edit `ProjectSettings.asset` with `sed`.
+- Never `git checkout --` a file outside the 8a whitelist, and never one that was dirty before the build.
+- Never run Unity invocations in parallel on one project. Never guess the iOS signing identity: if xcodebuild or the lane stalls on an interactive prompt, stop.
+- Never retry a failed upload lane without a diagnosis.
+- SECURITY: no secret-bearing file under `Assets/` at build time (Step 3.5); they ship in the binary. Fastlane secrets stay in `~/.fastlane-nextc/`; never read them into a report, log or commit, and never set `MATCH_PASSWORD`.
+- Always use absolute paths for the Unity binary and `-projectPath`.

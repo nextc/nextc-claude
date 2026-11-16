@@ -1,135 +1,123 @@
 ---
 name: idea-explore
-description: Deep multi-framework analysis of a problem or product concept, broader than the proposal pipeline. Use when stress-testing an idea from multiple lenses.
+description: Examine a problem or product concept through the analysis lenses that fit it, grounded in sourced evidence, and reach one recommendation with next tests. Use when an idea needs several perspectives before anyone commits to building it.
 when_to_use: |
-  Use for deep multi-lens analysis of a problem or product idea — broader than `/product-explore`'s proposal pipeline. Also when user says "explore this idea", "multiple frameworks", "different lenses", "is this idea good", "stress-test this concept", "should I pursue this", or "deep idea analysis".
+  Triggers: "explore this idea", "look at this from different angles", "multiple frameworks", "JTBD / blue ocean / Wardley / 7 powers on this", "stress-test this concept", "should I pursue this", "deep idea analysis", "/idea-explore". Skip when the user already faces a concrete build decision and wants a proposal (use /product-explore, which can import this run's evidence), and for technical design choices.
+argument-hint: "[question or idea] [--slug name] [--auto]"
 user-invocable: true
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep WebSearch WebFetch Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/evidence-check.mjs *)
 ---
 
-# Idea Explore Pipeline
+# /idea-explore
 
-Spawns 8 expert framework analyst agents in parallel, then a team-lead synthesizer that produces the final markdown report.
+Answer one question about an idea by first building an evidence pack, then reading it through
+the three to five lenses that fit, then writing one synthesis of about 1,200 words at
+`docs/idea-explorations/<date>-<slug>.md`, plus a generated evidence appendix.
 
-## Frameworks (8 agents across 4 categories)
+The lenses exist to argue with each other over shared evidence. Their agreement is only worth
+something when the records behind it are good, so the evidence comes first and the synthesis
+weighs lens conclusions by the records they cite.
 
-| Category | Framework | Agent |
+Input: `$ARGUMENTS`. Below, `S` means `node ${CLAUDE_PLUGIN_ROOT}/scripts/evidence-check.mjs`,
+`R` means `${CLAUDE_PLUGIN_ROOT}/references`, and `W` is the run directory
+`docs/idea-explorations/<slug>/`.
+
+## Ground rules
+
+- You own every user interaction; agents cannot ask the user. Ask once, at intake. In `--auto`,
+  ask nothing and record every gap as an intake assumption.
+- Workers write records and lens files; you read those files, not their return summaries.
+- `S` owns `state.json`, timestamps, claim ids, the index and the appendix.
+- Spawn each batch in one message with an explicit `model` on every Agent call.
+- Print one line before each stage, and wrap each stage in `S state start|done <stage> --dir W`.
+
+## Stages
+
+### 0. Start
+
+Derive a 3-5 word kebab-case slug from the question, or use `--slug`. Run
+`S init --dir W --mode <default|auto>`. If `W` already holds a run, this is a re-run: keep its
+intake ids, skip stages whose files exist and pass `check`, and write a new dated memo.
+
+### 1. Intake (`intake`)
+
+Read what exists first: files the user points to, `$ARGUMENTS`, `docs/proposal.md`,
+`docs/explore/intake.json`, earlier memos in `docs/idea-explorations/`. Then ask one
+AskUserQuestion call with at most three questions, options pre-filled from what you read:
+
+1. **The question.** The one question this run must answer, and what decision it feeds.
+2. **What you already know or own.** Users, a build, data, prior research, domain expertise,
+   and the success criterion if it is not revenue (for example "durable value to learners").
+3. **What would change your mind.** The result that would make them drop or reshape the idea.
+
+Write `W/intake.json` with the schema in
+`${CLAUDE_PLUGIN_ROOT}/skills/product-explore/references/intake.md` (`decision.options` may be
+empty; assumptions `A1`.. and kill conditions `K1`.. still apply). Write the user's own
+statements to `W/evidence/founder.jsonl` as `kind: founder` records, then
+`S check --dir W --require founder`.
+
+### 2. Evidence pack (`evidence`)
+
+In one message, spawn `nextc-product:evidence-scout` agents (model `sonnet`): one on
+`prior-art` (always) and two or three on the topics this question needs, chosen from
+`R/evidence-topics.md` or written as custom topics in the same shape. Brief each with
+`RUN_DIR=W`, `TOPIC`, `QUESTION`, the intake ids, `SCRIPT`, `CONTRACT=R/evidence-contract.md`
+and `TOPICS=R/evidence-topics.md`. Then `S check --dir W --require founder,prior-art --fetch`.
+
+Read `W/evidence/prior-art.jsonl` before choosing lenses. If prior art already answers the
+question (the obvious product exists, from the people best placed to build it), say so to the
+user in one line and keep going: the lenses then examine what is left, such as the gap the
+existing product leaves.
+
+### 3. Lens selection (`lenses`)
+
+Choose the three to five lenses that fit the question and the evidence. Write `W/lenses/selection.md`
+with one line per lens: used and why, or skipped and why. Print it.
+
+| Lens | Reference | Fits best when |
 |---|---|---|
-| 1. Reframing / problem definition | Jobs-to-be-Done | `ie-jtbd` |
-| 1. Reframing / problem definition | Opportunity Solution Tree | `ie-ost` |
-| 2. Idea expansion / divergent thinking | Morphological Analysis | `ie-morphological` |
-| 2. Idea expansion / divergent thinking | Assumption Reversal | `ie-assumption-reversal` |
-| 3. Strategic positioning | Blue Ocean (Strategy Canvas + ERRC) | `ie-blue-ocean` |
-| 3. Strategic positioning | Wardley Mapping | `ie-wardley` |
-| 4. Defensibility & Validation | 7 Powers (Helmer) | `ie-seven-powers` |
-| 4. Defensibility & Validation | Mom Test / Customer Discovery | `ie-mom-test` |
+| Jobs-to-be-Done | `R/lenses/jtbd.md` | Whether people will switch, and what they are really trying to do |
+| Opportunity Solution Tree | `R/lenses/ost.md` | An outcome to move and several solutions to choose between |
+| Morphological Analysis | `R/lenses/morphological.md` | An open design space; the founder may be stuck on one configuration |
+| Assumption Reversal | `R/lenses/assumption-reversal.md` | A category with strong conventions the idea follows |
+| Blue Ocean | `R/lenses/blue-ocean.md` | Three or more direct substitutes competing on the same factors |
+| Wardley Mapping | `R/lenses/wardley.md` | Components (data, platforms, content) whose maturity decides build vs reuse |
+| 7 Powers | `R/lenses/seven-powers.md` | Whether the business can last or charge more over time |
+| Mom Test | `R/lenses/mom-test.md` | Demand is unproven and conversations are the next step |
 
-Synthesizer: `ie-team-lead`.
+### 4. Lens batch (`lens-batch`)
 
-## Inputs
+In one message, spawn one `nextc-product:lens-analyst` (model `sonnet`) per chosen lens with
+`LENS`, `LENS_REF`, `RUN_DIR=W`, `SCRIPT`, `CONTRACT` and `OUT=W/lenses/<lens>.md`. Lenses may
+add a few records to `W/evidence/lens-<lens>.jsonl`. When all return, run
+`S check --dir W --require founder,prior-art --fetch` so their new records are checked too.
 
-The skill takes free-form input and extracts:
-- **`problem`** (required) — description of the problem / opportunity space
-- **`product`** (optional) — proposed solution, product idea, or hypothesis
+### 5. Synthesis (`synthesis`)
 
-If the user invoked `/idea-explore` with no arguments, ask once: *"Describe the problem you want analyzed. Optionally, also describe the product idea you have in mind."* Then proceed — do not ask further clarifying questions about scope or framework methodology.
+Read every lens file, `W/evidence/_index.json`, and the records the lenses cite. Write the memo
+from `references/memo-template.md`. Then run, from the repository root:
 
-## Pipeline
+- `S appendix --dir W --memo <memo>`
+- `S memo-check --dir W --memo <memo> --words 1200 --sample W/citation-check.md`
 
-### Step 1 — Parse input
+Fix what `memo-check` reports and re-run. After three failing passes, stop and tell the user
+which checks still fail.
 
-From the user message, extract `problem` and `product`. `product` may be empty (analysis still works on problem-space alone).
+### 6. Report
 
-### Step 2 — Generate output slug
+In eight lines or fewer: the recommendation, the strongest alternative and why it lost, the
+first next action with its threshold and denominator, the lenses used, evidence counts
+(records, quotes verified, unverifiable), and the memo path. Then offer the hand-off: "To turn
+this into a build decision, run `/product-explore`; its intake reads `W/intake.json` and can
+import this run's evidence."
 
-Derive a kebab-case slug: 3–5 meaningful words from the problem, prefixed with the date.
+## Gotchas
 
-Format: `YYYY-MM-DD-<3-5-word-slug>`
-Example: `2026-05-06-async-mahjong-onboarding`
-
-### Step 3 — Spawn 8 framework agents IN PARALLEL
-
-This is critical: send a single message with 8 Agent tool calls. Sequential invocation is wrong, defeats the parallel design, and triples wall-clock time.
-
-Each agent receives the same input contract:
-
-```
-PROBLEM: <problem>
-PRODUCT: <product or "(not specified)">
-
-Apply your framework lens. Follow your output spec exactly.
-```
-
-Agents to spawn (all eight, in one message):
-1. `ie-jtbd`
-2. `ie-ost`
-3. `ie-morphological`
-4. `ie-assumption-reversal`
-5. `ie-blue-ocean`
-6. `ie-wardley`
-7. `ie-seven-powers`
-8. `ie-mom-test`
-
-Use `subagent_type` matching each agent's name. Models are pinned in each agent's frontmatter — do not override.
-
-### Step 4 — Spawn team-lead synthesizer
-
-After all 8 framework agents return, spawn `ie-team-lead` with:
-
-```
-PROBLEM: <problem>
-PRODUCT: <product or "(not specified)">
-SLUG: <slug from Step 2>
-OUTPUT_PATH: docs/idea-explorations/<slug>.md
-
-=== FRAMEWORK OUTPUTS ===
-
-[1/8] JTBD:
-<full output from ie-jtbd>
-
-[2/8] Opportunity Solution Tree:
-<full output from ie-ost>
-
-[3/8] Morphological Analysis:
-<full output from ie-morphological>
-
-[4/8] Assumption Reversal:
-<full output from ie-assumption-reversal>
-
-[5/8] Blue Ocean:
-<full output from ie-blue-ocean>
-
-[6/8] Wardley Mapping:
-<full output from ie-wardley>
-
-[7/8] 7 Powers:
-<full output from ie-seven-powers>
-
-[8/8] Mom Test:
-<full output from ie-mom-test>
-```
-
-Team lead writes the synthesized markdown to `OUTPUT_PATH`. Create the parent directory if missing.
-
-### Step 5 — Report to user
-
-After team lead completes, give a short summary:
-- Path to the report
-- 2–3 sentence headline finding (convergence point)
-- One pointed question or recommended next step
-
-## Rules
-
-- **Always parallel.** The 8 framework agents MUST be invoked in a single message with 8 Agent tool calls. Never sequential.
-- **No clarifying questions** about framework methodology — each agent owns its own approach.
-- **Output location:** `docs/idea-explorations/<slug>.md`. Create the directory if it doesn't exist.
-- **Don't run framework agents inside the team lead.** Team lead is a synthesizer, not an orchestrator.
-- **Models are agent-pinned.** Framework agents = sonnet/high. Team lead = fable/xhigh.
-- **If the user gave only a problem (no product),** all 8 agents still apply — they shift to opportunity-space analysis instead of product-space analysis.
-
-## Failure modes to avoid
-
-- Asking a stack of clarifying questions before spawning agents — the agents themselves will name the questions worth asking
-- Summarizing framework outputs yourself before passing them to team lead — pass the raw outputs verbatim
-- Skipping a framework because "it doesn't apply" — let the agent itself say so in its output
-- Writing the markdown doc yourself — that's the team lead's job
+- Subagents cannot ask the user. If a lens needs a fact only the user has, it lists the question
+  in its file; collect those into "What we do not know".
+- Lens agreement measures how coherent the brief is, not whether the idea is right. Only records
+  make a conclusion stronger.
+- A page that blocks fetching is `unreachable`, not wrong. If `--fetch` marks almost everything
+  unreachable, Bash has no network here; say so in the memo.
+- Store search results vary by country; the prior-art scout names the storefronts it searched.
+- Do not run all eight lenses to be thorough. A lens that does not fit produces confident filler.

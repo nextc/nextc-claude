@@ -1,203 +1,53 @@
 ---
 name: council
-description: Get structured multi-perspective disagreement on an ambiguous decision, tradeoff, or go/no-go call. Use when multiple valid paths exist and you need a second opinion.
+description: Settles a real fork between stated options using independent, evidence-citing voices, and returns a decision table with a recommendation. Use when two or more credible options exist and the choice is costly to reverse.
 when_to_use: |
-  Use when multiple valid paths exist and structured disagreement helps. Also when user says "I'm stuck choosing", "pros and cons", "two valid options", "should I do A or B", "second opinion", "talk me through this", "council", or "I keep flip-flopping". Skip for code review, implementation planning, or architecture design.
-allowed-tools: Agent Read Glob Grep
+  Triggers: "A or B?", "I keep flip-flopping", "second opinion on this decision", "council", "go / no-go". Needs stated options; if the user has none, derive 2-3 first. Skip for code review (`/code-review`), implementation planning (`planner`), architecture design (`architect`), or choices that are cheap to reverse; just pick.
+allowed-tools: Agent Read Glob Grep WebFetch
 ---
 
 # Council
 
-Convene four advisors for ambiguous decisions:
-- the in-context Claude voice
-- a Skeptic subagent
-- a Pragmatist subagent
-- a Critic subagent
+What this adds: independent voices that have not seen your leaning or the conversation, forced to bring evidence instead of opinions, so a costly decision gets challenged before it is made. Use it rarely; each run is 3 subagent calls.
 
-This is for **decision-making under ambiguity**, not code review, implementation planning, or architecture design.
+## 1. Frame (one paragraph, no questions unless truly unclear)
 
-## When to Use
+Decision, the options (named, concrete), constraints, and what counts as success. Collect only the evidence the voices need (file paths, metrics, issue text); they can read the repo themselves.
 
-Use council when:
-- a decision has multiple credible paths and no obvious winner
-- you need explicit tradeoff surfacing
-- the user asks for second opinions, dissent, or multiple perspectives
-- conversational anchoring is a real risk
-- a go / no-go call would benefit from adversarial challenge
+## 2. Launch 3 voices in parallel
 
-Examples:
-- monorepo vs polyrepo
-- ship now vs hold for polish
-- feature flag vs full rollout
-- simplify scope vs keep strategic breadth
+`Agent(subagent_type: "general-purpose", model: "sonnet", ...)`, one call each, same brief, different lens:
 
-## When NOT to Use
+- Skeptic: challenge the framing; is there a simpler option, or is the premise wrong?
+- Pragmatist: cost, speed, operations, who maintains it in six months.
+- Critic: failure modes, edge cases, what breaks first and how it is noticed.
 
-| Instead of council | Use |
-| --- | --- |
-| Breaking a feature into implementation steps | `planner` |
-| Designing system architecture | `architect` |
-| Reviewing code for bugs or security | `code-reviewer` |
-| Straight factual questions | just answer directly |
-| Obvious execution tasks | just do the task |
+Use `model: "opus"` for a voice only when the decision is architectural or irreversible. Each voice returns at most 250 words, in this shape, and must cite evidence (file:line, command output, doc URL); a claim without a source is labeled opinion:
 
-## Roles
-
-| Voice | Lens |
-| --- | --- |
-| Architect | correctness, maintainability, long-term implications |
-| Skeptic | premise challenge, simplification, assumption breaking |
-| Pragmatist | shipping speed, user impact, operational reality |
-| Critic | edge cases, downside risk, failure modes |
-
-The three external voices should be launched as fresh subagents with **only the question and relevant context**, not the full ongoing conversation. That is the anti-anchoring mechanism.
-
-## Workflow
-
-### 1. Extract the real question
-
-Reduce the decision to one explicit prompt:
-- what are we deciding?
-- what constraints matter?
-- what counts as success?
-
-If the question is vague, ask one clarifying question before convening the council.
-
-### 2. Gather only the necessary context
-
-If the decision is codebase-specific:
-- collect the relevant files, snippets, issue text, or metrics
-- keep it compact
-- include only the context needed to make the decision
-
-If the decision is strategic/general:
-- skip repo snippets unless they materially change the answer
-
-### 3. Form the Architect position first
-
-Before reading other voices, write down:
-- your initial position
-- the three strongest reasons for it
-- the main risk in your preferred path
-
-Do this first so the synthesis does not simply mirror the external voices.
-
-### 4. Launch three independent voices in parallel
-
-Each subagent gets:
-- the decision question
-- compact context if needed
-- a strict role
-- no unnecessary conversation history
-
-Prompt shape:
-
-```text
-You are the [ROLE] on a four-voice decision council.
-
-Question:
-[decision question]
-
-Context:
-[only the relevant snippets or constraints]
-
-Respond with:
-1. Position — 1-2 sentences
-2. Reasoning — 3 concise bullets
-3. Risk — biggest risk in your recommendation
-4. Surprise — one thing the other voices may miss
-
-Be direct. No hedging. Keep it under 300 words.
+```
+Preferred option:
+Strongest argument for it (evidence):
+Strongest argument against the other options (evidence):
+What evidence would change my mind:
 ```
 
-Role emphasis:
-- Skeptic: challenge framing, question assumptions, propose the simplest credible alternative
-- Pragmatist: optimize for speed, simplicity, and real-world execution
-- Critic: surface downside risk, edge cases, and reasons the plan could fail
+## 3. Write your own position first
 
-### 5. Synthesize with bias guardrails
+Before reading the voices: your pick and the main reason. Then if two voices disagree with you, treat that as signal and say so.
 
-You are both a participant and the synthesizer, so use these rules:
-- do not dismiss an external view without explaining why
-- if an external voice changed your recommendation, say so explicitly
-- always include the strongest dissent, even if you reject it
-- if two voices align against your initial position, treat that as a real signal
-- keep the raw positions visible before the verdict
+## 4. Output: a decision table, not essays
 
-### 6. Present a compact verdict
+| Option | Strongest argument for | Strongest argument against | What evidence would change it |
+|---|---|---|---|
 
-Use this output shape:
+Then: Recommendation (one option, one sentence of why), Strongest dissent (kept even if rejected), and any check that is cheap and would settle it (do that check now if it is read-only).
 
-```markdown
-## Council: [short decision title]
+## Persistence
 
-**Architect:** [1-2 sentence position]
-[1 line on why]
+Record the decision only when it changes something real: in `docs/` (decision log or ADR) or the relevant issue. No shadow notes folders.
 
-**Skeptic:** [1-2 sentence position]
-[1 line on why]
+## Gotchas
 
-**Pragmatist:** [1-2 sentence position]
-[1 line on why]
-
-**Critic:** [1-2 sentence position]
-[1 line on why]
-
-### Verdict
-- **Consensus:** [where they align]
-- **Strongest dissent:** [most important disagreement]
-- **Premise check:** [did the Skeptic challenge the question itself?]
-- **Recommendation:** [the synthesized path]
-```
-
-Keep it scannable on a phone screen.
-
-## Persistence Rule
-
-Do **not** write ad-hoc notes to `~/.claude/notes` or other shadow paths from this skill.
-
-If the council materially changes the recommendation:
-- use `knowledge-ops` to store the lesson in the right durable location
-- or use `/save-session` if the outcome belongs in session memory
-- or update the relevant GitHub / Linear issue directly if the decision changes active execution truth
-
-Only persist a decision when it changes something real.
-
-## Multi-Round Follow-up
-
-Default is one round.
-
-If the user wants another round:
-- keep the new question focused
-- include the previous verdict only if it is necessary
-- keep the Skeptic as clean as possible to preserve anti-anchoring value
-
-## Anti-Patterns
-
-- using council for code review
-- using council when the task is just implementation work
-- feeding the subagents the entire conversation transcript
-- hiding disagreement in the final verdict
-- persisting every decision as a note regardless of importance
-
-## Related Skills
-
-- `knowledge-ops` — persist durable decision deltas correctly
-- `search-first` — gather external reference material before the council if needed
-- `architecture-decision-records` — formalize the outcome when the decision becomes long-lived system policy
-
-## Example
-
-Question:
-
-```text
-Should we ship the new feature as alpha now, or hold until the control-plane UI is more complete?
-```
-
-Likely council shape:
-- Architect pushes for structural integrity and avoiding a confused surface
-- Skeptic questions whether the UI is actually the gating factor
-- Pragmatist asks what can be shipped now without harming trust
-- Critic focuses on support burden, expectation debt, and rollout confusion
-
-The value is not unanimity. The value is making the disagreement legible before choosing.
+- Voices given the whole conversation anchor on your leaning; give them only the brief.
+- Agreement of all voices on an unsourced claim is not evidence; verify it.
+- If the options were not real options (one is a straw man), say so and re-frame instead of running the table.

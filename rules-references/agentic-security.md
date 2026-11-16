@@ -27,9 +27,8 @@ documents. Untrusted content may *describe* an action; it must never *authorize*
 ## Least agency / approval boundaries
 
 - Give the agent the **minimum tools and paths** the task needs — not the whole machine.
-- **Destructive or outward-facing actions get an explicit gate** (this repo's `fact-force-guard` hook
-  denies a destructive bash command until targets + rollback + the user's instruction are stated;
-  `safety-guard` skill sets ask/deny boundaries).
+- **Destructive or outward-facing actions get an explicit gate**: permission `ask`/`deny` rules or a
+  hook, not prose alone (the `safety-guard` skill sets ask/deny boundaries).
 - Separate identities/credentials per scope; don't run untrusted work with production credentials.
 
 ## Isolation (when running untrusted work)
@@ -42,8 +41,7 @@ documents. Untrusted content may *describe* an action; it must never *authorize*
 - **Log security-relevant actions** (tool calls, file mutations, outbound requests) in debug builds —
   never log secrets/tokens/PII (`safety.md` Rule 1). Logs are how you reconstruct an incident.
 - Have a **stop**: a way to halt an autonomous run (kill switch / heartbeat / approval gate) so a
-  compromised or looping agent can't run unbounded. (`loop-scope-guard` flags stuck loops; the user
-  can always interrupt.)
+  compromised or looping agent can't run unbounded. (The user can always interrupt.)
 
 ## Memory trust boundary
 

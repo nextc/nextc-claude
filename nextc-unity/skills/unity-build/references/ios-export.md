@@ -1,6 +1,6 @@
-# iOS Export Commands (Step 6)
+# iOS Export Commands (Step 5)
 
-> Owner: `nextc-unity/skills/unity-build/SKILL.md` (Step 6). The per-method iOS export
+> Owner: `nextc-unity/skills/unity-build/SKILL.md` (Step 5). The per-method iOS export
 > command blocks live here to keep the SKILL body focused. Read this after the Unity iOS
 > Xcode-project generation step. Signing config + the `{env_exports}` string are in
 > `references/fastlane-signing.md`.
@@ -17,8 +17,11 @@ entirely and run the lane instead. It applies `match` signing to the freshly gen
 # prefix = "bundle exec fastlane" when a root ./Gemfile exists, else "fastlane"
 # lane   = build_adhoc | build_appstore | release_testflight  (from ios_lane)
 # {env_exports} = inline KEY=value prefix from references/fastlane-signing.md
-{env_exports} {prefix} ios {lane}
+{env_exports} {prefix} ios {lane} > Builds/logs/ios-fastlane.log 2>&1
 ```
+
+Run it with Bash `run_in_background: true` and wait for the completion notification (no `sleep` polling): the `testflight` lane keeps
+running for minutes after the upload. Redirect with `>` (no pipe) so the task's exit code is fastlane's. Verify per `references/report.md`.
 
 - Run from the **project root** (the Unity fastlane lives at `fastlane/`, not `ios/`).
 - Resolve `lane` from `ios_lane`: `ad-hoc → build_adhoc`, `app-store → build_appstore`,
@@ -28,7 +31,7 @@ entirely and run the lane instead. It applies `match` signing to the freshly gen
   `bundle install` once at the root, then retry.
 - `gym` writes the IPA to the directory the lane runs from (project root) as
   `Unity-iPhone.ipa` by default, and prints the exact path. This is NOT `Builds/iOS/ipa/`
-  — locate and rename it per Step 8.
+  — locate and rename it per Step 6.
 - On failure, apply the Failure handling below.
 
 ## iOS: ExportOptions.plist (xcodebuild path only — skip when `ios_fastlane = true`)

@@ -42,8 +42,8 @@ output. Both apply.
   outputs Z" is a hypothesis until executed.
 - **UI** — appearance is judged on the rendered screen. A green analyze/typecheck/lint/test proves the
   code compiles and the logic holds, not that the UI looks right. Render current and target states
-  together, change one thing, re-render. Rendering that needs a build or simulator is gated by
-  `heavy-commands.md` — ask first; if declined, tag the claim unverified.
+  together, change one thing, re-render. When rendering needs a build or simulator that nobody asked
+  for, tag the claim unverified rather than starting one (`heavy-commands.md`).
 
 ## Skip-condition examples
 
@@ -63,17 +63,23 @@ conditions — familiarity is the trap, not the safety net.
    policies), not just generic docs.
 2. **Context7** — `resolve-library-id` → `query-docs` for any library/framework/SDK/CLI/API question.
    If the session lists only Context7's `authenticate` / `complete_authentication` tools, Context7 is
-   not signed in: ask the user to run its auth flow (`/mcp` → Context7 → Authenticate), or fall back to
-   the official docs via WebFetch, or tag the claim unverified. Don't treat "Context7 unavailable" as
-   "nothing to verify".
+   not signed in: fall back to the official docs via WebFetch, or tag the claim unverified, and mention
+   that signing in (`/mcp` → Context7 → Authenticate) would restore it. Don't treat "Context7
+   unavailable" as "nothing to verify".
 3. **Local repo** — `Read` / `Grep` / `Glob` for any internal claim; `gh search code` for facts in the
    user's own GitHub.
 4. **Local execution** — `Bash` for build, lint, test, migration, `git status`, script output.
 5. **Web** — `WebFetch` / `WebSearch` when 1–4 are insufficient; never sufficient alone for internal
    claims.
 
-For external verification, a `**MCP/Docs:**` line in the context block makes the audit trail clearer.
-For internal verification, the tool calls themselves are the audit trail.
+The tool calls themselves are the audit trail.
+
+## Red-flag phrases
+
+Hedges like these, about a specific API, function or behavior, usually mean an inference is about to
+ship as fact: "should work", "this is standard", "I'm pretty sure", "I believe", "typically",
+"usually", "by default" (without having opened what defines the default), "it probably…", "would
+return…", "we already have…", "this will compile / pass". Verify the claim or tag it.
 
 ## The self-check
 

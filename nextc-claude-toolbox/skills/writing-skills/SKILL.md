@@ -14,7 +14,7 @@ allowed-tools: Read Write Edit Agent Bash Grep Glob
 
 **Writing a skill is TDD applied to process documentation.** You watch an agent fail *without* the
 skill (baseline), write the minimal skill that fixes those specific failures, watch it pass, then
-close the loopholes the agent finds. The frontmatter rules live in `skill-authoring.md` (CRITICAL) —
+close the loopholes the agent finds. The frontmatter rules live in `skill-authoring.md` —
 this skill is the authoring *process* around them.
 
 ## The Iron Law
@@ -48,7 +48,7 @@ it holds under pressure.
 
 ## Match the form to the failure
 
-The form that fixes one failure type backfires on another (full table in `skill-authoring.md`):
+The form that fixes one failure type backfires on another (full table in `~/.claude/nextc-claude-references/skill-authoring.md`):
 
 - **Skips a rule under pressure** → prohibition + rationalization table + red-flags list.
 - **Output has the wrong shape** → a positive recipe ("the output IS: …, in order"), NOT prohibitions.

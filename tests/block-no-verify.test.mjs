@@ -65,12 +65,12 @@ test('run() blocks with exit 2, allows bad or empty input, and refuses truncated
   assert.equal(run('{}', { truncated: true }).exitCode, 2);
 });
 
-test('as a process: exit codes, the reason on stderr, and stdin passed through', () => {
+test('as a process: exit codes, the reason on stderr, and nothing on stdout', () => {
   for (const [command, want] of [[ALLOWED[0], 0], [BLOCKED[0], 2]]) {
     const input = JSON.stringify({ tool_name: 'Bash', tool_input: { command } });
     const r = spawnSync('node', [SCRIPT], { input, encoding: 'utf8' });
     assert.equal(r.status, want, command);
-    if (want === 0) assert.equal(r.stdout, input);
+    if (want === 0) assert.equal(r.stdout, '');
     else assert.match(r.stderr, /^BLOCKED: /);
   }
 });

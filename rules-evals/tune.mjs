@@ -174,7 +174,7 @@ async function tuneRule(rule, baseResults, basePass, baseBundle, snapshot) {
   const { name, rel, original, originalSections, covering, editable, frozen } = rule;
   const isCovering = (r) => covering.some((c) => c.name === r.case);
   const failures = baseResults.filter((r) => !r.pass && !r.infra && isCovering(r));
-  const base = { pass: baseResults.filter((r) => r.pass && isCovering(r)).length, ctx: baseResults.filter((r) => r.contextBlock && isCovering(r)).length };
+  const base = { pass: baseResults.filter((r) => r.pass && isCovering(r)).length };
   const tTotal = covering.length * RUNS;
   if (opts.goal === 'fix' && failures.length === 0) return `${name}: nothing to fix (${base.pass}/${tTotal})`;
   // A derived case tests a rule's prohibition without a recorded incident; its failure may come from the case itself.
@@ -274,7 +274,6 @@ async function tuneRule(rule, baseResults, basePass, baseBundle, snapshot) {
   for (const p of proposals.filter((x) => !x.invalid)) {
     const rs = candResults.filter((r) => r.arm === `${name}-cand${p.id}`);
     p.pass = rs.filter((r) => r.pass && isCovering(r)).length;
-    p.ctx = rs.filter((r) => r.contextBlock && isCovering(r)).length;
     p.chars = p.body.length;
     p.perCase = Object.fromEntries(cases.map((c) => [c.name, rs.filter((r) => r.case === c.name && r.pass).length]));
     p.regressed = cases.filter((c) => !c.noisy && basePass[c.name] === baseRuns(c) && p.perCase[c.name] < runsFor(rule, c)).map((c) => c.name);
@@ -283,9 +282,7 @@ async function tuneRule(rule, baseResults, basePass, baseBundle, snapshot) {
       ? p.pass > base.pass
       : p.pass >= base.pass && p.chars < original.length);
   }
-  const rank = opts.goal === 'trim'
-    ? (a, b) => b.pass - a.pass || a.chars - b.chars || b.ctx - a.ctx
-    : (a, b) => b.pass - a.pass || b.ctx - a.ctx || a.chars - b.chars;
+  const rank = (a, b) => b.pass - a.pass || a.chars - b.chars;
   const winner = proposals.filter((p) => p.eligible).sort(rank)[0];
   const applied = APPLY && winner ? await confirmAndApply(rule, winner, baseBundle) : null;
 
@@ -300,11 +297,11 @@ async function tuneRule(rule, baseResults, basePass, baseBundle, snapshot) {
   fs.writeFileSync(path.join(dir, 'summary.txt'), [
     `target=${rel} covering: ${covering.map((c) => c.name).join(', ')}${opts.goal === 'trim' ? `; editable: ${editable.join(' | ')}` : ''}`,
     '',
-    'arm | covering pass | context block | chars | note',
-    `baseline | ${base.pass}/${tTotal} | ${base.ctx}/${tTotal} | ${original.length} |`,
+    'arm | covering pass | chars | note',
+    `baseline | ${base.pass}/${tTotal} | ${original.length} |`,
     ...proposals.map((p) => p.invalid
-      ? `cand${p.id} (${p.strategy}) | - | - | - | invalid: ${p.invalid}`
-      : `cand${p.id} (${p.strategy}) | ${p.pass}/${tTotal} | ${p.ctx}/${tTotal} | ${p.chars} | ${note(p)}`),
+      ? `cand${p.id} (${p.strategy}) | - | - | invalid: ${p.invalid}`
+      : `cand${p.id} (${p.strategy}) | ${p.pass}/${tTotal} | ${p.chars} | ${note(p)}`),
     '',
     flagged,
   ].join('\n') + '\n');

@@ -1,69 +1,22 @@
-# Code Comments — Your Code Is Your Docs
+# Code Comments
 
-Well-named identifiers, clear control flow, and small functions ARE the documentation. Comments exist only to capture what the code itself cannot express: hidden constraints, invisible contracts, and non-obvious *why*.
+Let names and structure explain the code, and comment only what the code cannot say: hidden constraints, invisible contracts and non-obvious reasons.
 
-## Default: No Comment
+## Default: no comment
 
-Before writing a comment, ask: "Could I rename a variable, extract a function, or simplify the code so this comment becomes redundant?" If yes, do that instead.
+Before writing a comment, ask whether a better name, an extracted function or simpler code would make it unnecessary; if so, do that instead.
 
-**Never write comments that:**
-- Restate what the code does, describe well-named identifiers, or explain boilerplate the framework documents
-- Reference the current task, PR, ticket, or name callers and usage sites
-- Narrate changes or wrap obvious blocks with section banners
-- Could be deleted without confusing a future reader
+Do not write comments that restate the code, describe well-named identifiers, explain framework boilerplate, mention the current task, PR, ticket or callers, narrate changes, or add section banners.
 
-**Only write a comment when the WHY is non-obvious.**
+## Required comment tags
 
-## Required Comment Tags
+When code matches one of these cases, add a tagged comment directly above it, so a later reader (or a later session) does not "clean it up" and break it. Tag in capitals with a colon, explain why rather than what, one line when possible and two at most. Examples: `~/.claude/nextc-claude-references/comment-tags.md`.
 
-When the situation matches one of the tags below, you MUST add a tagged comment. These mark load-bearing code that looks innocent but isn't — future-you (or another developer, or Claude in a later session) needs to recognize it instantly.
+- **WORKAROUND:** the code exists because of a bug, quirk or limit in a library, framework, API, OS or platform. Name the thing being worked around.
+- **ASSUMPTION:** the code relies on something no type, validation, test or schema enforces. State the invariant.
+- **ORDER:** reordering (sync statements or async start/await/subscribe timing) would break it. Say what depends on the order.
+- **EXTERNAL:** correctness depends on, or something depends on, a thing outside this file: another module, an API consumer, a deployed client, an env var, a config flag, a database trigger or RLS policy, a webhook contract, a third-party service. Name it.
+- **SECURITY:** authentication, authorization, tokens, secrets, input sanitization, PII, RLS or a trust boundary. Say what the check protects against.
+- **MAGIC:** a constant whose exact value matters for a non-obvious reason (an external limit, a measured threshold). Name the constant clearly first; tag only when the name cannot explain the value.
 
-Rules for all tags:
-- One line when possible, two lines max
-- Explain *why*, not *what*
-- Place the comment directly above the relevant line or block
-- If you're about to write code that fits one of these cases without a comment, stop and add one
-- Tag is uppercase, followed by a colon
-
-### WORKAROUND
-
-Code that exists because of a bug, quirk, or limitation in a library, framework, API, OS, or platform — not because of your own design choice. Name the thing being worked around so nobody "cleans it up" later and reintroduces the original bug.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#workaround`.
-
-### ASSUMPTION
-
-Code that depends on something being true that isn't enforced anywhere — by types, validation, tests, or schema. If the assumption silently breaks, the code silently breaks. State the invariant explicitly at the point it's relied on.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#assumption`.
-
-### ORDER
-
-Code where the sequence of operations matters and reordering will break things in non-obvious ways. Covers both synchronous ordering (statement A must run before statement B) and asynchronous race conditions (operation A must complete, fire, or be scheduled before operation B). Say what depends on the order.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#order`.
-
-### EXTERNAL
-
-Code whose correctness depends on something outside this file — another module, an API consumer, a deployed client, an env var, a config flag, a database trigger, an RLS policy, a webhook contract, or a third-party service's behavior. Covers both "this depends on something external" and "something external depends on this." Name what's on the other side so future changes don't silently break it.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#external`.
-
-### SECURITY
-
-Anything touching authentication, authorization, tokens, secrets, user input sanitization, PII handling, RLS, or trust boundaries. Tag it so neither you nor Claude silently relaxes a check during a refactor. State what the check is protecting against.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#security`.
-
-### MAGIC
-
-Constants whose specific value matters for a non-obvious reason. Prefer naming the constant clearly first; only add a MAGIC comment when the name alone can't explain *why that exact number*. Don't tag every constant — only the ones tied to an external limit, measured threshold, or arbitrary-looking value with a real reason.
-
-Examples: see `~/.claude/nextc-claude-references/comment-tags.md#magic`.
-
-## Enforcement
-
-- Before writing any comment, confirm it explains a non-obvious *why* that code structure cannot express
-- Before writing code that matches a tag case, add the tagged comment
-- During code review / refactor: flag untagged WORKAROUND, ASSUMPTION, ORDER, EXTERNAL, SECURITY, or MAGIC situations as issues to fix
-- When removing a tagged comment, verify the underlying constraint no longer applies — don't delete the comment just because the tag "looks like clutter"
+When removing a tagged comment, first confirm the constraint it describes no longer applies. In code review, an untagged case of the above is an issue to fix.

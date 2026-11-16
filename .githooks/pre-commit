@@ -1,52 +1,81 @@
 #!/usr/bin/env bash
 # nextc-claude pre-commit hook
 #
-# Blocks commits that introduce WARN/FAIL findings from validate.js.
-# Fast (~1s) — only re-runs when SKILL.md, agent .md, hooks.json, or schema.js
-# files are part of the staged change.
+# 1. Blocks commits that introduce WARN/FAIL findings from validate.js. Runs when a skill,
+#    agent, hook, workflow, script, rule or manifest file is part of the staged change (~1s).
+# 2. Runs the node:test suite (`node --test 'tests/*.test.mjs'`, no installs, no model calls)
+#    when tests/ or any script under nextc-*/scripts or nextc-*/hooks is staged.
 #
 # Install:
 #   git config core.hooksPath .githooks
 #
 # Skip on a one-off commit (rarely needed):
-#   SKIP_VALIDATE=1 git commit ...
+#   SKIP_VALIDATE=1 git commit ...   # skips validate.js
+#   SKIP_TESTS=1 git commit ...      # skips the test run
 
 set -e
 
-# Skip if no relevant files staged
-if ! git diff --cached --name-only | grep -qE '(SKILL\.md|agents/.+\.md|hooks/.+\.(js|json)|schema\.js|validate\.js|.claude-plugin/.+\.json)$'; then
-  exit 0
+STAGED="$(git diff --cached --name-only)"
+
+NEEDS_VALIDATE=0
+NEEDS_TESTS=0
+
+if echo "$STAGED" | grep -qE '(SKILL\.md|agents/.+\.md|hooks/.+\.(js|json)|schema\.js|validate\.js|\.claude-plugin/.+\.json)$|^nextc-[^/]+/.+\.(ts|mjs)$|^nextc-[^/]+/(.+/)?workflows/.+\.js$|^rules/'; then
+  NEEDS_VALIDATE=1
 fi
 
-if [ "${SKIP_VALIDATE:-}" = "1" ]; then
-  echo "[pre-commit] SKIP_VALIDATE=1 set — skipping validate"
+if echo "$STAGED" | grep -qE '^tests/|^nextc-[^/]+/(scripts|hooks)/'; then
+  NEEDS_TESTS=1
+fi
+
+if [ "$NEEDS_VALIDATE" -eq 0 ] && [ "$NEEDS_TESTS" -eq 0 ]; then
   exit 0
 fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-SCRIPT="$REPO_ROOT/nextc-claude-toolbox/scripts/validate.js"
 
-if [ ! -f "$SCRIPT" ]; then
-  echo "[pre-commit] validate.js not found at $SCRIPT — skipping"
-  exit 0
+if [ "$NEEDS_VALIDATE" -eq 1 ]; then
+  if [ "${SKIP_VALIDATE:-}" = "1" ]; then
+    echo "[pre-commit] SKIP_VALIDATE=1 set — skipping validate"
+  else
+    SCRIPT="$REPO_ROOT/nextc-claude-toolbox/scripts/validate.js"
+    if [ ! -f "$SCRIPT" ]; then
+      echo "[pre-commit] validate.js not found at $SCRIPT — skipping"
+    else
+      # Capture output for display on failure; `|| EXIT=$?` keeps `set -e` from exiting before the report.
+      EXIT=0
+      OUTPUT="$(node "$SCRIPT" --root "$REPO_ROOT" 2>&1)" || EXIT=$?
+
+      # Look for FAIL or WARN in output. Both block by default.
+      if echo "$OUTPUT" | grep -qE '\[(FAIL|WARN)\]'; then
+        echo "$OUTPUT" | grep -E '\[(FAIL|WARN)\]' | head -20
+        echo ""
+        echo "[pre-commit] validate.js found issues. Fix them, or set SKIP_VALIDATE=1 to bypass."
+        exit 1
+      fi
+
+      if [ "$EXIT" -ne 0 ]; then
+        echo "$OUTPUT"
+        echo "[pre-commit] validate.js exited with code $EXIT"
+        exit 1
+      fi
+    fi
+  fi
 fi
 
-# Run validate; capture output for display on failure
-OUTPUT="$(node "$SCRIPT" --root "$REPO_ROOT" 2>&1)"
-EXIT=$?
-
-# Look for FAIL or WARN in output. Both block by default.
-if echo "$OUTPUT" | grep -qE '\[(FAIL|WARN)\]'; then
-  echo "$OUTPUT" | grep -E '\[(FAIL|WARN)\]' | head -20
-  echo ""
-  echo "[pre-commit] validate.js found issues. Fix them, or set SKIP_VALIDATE=1 to bypass."
-  exit 1
-fi
-
-if [ $EXIT -ne 0 ]; then
-  echo "$OUTPUT"
-  echo "[pre-commit] validate.js exited with code $EXIT"
-  exit 1
+if [ "$NEEDS_TESTS" -eq 1 ]; then
+  if [ "${SKIP_TESTS:-}" = "1" ]; then
+    echo "[pre-commit] SKIP_TESTS=1 set — skipping tests"
+  else
+    EXIT=0
+    OUTPUT="$(cd "$REPO_ROOT" && node --test 'tests/*.test.mjs' 2>&1)" || EXIT=$?
+    if [ "$EXIT" -ne 0 ]; then
+      echo "$OUTPUT" | tail -40
+      echo ""
+      echo "[pre-commit] node --test failed. Fix the tests, or set SKIP_TESTS=1 to bypass."
+      exit 1
+    fi
+  fi
 fi
 
 exit 0

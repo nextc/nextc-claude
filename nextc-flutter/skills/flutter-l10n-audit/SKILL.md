@@ -4,6 +4,8 @@ description: >
   Scan Flutter code for hardcoded user-facing strings and audit against text principles.
   Use when checking for untranslated strings, auditing text quality, or as the first step
   of the l10n pipeline.
+when_to_use: |
+  Triggers: "audit my text", "find hardcoded strings", "check text consistency", "/flutter-l10n-audit".
 user-invocable: true
 allowed-tools: Read Grep Glob Bash Write Edit
 paths: ["**/pubspec.yaml", "**/lib/**/*.dart"]
@@ -12,7 +14,7 @@ paths: ["**/pubspec.yaml", "**/lib/**/*.dart"]
 # Flutter L10n Audit — Text Auditor
 
 You audit all user-facing text in a Flutter project for compliance with the
-localization text principles defined in `nextc-flutter/agents/flutter-l10n-agent.md`.
+localization text principles in `${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md`.
 
 ## When to Use
 
@@ -24,7 +26,7 @@ localization text principles defined in `nextc-flutter/agents/flutter-l10n-agent
 
 ### Step 1: Load Context
 
-1. Read `nextc-flutter/agents/flutter-l10n-agent.md` for text principles
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md` for the text principles
 2. Read `docs/glossary.md` for canonical terms and no-translate list
 3. Read `docs/tone.md` or `docs/design.md` for product voice/tone
 4. Read `lib/l10n/app_en.arb` if it exists (to know what's already extracted)
@@ -140,7 +142,7 @@ For each `context.go()`, `context.push()`, `context.pushReplacement()` call, ext
 **Cross-reference:**
 For each navigation call site, check if the label key matches the destination screen's
 title key. Flag mismatches as `NAV_LABEL_MISMATCH`. Exclude exceptions defined in
-the text principles in `flutter-l10n-agent.md` (empty state CTAs, back buttons, dynamic titles, screens without
+the text principles (`${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md`) (empty state CTAs, back buttons, dynamic titles, screens without
 AppBar titles, cross-domain action buttons).
 
 Also flag any `context.go()`/`context.push()` using a string literal instead of

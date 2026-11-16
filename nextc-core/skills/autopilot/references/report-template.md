@@ -1,6 +1,6 @@
 # Autopilot report template
 
-Build `report.md` from `ledger.md` and `state.json` only. Every number and claim must trace to a ledger entry or a command run during the run. Cite entries as `[n]`.
+Build `report.md` from `ledger.md` and `state.json` only, after doc-keeper has run. Every number and claim must trace to a ledger entry or a command run during the run. Cite entries as `[n]`.
 
 ```markdown
 # Autopilot report: <run-id>
@@ -11,7 +11,11 @@ Build `report.md` from `ledger.md` and `state.json` only. Every number and claim
 
 1. <hard stops left for the user: push the branch, store uploads, …>
 2. <blocked steps, with the one-line reason>
-3. <decisions marked Review: yes>
+3. <decisions marked Review: yes, including every NODECIDER entry>
+
+## What this run cannot verify
+
+Per step, the facts from plan.md's list, plus any a worker or the decider flagged as unverified during the run. These are what to check by hand first.
 
 ## Steps
 
@@ -22,6 +26,13 @@ Build `report.md` from `ledger.md` and `state.json` only. Every number and claim
 
 | # | Step | Question | Answer | Why | Confidence | Reversible | Model |
 |---|---|---|---|---|---|---|---|
+
+## Decisions made without the decider
+
+Every NODECIDER entry: the question, the lean taken, and why the decider wasn't asked (cap reached). All are Review: yes.
+
+| # | Step | Question | Lean taken |
+|---|---|---|---|
 
 ## Decisions
 
@@ -41,7 +52,9 @@ For each deploy: the target, the compatibility evidence, the rollback command, a
 ## Run facts
 
 - Branch: autopilot/<run-id> (<n> commits, not pushed)
-- Started / ended: <times>
+- Started / ended: <times, from the ledger>
+- Launches: <n> (each relaunch and what it resumed, from R entries)
+- Decider calls: <used> of <cap>, model <fable | opus after fallback [n]>
 - Cost: filled in by the launcher when the run ends (the run can't see its own final cost); leave this line as it is
 - Stopped by: <finished | STOP file | budget | stuck>
 ```

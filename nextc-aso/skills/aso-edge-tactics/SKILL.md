@@ -1,169 +1,62 @@
 ---
 name: aso-edge-tactics
 description: >
-  Audit an app's ASO surface against the highest-leverage ASO moves and the 2025–2026
-  algorithm shifts, producing a prioritized gap report. Use when checking an app for
-  missed ASO opportunities or after a store algorithm change.
-user-invocable: true
-argument-hint: "[mode: eight-moves/algorithm-shifts/full]"
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
+  Audit an app's live store presence against the high-leverage ASO playbook and report which moves
+  it is missing, using the live listing and observed store data as evidence. Use when looking for
+  missed ASO opportunities beyond keywords and metadata, or for a quarterly re-check.
+when_to_use: >
+  Triggers: "what ASO moves are we missing", "edge tactics", "advanced ASO audit", "custom product
+  pages", "in-app events for search", "quarterly ASO review", "/aso-edge-tactics",
+  "/aso-edge-tactics full". Skip for keyword and metadata work (use /aso-pipeline) and for naming
+  (use /aso-naming).
+argument-hint: "[eight-moves|full] [app=<id|bundleId>] [countries=us] [--auto]"
+allowed-tools: AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
 # /aso-edge-tactics
 
-Standalone audit against the smart-ASO playbook at
-`specs/aso-pipeline/smart-aso-techniques.md`. Surfaces what most marketers leave
-on the table because the tactics live in engineering, operations, or a
-re-evaluation cadence most teams don't run.
+Arguments: `$ARGUMENTS`
 
-Use when:
-- Onboarding a product to figure out the highest-leverage moves first
-- Quarterly re-evaluation (Part 2 algorithm shifts decay — re-audit every 90 days)
-- After a competitor launches something visibly successful
-- Before allocating engineering capacity to ASO ("is Spotlight indexing worth it
-  for this app?")
+Runs in the main session. The playbook is
+`${CLAUDE_PLUGIN_ROOT}/references/smart-aso-techniques.md`: its "Quick Reference: The 8
+Highest-Leverage Moves" for `eight-moves` (default), all of Parts 1–5 for `full`. The playbook is
+a set of practitioner heuristics dated as written; store limits come only from
+`${CLAUDE_PLUGIN_ROOT}/scripts/limits.json`. The old `algorithm-shifts` mode is folded into `full`:
+its claims are unsourced and need re-checking before anyone acts on them.
 
-This skill is also invoked from:
-- `aso-director` final synthesis on every full `/aso-pipeline run` (mode:
-  `eight-moves`, auto-appends to `changes.md`)
-- `/aso-pipeline audit` as a lens (mode: `eight-moves`, merged into the audit
-  report)
+## 1. Evidence
 
-## Mode Detection
+- App id and storefronts from the arguments, `aso/intake.json`, or one question.
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/store-lookup.mjs" listing <id> --country <cc>` for each storefront.
+- Reuse `aso/keywords.csv`, `aso/metadata/*.json`, `aso/data/asc-*.json` and `aso/report.md` if a
+  pipeline run left them; otherwise observe the terms in the current name:
+  `store-lookup.mjs observe --terms "<terms>" --country <cc> --app <id>`.
+- Things only the owner or the codebase can answer (Core Spotlight indexing, universal links / Smart
+  App Banner, in-app events, custom product pages, how many locales are filled in App Store
+  Connect): look in the project code if it is present (grep for `CSSearchableItem`,
+  `apple-app-site-association`, `applinks:`), else ask once in a single batch. `--auto` marks them
+  unknown.
 
-Parse `$ARGUMENTS`:
+## 2. Audit
 
-| Argument | Mode | Behavior |
-|---|---|---|
-| _(none)_ or `eight-moves` | `eight-moves` (default) | Audit the 8 highest-leverage moves only — fastest path |
-| `algorithm-shifts` | `algorithm-shifts` | Audit only the 2025–2026 algorithm shifts — for quarterly re-eval |
-| `full` | `full` | All 8 moves + algorithm shifts + extended tactics (rare / heavier moves) |
+For each move, record: **in place / gap / unknown**, the evidence (file + date, code path, or the
+owner's answer), the effort (metadata only / design / engineering), and the next action. Where the
+playbook quotes a number (lift percentages, "~80% of conversion", page limits), either confirm the
+limit in `limits.json` or label the number "playbook heuristic, unsourced". Never present a playbook
+number as measured for this app.
 
-## Phase 0: Preflight
+## 3. Output (≤ 700 words)
 
-1. Verify the playbook spec is present at
-   `specs/aso-pipeline/smart-aso-techniques.md`. If absent:
+`aso/edge-tactics.md`: a table of the moves (status, evidence, effort, next action); the three
+highest-leverage gaps in priority order with why; engineering items separated from metadata items;
+unknowns; sources with dates.
 
-   > Missing spec: `specs/aso-pipeline/smart-aso-techniques.md`.
-   > This skill depends on the smart-ASO techniques playbook. Restore the file
-   > from the nextc-claude repo and re-run.
+If metadata gaps dominate, offer `/aso-pipeline express`; if engineering gaps dominate, list them as
+tickets for the team.
 
-   STOP. Do not spawn the agent.
+## Gotchas
 
-2. Check for an app brief at `aso/config/app_brief.yaml`. If absent:
-
-   > No app brief found. The edge-tactics audit needs at least basic app context.
-   >
-   > Two options:
-   > 1. Run `/aso-pipeline build` first to construct a brief (~5 min)
-   > 2. Continue without a brief — the audit will rely entirely on what you tell
-   >    the agent interactively. Useful for an early-stage gut check; less useful
-   >    as a record.
-
-   Ask the user which path to take.
-
-3. Optional inputs (read if present, never failure conditions):
-   - `aso/outputs/*.md` — prior phase outputs
-   - `aso/.snapshots/<latest>.json` — last full snapshot
-   - `docs/proposal.md` — product context
-
-4. Report preflight state:
-
-   ```
-   Preflight passed.
-     Spec: specs/aso-pipeline/smart-aso-techniques.md ✓
-     App brief: aso/config/app_brief.yaml [found/not found]
-     Prior pipeline outputs: [N files found]
-     Snapshot: [found/not found]
-     Mode: [eight-moves/algorithm-shifts/full]
-   ```
-
-## Cost & Time Estimate
-
-| Mode | Tokens | Time |
-|---|---|---|
-| `eight-moves` | ~25K | ~5 min |
-| `algorithm-shifts` | ~18K | ~4 min |
-| `full` | ~50K | ~10 min |
-
-Show the estimate before spawning.
-
-## Output Destination
-
-| Invocation context | Path |
-|---|---|
-| Standalone `/aso-edge-tactics` | `aso/outputs/edge-tactics-audit.md` |
-| From `aso-director` final synthesis | Appended to `aso/outputs/changes.md` as `## Edge Tactics Gap` section |
-| From `/aso-pipeline audit` | `aso/outputs/edge-tactics-audit.md`, merged into audit report |
-
-The spawning context passes the destination into the agent's spawn prompt.
-
-## Spawn the Agent
-
-```
-Agent(
-  subagent_type: "nextc-aso:aso-edge-tactics",
-  model: "sonnet",
-  prompt: """
-  Mode: [eight-moves/algorithm-shifts/full]
-  Working directory: [cwd]
-  Output path: [aso/outputs/edge-tactics-audit.md | aso/outputs/changes.md | custom]
-  Append vs overwrite: [overwrite | append]
-
-  App brief: [aso/config/app_brief.yaml] [found/not found]
-  Prior outputs available: [list of aso/outputs/*.md]
-  Snapshot: [aso/.snapshots/<latest>.json] [found/not found]
-  Proposal: [docs/proposal.md] [found/not found]
-
-  Playbook spec (mandatory read): specs/aso-pipeline/smart-aso-techniques.md
-  Naming framework (for move #1): specs/aso-pipeline/strategic-product-naming.md
-  """
-)
-```
-
-## After the Agent Returns
-
-1. Display the consultant SUMMARY from the agent's return block.
-2. Show the path to the gap report (or note where it was appended).
-3. If `EDGE_TACTICS_HIGH_GAP` signal: surface the top recommendation prominently.
-4. If `ENGINEERING_BLOCKER` signal: note that some closing paths require dev
-   capacity, separate from ASO pipeline work.
-5. Offer next steps:
-   - **Standalone:** "Highest leverage gap is [X]. Close via [agent/skill]. Want me
-     to run that phase now?"
-   - **From `/aso-pipeline audit`:** integrated into the broader audit summary.
-   - **From director synthesis:** integrated into the final pipeline wrap-up.
-
-## Mode-Specific Notes
-
-### `eight-moves` (default)
-
-Fastest audit. Anchored on §"Quick Reference" of the spec. Skips the rarer
-tactics (portfolio play, editorial pitching, reactive ASO operations) because
-those are decisions that need separate user buy-in beyond an audit.
-
-### `algorithm-shifts`
-
-Only Part 2 of the spec. Designed for quarterly re-evaluation — the algorithm
-shifts have a half-life and the audit answers "did the market catch up to these
-yet, and are we ahead or behind?"
-
-### `full`
-
-Comprehensive — includes the rarer tactics in Part 1 (reactive ASO, web→app
-funnel detail, portfolio play recommendation, editorial pitching readiness, app
-preview video, the gray-area §1.8 tactic with honest framing), plus Part 5
-ongoing levers (promotional text rotation, Apple Ads as research, competitor
-review mining, category selection, update cadence).
-
-Use sparingly. Most teams don't have the operational bandwidth to execute on
-all of it at once — running `full` quarterly is plenty.
-
-## Error Recovery
-
-| Failure | Recovery |
-|---|---|
-| Spec file missing | Stop in preflight |
-| App brief missing AND user wants the record | Run `/aso-pipeline build` first |
-| Agent returns `FAILED` | Display reason. Most common cause: no app brief AND no interactive answers. |
-| Engineering gap flagged but no dev team | Audit still useful — surfaces the bottleneck explicitly so the user can plan |
+- Subtitle, keyword field and promotional text are not public; without App Store Connect access the moves that depend on them are "unknown".
+- The public listing cannot show custom product pages, in-app events or Spotlight indexing; those need the owner or the code.
+- Observations differ by storefront and device; cite the country with every data point.
+- The playbook's "2025–2026 algorithm shift" claims are not sourced; treat them as hypotheses.

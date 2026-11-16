@@ -15,10 +15,8 @@ Runs `validate.js --audit` to surface skill-quality issues that the standard `/v
 - **S09: Trigger coverage gaps** — skills missing both `when_to_use` and inline trigger phrases (combat undertriggering per skill-creator's "pushy descriptions" guidance)
 - **S10: Imperative density** — skills with > 5 `MUST/ALWAYS/NEVER` occurrences (reframe stylistic imperatives as prose)
 - **S11: Missing evals/** — high-traffic skills (`feature-dev`, `bug-fix`, `cleanup`, `clarify`, `team-feature-dev`, `product-explore`) without `evals/evals.json` (needed for skill-creator's `run_loop.py` description optimization). Missing evals on a high-traffic skill is a finding. Also a finding: evals present but no stored baseline/with-change result, or a baseline older than the skill's last change or taken on a different model. Convention: `../writing-skills/references/eval-convention.md`. The audit only reads files; it never runs evals (they cost model calls and need the user's go-ahead)
-- **S12: Listing budget overflow** — skills where `description + when_to_use` exceeds the canonical 1,536-character cap
-- **S13: Non-portable description** — `description` has no "Use when …" clause, or exceeds the Agent Skills spec's 1,024 characters (other tools read only `description`; see `rules/nextc-claude/skill-authoring.md`)
 
-Plus everything `/validate` already checks (frontmatter validity, body length, model+effort assignment, antipatterns).
+Plus everything `/validate` already checks, including S12 (`description + when_to_use` over the 1,536-character listing cap) and S13 (`description` without a "Use when …" clause or over 1,024 characters; see `rules/nextc-claude/skill-authoring.md`), frontmatter validity, body length, agent model+effort+SendMessage, roster match, and spawn antipatterns.
 
 ## How to invoke
 
@@ -46,7 +44,7 @@ The PreCommit hook (configured in `~/.claude/settings.json`) blocks commits with
 Each finding has:
 - **Plugin** name (e.g. `nextc-core`)
 - **Skill** name (e.g. `feature-dev`)
-- **Check ID** (S09–S13 for audit-mode checks)
+- **Check ID** (S09–S11 for audit-mode checks)
 - **Level** (PASS / WARN / FAIL)
 - **Message** with concrete fix suggestion
 
@@ -56,4 +54,4 @@ Treat any FAIL as blocking. WARNs are advisory but in aggregate signal descripti
 
 - Anthropic skill-creator: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator/SKILL.md`
 - Canonical frontmatter spec: https://code.claude.com/docs/en/skills
-- Internal: `nextc-claude-toolbox/scripts/validate.js` (audit-mode block at S09–S13)
+- Internal: `nextc-claude-toolbox/scripts/validate.js` (audit-mode block at S09–S11)

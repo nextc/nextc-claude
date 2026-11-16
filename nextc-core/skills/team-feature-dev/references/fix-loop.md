@@ -19,8 +19,7 @@
 
 1. After each fix, re-review and re-verify **only the fix diff** (the files and acceptance criteria
    the fix touched). Write the diff to a file and hand over the path.
-2. When no findings remain, run **one full verification** (analyzer, build per `heavy-commands.md`
-   approval, every acceptance criterion) before leaving Phase 5.
+2. When no findings remain, run **one full verification** (analyzer/typecheck, every acceptance criterion; a build only if the user asked for one) before leaving Phase 5.
 3. Do not run the full verification after every fix; that multiplies cost without finding more.
 
 ## 3. Ambiguity during a fix
@@ -30,11 +29,11 @@ When the fix reveals an ambiguity (spec unclear, two valid readings, conflicting
 - **Non-destructive** (reversible, local to the feature, no data or external effect): the lead
   decides, records the ruling in the progress ledger (`docs/plans/<feature>/progress.md`) as
   "ruling: <question> -> <choice> because <reason>", tells the worker via `SendMessage`, and
-  continues. The ruling is revisited at the Phase 9 report so the user sees it.
+  continues. The ruling is revisited at the final report so the user sees it.
 - **Destructive or irreversible** (deletes data, migrations, public API or schema changes,
   outward-facing actions): stop and ask the user before proceeding.
 
 ## 4. Circuit breaker
 
-Count loops per distinct issue. If the same issue persists after **3** fix loops, stop and report
-to the user with the evidence of each attempt. Do not start a fourth loop.
+Count loops per distinct issue. If the same issue persists after **2** diagnosed fix loops (each with a written diagnosis, per `stop-and-diagnose.md`), stop and report
+to the user with the evidence of each attempt. Do not start another loop.

@@ -1,235 +1,169 @@
 ---
 name: product-explore
-description: Turn a raw product idea into a validated proposal with a recommended scope decision. Use when going from a rough idea to a written proposal.
+description: Turn a product idea into a short, sourced decision memo that recommends build, validate first, pivot or do not build, and names the cheapest test of the idea. Use when a founder or team must decide whether, or what, to build.
 when_to_use: |
-  Use when going from rough idea to written proposal. Also when user says "should I build this", "validate this idea", "is this a real product", "explore this product idea", "competitor scan", "scope this", or supplies a half-baked concept they want pressure-tested.
+  Triggers: "should I build this", "validate this idea", "is this a real product", "is anyone already doing this", "explore this product idea", "competitor scan", "what's the cheapest way to test this", "update the proposal with what I learned", "/product-explore". Also after /idea-explore when the user now faces a build decision. Skip for multi-lens analysis of a problem with no build decision yet (use /idea-explore), for scaffolding from an existing proposal (/flutter-kickoff, /unity-kickoff), and for building features (/feature-dev).
+argument-hint: "[idea] [--fast | --update [what you learned]] [--topic \"topic\"] [--auto]"
 user-invocable: true
-argument-hint: "[idea or flags: --auto/--fast/--quick/--no-collision/--update/--branch/--deep-dive/--export]"
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep WebSearch WebFetch Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/evidence-check.mjs *)
 ---
 
 # /product-explore
 
-Product exploration pipeline that turns raw ideas into validated proposals.
-Acts as a strategic consultant — interprets data, recommends actions, and
-proactively suggests next steps.
+Produce `docs/proposal.md`: a decision memo of about 1,500 words that a teammate who never saw
+the run can act on. It leads with one recommendation, names the alternative it rejected, the
+one mechanism the product rests on and the cheapest test of it, and backs every number with an
+evidence record or marks it as an assumption.
 
-Phase 1 combines `/clarify` (requirements depth) with a 6-question demand probe
-(product-market validation). Phase 6 runs a CEO-level scope review on the drafted
-proposal — EXPANSION / SELECTIVE EXPANSION / HOLD SCOPE / REDUCTION — before
-writing the final recommendation. Every session ends with "The Assignment," a
-concrete real-world action the founder commits to before next session.
+Input: `$ARGUMENTS` (the idea and flags). Below, `S` means
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/evidence-check.mjs`, `D` means `docs/explore`, and
+`R` means `${CLAUDE_PLUGIN_ROOT}/references`.
 
-**Architecture:**
-- This skill: entry point, preflight checks, flag parsing, mode routing
-- `product-explorer` agent: thin orchestrator (mode dispatch, checkpoints, state)
-- `product-researcher` agent: Phase 2 research (facts + hypotheses)
-- `product-shaper` agent: Phase 4 creative (vision, naming, canvas, positioning)
-- `product-stress-tester` agent: Phase 5 adversarial (assumptions, experiments)
-- `product-collision-analyst` agent: Phase 5.5 cross-referencing (Fable)
+## Ground rules
 
-## Flag Parsing
+- **You own every user interaction.** Agents cannot ask the user anything. Ask in exactly two
+  places: one intake call at the start, and at most one decision checkpoint after prior art.
+  Never ask a question per stage.
+- **Evidence is records; judgment is prose.** Workers write JSON Lines records
+  (`R/evidence-contract.md`). You write judgment that cites claim ids. Read the record files
+  themselves when you judge, never only a worker's summary.
+- **The script owns facts about the run.** `S` writes `state.json`, timestamps, claim ids, the
+  index and the appendix. Never write `state.json` or a timestamp by hand.
+- **The founder's material comes first.** Their users, build, numbers and kill conditions are
+  evidence (`kind: founder`) and usually decide more than web research does.
+- **Visible progress.** Before each stage print one line: `[3/8] Evidence: 3 scouts on demand,
+  mechanism, channels`. Wrap each stage in `S state start <stage> --dir D` and
+  `S state done <stage> --dir D --note "<counts>"`.
+- **Parallel work is one message.** Spawn every agent of a batch in a single message, each with
+  an explicit `model`. Agents write files and return a few lines; nothing nests below them.
 
-Parse flags from `$ARGUMENTS` before mode detection. Flags are combinable.
+## Modes
 
-```
-flags = {
-  auto: $ARGUMENTS contains "--auto",
-  quick: $ARGUMENTS contains "--quick",
-  no_collision: $ARGUMENTS contains "--no-collision"
-}
-# Strip flags from $ARGUMENTS before mode detection
-idea_text = $ARGUMENTS with all --flags removed
-```
-
-### Flag Conflict Validation
-
-After parsing, check for conflicts. Report and STOP if invalid:
-
-| Conflict | Why | Resolution |
-|----------|-----|------------|
-| `--fast` + `--quick` | Both modify pipeline depth, incompatible | "Use --fast for 3-phase gut check, or --quick for full pipeline without stress test. Not both." |
-| `--no-collision` + `--update` | Update mode's value IS re-running collision | "Update mode always runs collision analysis. Use --update without --no-collision." |
-| `--fast` + `--no-collision` | Fast mode never runs collision anyway | Silently ignore --no-collision (no error, just redundant) |
-| `--quick` + `--no-collision` | Valid combo | Allow — skip stress test AND collision |
-
-## Mode Detection
-
-After stripping flags, detect mode from remaining arguments:
-
-| Argument | Mode | Action |
-|----------|------|--------|
-| `--fast` or `--fast [idea]` | Fast | 3-phase gut check (~50K tokens) |
-| `--update` | Update | Feed experiment results into existing proposal |
-| `--branch "description"` | Branch | Fork exploration into alternative direction |
-| `--deep-dive "topic"` | Deep Dive | Focused research on one topic |
-| `--export pitch` | Export | Reformat proposal as pitch deck outline |
-| _(anything else)_ | Deep (default) | Full adaptive pipeline (~150K tokens) |
-
-### Common Flag Combos
-
-| Combo | Use Case | Est. Tokens |
-|-------|----------|-------------|
-| `--auto` | Rich brief, full depth, minimal pauses | ~130K |
-| `--auto --fast` | Weekly screening (3-4 ideas) | ~40K |
-| `--auto --quick` | Fast with collision insights | ~90K |
-| `--auto --quick --no-collision` | Fastest full proposal | ~70K |
-| `--quick` | Interactive but skip stress test | ~110K |
-
-## Phase 0: Preflight Check
-
-Before spawning the agent, validate ALL dependencies. Run ALL checks before reporting —
-never fail one-at-a-time.
-
-### Required Plugins
-
-Check that these plugin directories exist in the cache:
-
-**pm-skills (6 sub-plugins):**
-```
-~/.claude/plugins/cache/pm-skills/
-```
-Provides: `user-personas`, `market-sizing`, `competitor-analysis`, `job-stories`,
-`pre-mortem`, `beachhead-segment`, `product-vision`, `value-proposition`, `lean-canvas`,
-`identify-assumptions-new`, `prioritize-assumptions`, `brainstorm-experiments-new`,
-`positioning-ideas`
-
-**marketingskills:**
-```
-~/.claude/plugins/cache/marketingskills/
-```
-Provides: `customer-research`
-
-**nextc-claude (bundled):**
-- `clarify` — always available since it's bundled with this plugin
-
-### How to Check
-
-```bash
-ls ~/.claude/plugins/cache/pm-skills/ 2>/dev/null
-ls ~/.claude/plugins/cache/marketingskills/ 2>/dev/null
-```
-
-### Optional Checks
-
-- **nextc-ecc:** Check `~/.claude/plugins/cache/*/nextc-ecc/` (glob — the plugin nests under its marketplace name).
-  Not used by product-explore directly, but the next step (`/flutter-kickoff` or `/feature-dev`)
-  requires it. Warn early.
-
-### On Failure
-
-Report ALL missing items at once with exact install commands:
-
-```
-Preflight FAILED. Missing dependencies:
-
-PLUGINS:
-  - pm-skills — Install:
-    /plugin marketplace add phuryn/pm-skills
-    /plugin install pm-market-research@pm-skills
-    /plugin install pm-execution@pm-skills
-    /plugin install pm-go-to-market@pm-skills
-    /plugin install pm-product-strategy@pm-skills
-    /plugin install pm-product-discovery@pm-skills
-    /plugin install pm-marketing-growth@pm-skills
-
-  - marketingskills — Install:
-    /plugin marketplace add coreyhaines31/marketingskills
-    /plugin install marketing-skills@marketingskills
-
-OPTIONAL:
-  - nextc-ecc not detected — your next step (/flutter-kickoff or /feature-dev) needs it.
-    /plugin install nextc-ecc@nextc-claude
-
-Install missing dependencies and run /product-explore again.
-```
-
-STOP here. Do NOT proceed to the agent until all required plugins are installed.
-
-### On Success
-
-```
-Preflight passed.
-  Plugins: pm-skills ✓, marketingskills ✓
-  Optional: nextc-ecc [✓/missing]
-  Skills: [N] available
-  Flags: auto=[yes/no], quick=[yes/no], no-collision=[yes/no]
-```
-
-## Cost & Time Estimate
-
-After preflight passes, show the estimated cost and time for the selected mode + flags:
-
-```
-Estimated run:
-  Mode: [deep/fast/update/branch/deep-dive/export]
-  Flags: [auto, quick, no-collision — or none]
-  Tokens: ~[N]K
-  Time: ~[N] min
-  Premium calls: [N] (collision analysis = Fable[, vision synthesis = Opus])
-```
-
-| Mode + Flags | Tokens | Time | Premium Calls (Fable/Opus) |
-|-------------|--------|------|------------|
-| deep | ~150K | ~20 min | 2 (collision = Fable + vision = Opus) |
-| deep --auto | ~130K | ~15 min | 2 |
-| deep --quick | ~110K | ~15 min | 1 (collision only = Fable) |
-| deep --auto --quick | ~90K | ~12 min | 1 |
-| deep --auto --quick --no-collision | ~70K | ~10 min | 0 |
-| fast | ~50K | ~8 min | 0 |
-| fast --auto | ~40K | ~6 min | 0 |
-| update | ~60K | ~10 min | 1 (collision) |
-| branch | ~80K | ~12 min | 1 (collision) |
-| deep-dive | ~20K | ~5 min | 0 |
-| export | ~10K | ~3 min | 0 |
-
-## Spawn the Agent
-
-After showing the estimate, spawn the product-explorer orchestrator:
-
-```
-Agent(
-  subagent_type: "nextc-product:product-explorer",
-  prompt: """
-  Mode: [deep/fast/update/branch/deep-dive/export]
-  Flags: auto=[yes/no], quick=[yes/no], no-collision=[yes/no]
-  Arguments: $ARGUMENTS (with flags stripped)
-  Working directory: [current project root]
-  Template path: ~/.claude/plugins/cache/nextc-claude/nextc-product/skills/product-explore/templates/proposal.md
-
-  [For update/branch/deep-dive/export modes:]
-  Existing exploration: docs/explore/ exists — read it for prior state.
-
-  [For deep/fast modes:]
-  User's idea: [the idea text from $ARGUMENTS]
-  """
-)
-```
-
-## Mode-Specific Preconditions
-
-| Mode | Precondition | On Failure |
-|------|-------------|------------|
-| `--update` | `docs/explore/` must exist | "No existing exploration found. Run /product-explore first." |
-| `--branch` | `docs/explore/` must exist | "No existing exploration found. Run /product-explore first." |
-| `--deep-dive` | `docs/explore/` must exist | "No existing exploration found. Run /product-explore first." |
-| `--export pitch` | `docs/proposal.md` must exist | "No proposal found. Run /product-explore first." |
-| `--fast` | None | Proceed |
-| _(default)_ | None | Proceed |
-
-## Post-Run Handoff
-
-After the agent writes the proposal, surface a single next-step recommendation
-based on what the user committed to in "The Assignment." Common handoffs:
-
-| Proposal state | Next step to offer |
+| Flag | Runs |
 |---|---|
-| Working product name is provisional / placeholder | **`/aso-naming --from-proposal`** — runs the ASO naming framework (Brand+Keyword formula, 4 angles, 12-point scoring, collision + WoM checks). Spec at `specs/aso-pipeline/strategic-product-naming.md`. ~5 min. |
-| Name is locked AND user is ready to build | `/flutter-kickoff` or `/unity-kickoff` |
-| Name is locked AND store launch is the next milestone | `/aso-pipeline build` (the build step in `/aso-pipeline` will itself offer `/aso-naming` if the title is still provisional in the brief) |
-| Major assumptions still untested | The Assignment itself — stop layering tools on top of an idea that needs a real-world check first |
+| (none) | Every stage below. |
+| `--fast` | Intake, prior art, checkpoint, judgment, memo. No evidence batch, refuters or critic. The memo says it is a fast run. |
+| `--update [text]` | New evidence into an existing run: see "Update". Needs `D/intake.json`. |
+| `--topic "x"` | Adds one evidence topic. With an existing run it behaves like `--update`; on a new run it joins the evidence batch. |
+| `--auto` | No questions. Intake comes from `$ARGUMENTS` and existing files; every gap becomes an intake assumption (`source: inferred`); the checkpoint picks by the rule below. Never stops to wait. |
 
-Lead with one recommendation, not a menu. The product-shaper agent already
-handled vision-level naming during Phase 4; `/aso-naming` is the ASO-grade
-discoverability pass that the user can run before committing to the App Store
-listing or trademark filing.
+Older flags: `--quick` and `--no-collision` now mean the default run; `--deep-dive "x"` is
+`--update --topic "x"`; `--branch` and `--export` were removed (run again with a different
+decision in intake). Tell the user in one line when they pass one.
+
+## Stages
+
+### 0. Start (`start`)
+
+Run `S init --dir D --mode <mode>`. If it lists `incomplete` stages or `D` already holds
+records, this is a resume: skip stages whose output files exist and pass `check`, and re-run
+only what is missing (for example, re-spawn just the scout whose topic file is empty). Ask about
+resume inside the intake call, not separately; in `--auto`, resume.
+
+### 1. Intake (`intake`)
+
+Follow `references/intake.md`: read the founder's existing material, ask once (one
+AskUserQuestion call), write `D/intake.json` and `D/evidence/founder.jsonl`, then
+`S check --dir D --require founder`. Fix every failure it prints before moving on.
+
+### 2. Prior art (`prior-art`)
+
+The first evidence task, always. Spawn one `nextc-product:evidence-scout` (model `sonnet`) with:
+`RUN_DIR=D`, `TOPIC=prior-art`, the `QUESTION` from `R/evidence-topics.md`, the decision and its
+intake ids, `SCRIPT`, `CONTRACT=R/evidence-contract.md`, `TOPICS=R/evidence-topics.md`, the
+known competitors from intake, and `SKILL=competitor-analysis`. Then run
+`S check --dir D --require founder,prior-art --fetch`.
+
+### 3. Checkpoint (`checkpoint`), at most once
+
+Read `D/evidence/prior-art.jsonl`. Ask only if prior art changes the frame: a close substitute
+exists, an earlier attempt failed for a reason that applies, or an intake option is now
+pointless. Then ask one question with two to four options, for example: continue as framed /
+reframe toward the gap the evidence shows / stop and write the memo now. Lead with the finding
+and its claim id, and recommend one option.
+
+If nothing changes the frame, do not ask; print one line saying why. In `--auto`, continue,
+unless prior art makes every build option pointless; then skip to judgment and record the
+choice as a new intake assumption.
+
+### 4. Evidence batch (`evidence`)
+
+In one message, spawn one `evidence-scout` (model `sonnet`) per topic: `demand`, `mechanism`,
+`market-and-channels`, plus `pricing` when the decision involves money and any `--topic`. At
+most five. Give each `READ_FIRST=D/evidence/prior-art.jsonl` and the topic's optional skill
+from `R/evidence-topics.md`. Then `S check --dir D --require founder,prior-art,demand --fetch`.
+If a required topic is empty, re-brief that one scout once with what the first attempt searched
+(from its meta file); if it is still empty, carry on and list it under "What we do not know".
+
+### 5. Verification (`verify`)
+
+Run `S select --dir D --max 25 --per 5`. In one message spawn one `nextc-product:claim-refuter`
+(model `sonnet`) per batch, passing the batch JSON and nothing else. Write the lines each one
+returns between `===VERDICTS===` and `===END===` to `D/verification.jsonl` (append), then run
+`S check --dir D --require founder,prior-art,demand`. Claims a refuter did not return stay
+unverified; do not invent a verdict for them.
+
+### 6. Judgment (`judgment`)
+
+Read `D/intake.json`, `D/evidence/_index.json`, the record files, and `D/verification.jsonl`.
+Write `D/judgment.md` following `references/judgment.md`. Judge every option against the
+intake decision. Weight conclusions by the quality of the records behind them, not by how many
+records agree.
+
+### 7. Critique (`critique`)
+
+Spawn one `nextc-product:product-collision-analyst` with model `fable`, `RUN_DIR=D` and
+`OUT=D/critique.md`. If the spawn fails because Fable is unavailable or its usage limit is
+reached, spawn it again with model `opus` and say so in one line. Read the critique. Revise
+`judgment.md` for every issue marked "changes the recommendation" or "changes an experiment",
+or add one line under it saying why you rejected the issue.
+
+### 8. Memo (`memo`)
+
+1. If `docs/proposal.md` exists, run `S snapshot --dir D --memo docs/proposal.md` first.
+2. Write `docs/proposal.md` from `references/memo-template.md`. When there is a snapshot, run
+   `S memo-diff <snapshot> docs/proposal.md` and write "What changed since the last run" from it.
+3. Run `S appendix --dir D --memo docs/proposal.md`, then
+   `S memo-check --dir D --memo docs/proposal.md --words 1500` (add `--previous <snapshot>`
+   when there is one). Fix what it reports and re-run. After three failing passes, stop fixing
+   and tell the user which checks still fail.
+
+### 9. Report
+
+In ten lines or fewer: the recommendation and chosen option, the rejected alternative, the first
+experiment with its threshold and denominator, evidence counts (records, quotes verified,
+refuted, unverifiable), the paths to the memo and appendix, and one next step:
+
+| Memo says | Offer |
+|---|---|
+| VALIDATE FIRST | Run the first experiment, then `/product-explore --update "<results>"`. |
+| BUILD, name still open | `/aso-naming --from-proposal` before store or trademark work. |
+| BUILD, name settled | `/flutter-kickoff` or `/unity-kickoff`. |
+| PIVOT | `/idea-explore` on the reframed problem, then a new run. |
+| DO NOT BUILD | Nothing to build. Say what evidence would reopen it. |
+
+## Update (`--update`)
+
+1. `S init --dir D --mode update`. Read `D/intake.json`, `docs/proposal.md` and the index.
+2. Ask once what changed (experiment results, conversations, numbers, a new competitor), or take
+   it from `$ARGUMENTS` in `--auto`. Write it as `founder` or `observation` records to
+   `D/evidence/update-<YYYYMMDD>.jsonl`, with the date taken from `S now`. Add new intake ids
+   if needed; never renumber old ones.
+3. If the update names something to look up, or `--topic` is set, spawn one scout for it.
+4. Run `check --fetch`, then stage 5 (`select` skips claims already verified), stage 6, and
+   stage 8 with a "What changed" section. Run the critic only if the recommendation label changes.
+
+## Gotchas
+
+- Subagents cannot ask the user: AskUserQuestion is removed from every subagent. Any stage
+  that needs the founder belongs in this session.
+- A page that blocks fetching is `unreachable`, not refuted; an `unverifiable` verdict is not
+  refuted either. Report both as unverified.
+- If `--fetch` marks nearly every record unreachable, the network from Bash is blocked (common
+  in sandboxes). Say so in the memo's evidence paragraph; it is not evidence against the claims.
+- Store search results vary by country. Scouts must name the storefront they searched.
+- Lenses or workers that read the same brief agreeing with each other is not independent evidence.
+- A legacy run (`D/facts/`, `D/hypotheses/`, `.pipeline-state.json`) has no quotes. Read it as
+  founder material during intake; do not cite it as evidence.
+- A previous `proposal.md` from the old template has no claim ids. `memo-diff` still compares
+  the label and sections.

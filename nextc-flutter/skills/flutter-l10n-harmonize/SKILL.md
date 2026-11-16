@@ -4,6 +4,8 @@ description: >
   Cross-string consistency analysis for Flutter localization. Use when checking for
   redundant or inconsistent text, deduplicating strings, or ensuring uniform tone and
   terminology across the app.
+when_to_use: |
+  Triggers: "harmonize text", "deduplicate strings", "consistent wording", "/flutter-l10n-harmonize".
 user-invocable: true
 allowed-tools: Read Write Edit Bash Grep Glob
 paths: ["**/pubspec.yaml", "**/l10n/*.arb"]
@@ -25,7 +27,7 @@ looks *across* all strings to find redundancy, inconsistency, and pattern drift.
 
 ### Step 1: Load Context
 
-1. Read `nextc-flutter/agents/flutter-l10n-agent.md` for text principles
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/l10n-text-principles.md` for the text principles
 2. Read `docs/glossary.md` for canonical terms and no-translate list
 3. Read `docs/tone.md` or `docs/design.md` for product voice/tone
 4. Read `lib/l10n/app_en.arb` if it exists (to know what's already extracted)

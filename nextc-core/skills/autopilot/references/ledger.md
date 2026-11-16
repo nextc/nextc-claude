@@ -1,8 +1,26 @@
 # Autopilot ledger format
 
-`ledger.md` is append-only. The orchestrator adds one entry for every event, as it happens, never batched at the end. The report is built from it, so anything missing here is missing from what the user sees.
+`ledger.md` is append-only, one entry per event, written as it happens. The report is built from it, so anything missing here is missing from what the user sees.
 
-Each entry starts with a `### ` line, which the launcher prints to the user's terminal as the run goes. Keep that line short and specific.
+Write every entry with the helper, which numbers it, stamps the real UTC time and refuses an entry that lacks a required field:
+
+```
+node "$AUTOPILOT_HOOKS" ledger <kind> <step|-> "<title>" Field=value …
+node "$AUTOPILOT_HOOKS" ledger Q S3 "error shape for a missing template" - <<'EOF'
+Asked-by: worker
+Options: …
+EOF
+```
+
+It writes:
+
+```markdown
+### [14] 2026-11-16T10:42Z Q S3: error shape for a missing template
+- Asked-by: worker
+- Options: …
+```
+
+The `### ` line is what the launcher prints in the user's terminal, so keep the title short and specific. Never invent a time or a number.
 
 ## Header (written by plan mode)
 
@@ -15,65 +33,29 @@ Each entry starts with a `### ` line, which the launcher prints to the user's te
 - Steps: <count> (<n> build, <n> deploy, <n> hard-stop)
 ```
 
-## Entries
+## Kinds and required fields
 
-Number every entry with a sequence number in brackets. The report refers to entries by these numbers.
+| Kind | When | Required fields |
+|---|---|---|
+| `start` | a step starts | none |
+| `done` | a step is committed | `Commit` |
+| `blocked` | a step can't finish | `Reason` |
+| `hard-stop` | a step is left for the user | none (the title says what is left) |
+| `skipped` | a dependency didn't finish | `Reason` |
+| `Q` | the decider answered | `Asked-by`, `Options`, `Context` (PLAN, DEFAULT, CODE, CONSTRAINTS, one line each), `Lean`, `Answer`, `Why`, `Rejected`, `Confidence`, `Reversible`, `Review`, `Model` (`fable`, or `opus (fallback)`) |
+| `D` | a choice made without the decider | `By` (worker or orchestrator), `Why` (standing default, or the file:line it copies) |
+| `NODECIDER` | the decider cap was reached and the asker's lean was taken | `Question`, `Lean`, `Why`; the helper adds `Review: yes` |
+| `F` | a failure | `Evidence`, `Diagnosis`, `Change`, `Diagnosed-by`. Title "first try" for a failure before any retry, else "attempt <n>" |
+| `R` | a resume found a step in progress | `Found`, `Action` (the launcher writes one at each relaunch; add your own after inspecting the clone) |
+| `FALLBACK` | the decider moved to Opus | `Reason` (the Fable error) |
+| `WARN` | the guard asked for a warning (decider calls at 80%), or the launcher restored `.git/config` | none |
+| `DEPLOY` | a deploy's compatibility evidence | `Compat`, `Rollback`, `Canary` |
+| `DOCS` | doc-keeper finished | `Result` (commit, or "no changes") |
+| `STOP` | the run was stopped | none |
+| `REPORT`, `NOTE` | anything else worth the user's eye | none |
 
-**Step start / end**
-```markdown
-### [12] S3 started: <goal>
-### [19] S3 done: <one-line outcome> (commit abc1234)
-### [19] S3 blocked: <last diagnosis>
-### [19] S3 hard-stop: <what is left for the user>
-```
-
-**Question answered by the decider**
-```markdown
-### [14] Q S3: <the question in one line>
-- Asked by: worker | orchestrator
-- Options: <as the asker saw them>
-- Context: <PLAN, CODE and CONSTRAINTS from the question block, one line each>
-- Lean: <the asker's LEAN>
-- Answer: <ANSWER>
-- Why: <WHY>
-- Rejected: <REJECTED>
-- Confidence: <high|medium|low> · Reversible: <yes|costly|no> · Review: <yes|no>
-- Model: fable | opus (fallback: <reason>)
-```
-
-**Decision made without the decider** (a worker's own choice, or the orchestrator's)
-```markdown
-### [15] D S3: <the choice in one line>
-- By: worker | orchestrator
-- Why: <reason, or the file:line of the pattern it copies>
-```
-
-**Failure and attempt**
-```markdown
-### [16] F S3 attempt 2: <what failed>
-- Evidence: <error line, exit code, log path>
-- Diagnosis: <cause, read from the evidence>
-- Change: <the single change for the next attempt>
-- Diagnosed by: worker | decider
-```
-
-The number is the diagnosed retry that failed. A failure before any retry is `F S3 first try`.
-
-**Deploy**
-```markdown
-### [17] DEPLOY S5: <target>
-- Compat evidence: <one line per checklist item, each pass/fail with the file or command that shows it>
-- Rollback: <command>
-- Canary: <result, or "no URL">
-```
-
-**Stop**
-```markdown
-### [30] STOP: <user STOP file | budget cap | stuck: no progress>
-```
-
-When a session ends with steps still open or no report, the launcher adds its own entry:
+When a session ends with steps open or no report, the launcher adds:
 
 ```markdown
-### [end] <STOP | Interrupted | Ended>: <user STOP file | SIGINT (Ctrl-C) | session ended: <subtype>>; open steps: <ids>
+### [end] 2026-11-16T11:05Z <STOP | Interrupted | Ended>: <user STOP file | SIGINT (Ctrl-C) | session ended: <subtype>>; open steps: <ids>
 ```

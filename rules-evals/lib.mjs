@@ -3,7 +3,6 @@ import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { hasContextBlock } from './cases.mjs';
 
 export const HERE = path.dirname(new URL(import.meta.url).pathname);
 export const REPO = path.dirname(HERE);
@@ -115,9 +114,9 @@ export function runCase(c, { arm, run, bundlePath, model, work, out }) {
         verdict = [false, `grader error: ${e.message}`];
         infra = true;
       }
-      resolve({ case: c.name, arm, run, pass: verdict[0], why: verdict[1], infra, contextBlock: hasContextBlock(text), tools: toolNames, cost: result?.total_cost_usd ?? 0, text });
+      resolve({ case: c.name, arm, run, pass: verdict[0], why: verdict[1], infra, tools: toolNames, cost: result?.total_cost_usd ?? 0, text });
     });
-    child.on('error', (e) => resolve({ case: c.name, arm, run, pass: false, why: `spawn failed: ${e.message}`, infra: true, contextBlock: false, tools: [], cost: 0, text: '' }));
+    child.on('error', (e) => resolve({ case: c.name, arm, run, pass: false, why: `spawn failed: ${e.message}`, infra: true, tools: [], cost: 0, text: '' }));
   });
 }
 

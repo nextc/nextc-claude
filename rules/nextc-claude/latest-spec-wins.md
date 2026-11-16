@@ -1,79 +1,25 @@
-# Latest Spec Wins (CRITICAL — ALWAYS ENFORCE)
+# Latest Spec Wins
 
-The most recent valid instruction is the canonical spec. When a new request changes existing logic, behavior, design, or documentation — wherever the prior version lives (`docs/`, code, comments, `README.md`, `CLAUDE.md`, an ADR, a chat exchange earlier in this session) — the new instruction is the truth, and every place that records the old version must be brought current in the same response that adopts the change.
+When a new instruction changes behavior, design or documentation, the latest instruction is the spec, and every place that records the old version is updated in the same response, because a spec kept in two versions gets re-litigated later.
 
-A spec that exists in two versions in two places is not "documented twice" — it is one bug waiting to be re-litigated. Sync at the moment the spec moves, or the old version will quietly outlive the new one.
+"Spec" is anything that prescribes behavior or design, wherever it is recorded: proposals, design docs, feature specs, API contracts, ADRs, schemas and type definitions, config defaults, design tokens and UI rules, intent-describing comments, rule files, `CLAUDE.md`, `README.md`, `AGENTS.md`, and earlier instructions in this session.
 
-## The Two Branches
+## Branch A: the user tells you what to change
 
-### Branch A — The new instruction is non-conflicting or clearly makes sense
+A direct instruction to change something is the decision, including when it replaces the old behavior outright. Examples: "order by price" → "sort newest first"; "and within the same price, by date"; "email auth" → "also magic links"; a new screen, flag or optional parameter. Do not ask the user to confirm what they just asked for.
 
-If the new request refines, extends, replaces, or supersedes prior behavior in a way that's coherent with the user's intent and doesn't reverse a deliberate earlier decision:
+1. Adopt the new instruction as final without re-arguing the old one.
+2. Update every record of the old version, wherever it applies: `docs/spec/*`, `docs/design.md`, `docs/proposal.md`, `docs/product-guide.md`, `docs/tasks.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, rule files, in-code comments (especially `ASSUMPTION`, `ORDER`, `EXTERNAL`, `MAGIC` tags), error messages, test names, examples, and a `CHANGELOG.md` entry.
+3. List the records you synced in your reply.
 
-1. **Treat the latest instruction as final.** Don't re-justify the old spec or hedge with "but earlier you said …" — adopt the new version.
-2. **Update every record of the prior version** so the next session, the next contributor, and the next reviewer all see the same single truth. At minimum, audit and update wherever applicable:
-   - `docs/spec/*`, `docs/design.md`, `docs/proposal.md`, `docs/product-guide.md`, `docs/tasks.md`
-   - `README.md`, `CLAUDE.md`, project-level `AGENTS.md` / `CONTRIBUTING.md`
-   - Rule files in `rules/` if a rule itself is being changed
-   - In-code comments that describe the now-old behavior (especially tagged ones — `ASSUMPTION`, `ORDER`, `EXTERNAL`, `MAGIC` per `code-comments.md`)
-   - Error messages, test names, and example snippets that quote the old spec
-   - `CHANGELOG.md` entry recording the spec change
-3. Surface the doc/comment updates in your response so the user can see what you synced.
+## Branch B: the change collides with a decision the user locked
 
-### Branch B — The new instruction conflicts with a prior one in a way you can't resolve
+This applies only when the new instruction contradicts something recorded as a deliberate, reasoned decision (an ADR, a "do not change" note, a constraint the user insisted on earlier in this session), or when you cannot tell whether the user means to replace the old behavior or add to it. An ordinary spec line or code comment describing the current behavior is not a locked decision.
 
-If the new request reverses a deliberate prior decision, contradicts something the user previously insisted on, or you cannot tell whether it is a considered change or a momentary slip:
+1. Do not silently adopt either version.
+2. Show both side by side, naming where the old one lives (file, line or spec), with the trade-off in a sentence, and ask which is final. This goes in the one batched question (see `heavy-commands.md`).
+3. Once they choose, apply Branch A to the losing version.
 
-1. **STOP. Do not silently adopt either side, and do not silently keep the old one.**
-2. Present, side-by-side: the prior version (name the file / line / spec where it lives) and the new version.
-3. **Ask the user to decide which is final.** State the tradeoff briefly if there is one.
-4. Once they choose, run Branch A on the loser — update every record so the chosen version is the only one left standing.
+## Stale echoes
 
-## What Counts As "Spec"
-
-Anything that prescribes behavior or design — recorded anywhere:
-
-- Product proposal, design doc, feature spec, API contract, ADR
-- Schema definitions, type definitions, configuration defaults
-- UI/UX rules and design tokens (see `ui-ux-design.md`)
-- Comments that describe intent (`// returns DESC because …`)
-- Rule files in `rules/`, project `CLAUDE.md`, `README.md`, `AGENTS.md`
-- Prior user instructions in this session that you were going to act on
-- Any place a future reader would consult to learn what the system is supposed to do
-
-## What Counts As "Conflict" (Branch B)
-
-A change is a **conflict** when the new and old cannot coexist as one consistent spec:
-
-- "Order by price" → later "order by date" (in the same listing)
-- "Auth via email only" → later "remove email auth, OAuth only"
-- "Tap to play" → later "swipe to play" (same flow, replacing the gesture)
-- "Free tier includes X" → later "free tier no longer includes X"
-
-A change is an **extension** (Branch A) when the new instruction adds to or scopes the old one without invalidating it:
-
-- "Order by price" → later "and within same price, order by date" — refinement
-- "Auth via email" → later "also support magic links" — addition
-- New screen, new flag, new optional parameter — addition
-
-When in doubt, classify as conflict and ask. False positives cost a question; false negatives cost a silent reversal.
-
-## The "Stale Echo" Anti-Pattern
-
-After a spec change, every echo of the old spec is a future bug. Hunt and remove them at the moment the spec moves — not later, not "we'll catch it in review":
-
-- Code comments that describe the old behavior
-- Error messages quoting the old rule
-- Test names like `it_returns_results_sorted_by_price` after the sort key changed
-- README examples showing the old flow
-- Docstrings, type hints, ADRs referencing the old contract
-
-If you can't update every echo in the same response (because the audit is huge), surface that explicitly and propose a follow-up — never just leave them and move on.
-
-## Enforcement
-
-- Before implementing any new request: identify whether it changes any prior spec recorded in docs, code, comments, rules, or earlier in this session. If yes, classify as Branch A (extension / coherent supersession) or Branch B (conflict) and act accordingly.
-- Before adopting a conflicting instruction (Branch B): always confirm with the user. Silent reversals are CRITICAL review issues, equal in severity to a missing error log under `safety.md`.
-- After any spec change (Branch A or post-confirmation Branch B): audit every recorded version of the old behavior — docs, README, CLAUDE.md, rule files, code comments, error messages, test names, examples — and update them in the same response. Stale echoes left behind are CRITICAL.
-- When the user pushes back on something they previously asked for, treat that as a Branch B signal — pause and confirm before reversing, even if the new direction "sounds better."
-- During code review (human or `code-reviewer` agent): flag any unsynced doc/comment that contradicts current code or current spec as a CRITICAL issue.
+After a spec change, hunt down every echo of the old one in the same response: comments, error messages, test names such as `it_returns_results_sorted_by_price`, README examples, docstrings, type hints, ADRs. If the audit is too large to finish now, say so and propose the follow-up rather than leaving the echoes silently. In code review, an unsynced doc or comment that contradicts the current spec is an issue to fix.

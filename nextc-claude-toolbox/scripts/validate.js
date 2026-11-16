@@ -28,13 +28,17 @@ const {
   VALID_PERMISSION_MODES,
   VALID_ISOLATION_VALUES,
   VALID_MEMORY_SCOPES,
-  MODEL_TIER_TABLE,
+  BUILTIN_AGENT_TYPES,
+  HOOK_MODULE_EXTENSIONS,
+  ROSTER_RELATIVE_PATH,
   CONTENT_ANTIPATTERNS,
   KEBAB_CASE_PATTERN,
   SKILL_NAME_PATTERN,
   SEMVER_PATTERN,
 } = require('./schema');
 const { formatTable, formatSummary, formatJSON } = require('./reporters');
+
+const NUMBERED_PLACEHOLDER = '{{ARGUMENTS}}';
 
 // ─── CLI arg parsing ───────────────────────────────────────────────
 
@@ -203,6 +207,81 @@ function scanContentAntipatterns(content, plugin, component, name) {
   return results;
 }
 
+// ─── Spawn and substitution checks ─────────────────────────────────
+
+// Index of the paren closing the one that opens at `open`, or -1.
+function matchingParen(text, open, limit = 2000) {
+  let depth = 0;
+  for (let i = open; i < Math.min(text.length, open + limit); i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// Flags text a skill or agent body should not contain: the unsubstituted {{ARGUMENTS}} token,
+// legacy Task( spawns, and Agent( spawns of built-in agent types without `model`.
+// Unlike the antipattern scanner this reads code fences too, because spawn examples live there.
+function scanSpawnIssues(content, plugin, component, name) {
+  const results = [];
+  const body = stripFrontmatter(content);
+  const lines = body.split('\n');
+  const lineOf = (index) => body.slice(0, index).split('\n').length;
+  const ignored = (index) => /validate:ignore/.test(lines[lineOf(index) - 1] || '');
+
+  const argIdx = body.indexOf(NUMBERED_PLACEHOLDER);
+  if (argIdx !== -1 && !ignored(argIdx)) {
+    results.push(warn(plugin, component, name, 'K01',
+      `${NUMBERED_PLACEHOLDER} at line ${lineOf(argIdx)} is not substituted by Claude Code; use $ARGUMENTS`));
+  }
+
+  const taskMatch = /\bTask\(/.exec(body);
+  if (taskMatch && !ignored(taskMatch.index)) {
+    results.push(warn(plugin, component, name, 'K02',
+      `legacy Task( spawn at line ${lineOf(taskMatch.index)}; the tool is Agent(`));
+  }
+
+  const spawn = /\bAgent\(/g;
+  let m;
+  while ((m = spawn.exec(body))) {
+    const open = m.index + m[0].length - 1;
+    const close = matchingParen(body, open);
+    if (close === -1) continue;
+    const inner = body.slice(open + 1, close);
+    if (!/\b(subagent_type|prompt)\b/.test(inner)) continue;
+    if (ignored(m.index)) continue;
+    const typeMatch = inner.match(/subagent_type\s*[:=]\s*["']([^"']+)["']/);
+    const type = typeMatch ? typeMatch[1] : null;
+    const isBuiltin = type === null || BUILTIN_AGENT_TYPES.has(type);
+    if (isBuiltin && !/\bmodel\s*[:=]/.test(inner)) {
+      results.push(warn(plugin, component, name, 'K03',
+        `Agent( spawn at line ${lineOf(m.index)} of ${type || 'the default type'} has no model; it inherits the parent's (often the most expensive) model`));
+    }
+  }
+  return results;
+}
+
+// ─── Roster (single source of truth for model/effort) ─────────────
+
+// Parses `| \`agent\` | model | effort |` rows from the roster's assignments table.
+function loadRoster(rootDir) {
+  const rosterPath = path.join(rootDir, ROSTER_RELATIVE_PATH);
+  if (!fs.existsSync(rosterPath)) return null;
+  const roster = {};
+  let inTable = false;
+  for (const line of fs.readFileSync(rosterPath, 'utf8').split('\n')) {
+    if (/^##\s+Model \+ effort assignments/i.test(line)) { inTable = true; continue; }
+    if (inTable && /^##\s/.test(line)) break;
+    if (!inTable) continue;
+    const row = line.match(/^\|\s*`([^`]+)`\s*\|\s*([a-z]+)\s*\|\s*([a-z]+)/i);
+    if (row) roster[row[1]] = { model: row[2].toLowerCase(), effort: row[3].toLowerCase() };
+  }
+  return roster;
+}
+
 // ─── Discovery ─────────────────────────────────────────────────────
 
 function discoverPlugins(rootDir) {
@@ -282,10 +361,24 @@ function validateSkills(pluginName, pluginDir, options = {}) {
       results.push(warn(pluginName, 'skill', dir.name, 'S04', 'Description missing'));
     } else {
       results.push(pass(pluginName, 'skill', dir.name, 'S04', 'Has description'));
-      // S05: Description length
+
+      // S13: portable description (purpose + "Use when ...", at most 1024 chars). The Agent Skills
+      // spec has no when_to_use, so other tools read only `description` (skill-authoring.md).
       const desc = typeof fm.description === 'string' ? fm.description : '';
-      if (desc.length > 250) {
-        results.push(warn(pluginName, 'skill', dir.name, 'S05', `Description is ${desc.length} chars (recommended: under 250 for listing display)`));
+      if (!/\buse when\b/i.test(desc)) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S13',
+          'description has no "Use when ..." trigger clause (other Agent Skills tools read only description)'));
+      }
+      if (desc.length > 1024) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S13',
+          `description is ${desc.length} chars (Agent Skills spec max: 1024)`));
+      }
+
+      // S12: description + when_to_use are truncated together at 1536 chars in the skill listing
+      const wtu = typeof fm.when_to_use === 'string' ? fm.when_to_use : '';
+      if (desc.length + wtu.length > 1536) {
+        results.push(warn(pluginName, 'skill', dir.name, 'S12',
+          `description + when_to_use is ${desc.length + wtu.length} chars (listing truncates at 1536). Trim or move detail to the body.`));
       }
     }
 
@@ -307,6 +400,8 @@ function validateSkills(pluginName, pluginDir, options = {}) {
 
     // S08 (C01 / C02): Content antipatterns in skill body
     results.push(...scanContentAntipatterns(content, pluginName, 'skill', dir.name));
+    // K01-K03: unsubstituted tokens, legacy spawns, spawns without model
+    results.push(...scanSpawnIssues(content, pluginName, 'skill', dir.name));
 
     // ─── Audit-mode checks (gated by --audit flag) ───────────────
     if (audit) {
@@ -336,33 +431,13 @@ function validateSkills(pluginName, pluginDir, options = {}) {
             'High-traffic skill missing evals/evals.json (recommended for skill-creator run_loop description optimization)'));
         }
       }
-
-      // S12: when_to_use + description combined size cap (1536 chars per canonical Anthropic spec)
-      const desc = typeof fm.description === 'string' ? fm.description : '';
-      const wtu = typeof fm.when_to_use === 'string' ? fm.when_to_use : '';
-      const combined = desc.length + wtu.length;
-      if (combined > 1536) {
-        results.push(warn(pluginName, 'skill', dir.name, 'S12',
-          `description + when_to_use combined is ${combined} chars (canonical truncation cap: 1536). Trim or move detail to body.`));
-      }
-
-      // S13: portable description — the Agent Skills spec has no when_to_use, so other tools
-      // see only `description` (rules/nextc-claude/skill-authoring.md)
-      if (desc && !/\buse when\b/i.test(desc)) {
-        results.push(warn(pluginName, 'skill', dir.name, 'S13',
-          'description has no "Use when …" trigger clause (other Agent Skills tools read only description)'));
-      }
-      if (desc.length > 1024) {
-        results.push(warn(pluginName, 'skill', dir.name, 'S13',
-          `description is ${desc.length} chars (Agent Skills spec max: 1024)`));
-      }
     }
   }
 
   return results;
 }
 
-function validateAgents(pluginName, pluginDir) {
+function validateAgents(pluginName, pluginDir, roster = null) {
   const results = [];
   const agentsDir = path.join(pluginDir, 'agents');
   if (!fs.existsSync(agentsDir)) return results;
@@ -418,16 +493,36 @@ function validateAgents(pluginName, pluginDir) {
 
     // A06: model field required (repo rule)
     if (!fm.model) {
-      results.push(fail(pluginName, 'agent', agentName, 'A06', 'Missing "model" field (required by repo rule agents.md)'));
+      results.push(fail(pluginName, 'agent', agentName, 'A06', 'Missing "model" field (required for teammates; see rules-references/agent-teams.md)'));
     }
 
-    // A07: Model tier mismatch
+    // A08: effort required (repo rule agents.md: model AND effort)
+    if (!fm.effort) {
+      results.push(fail(pluginName, 'agent', agentName, 'A08', 'Missing "effort" field (required for teammates; see rules-references/agent-teams.md)'));
+    }
+
+    // A10: tools list must include SendMessage (a split-pane teammate or subagent reports only through it).
+    // An omitted tools field inherits every tool, so only an explicit list is checked.
+    if (fm.tools !== undefined) {
+      const tools = Array.isArray(fm.tools) ? fm.tools : String(fm.tools).split(/[,\s]+/).filter(Boolean);
+      if (!tools.includes('SendMessage')) {
+        results.push(fail(pluginName, 'agent', agentName, 'A10', 'tools list does not include SendMessage (required for teammates; see rules-references/agent-teams.md)'));
+      }
+    }
+
+    // A07 / A11: roster mismatch. The roster is the single source of truth.
     const resolvedName = fm.name || agentName;
-    if (fm.model && MODEL_TIER_TABLE[resolvedName]) {
-      const expected = MODEL_TIER_TABLE[resolvedName];
-      const actual = String(fm.model);
-      if (actual !== expected) {
-        results.push(warn(pluginName, 'agent', agentName, 'A07', `Model "${actual}" does not match tier table (expected: "${expected}")`));
+    if (roster) {
+      const expected = roster[resolvedName];
+      if (!expected) {
+        results.push(warn(pluginName, 'agent', agentName, 'A07', 'Agent is not in rules-references/agents-roster.md'));
+      } else {
+        if (fm.model && String(fm.model) !== expected.model) {
+          results.push(warn(pluginName, 'agent', agentName, 'A07', `Model "${fm.model}" does not match roster (expected: "${expected.model}")`));
+        }
+        if (fm.effort && String(fm.effort) !== expected.effort) {
+          results.push(warn(pluginName, 'agent', agentName, 'A11', `Effort "${fm.effort}" does not match roster (expected: "${expected.effort}")`));
+        }
       }
     }
 
@@ -458,6 +553,7 @@ function validateAgents(pluginName, pluginDir) {
 
     // A09 (C01 / C02): Content antipatterns in agent body
     results.push(...scanContentAntipatterns(content, pluginName, 'agent', agentName));
+    results.push(...scanSpawnIssues(content, pluginName, 'agent', agentName));
   }
 
   return results;
@@ -478,10 +574,30 @@ function validateHooks(pluginName, pluginDir) {
   }
   results.push(pass(pluginName, 'hook', 'hooks.json', 'H01', 'Valid JSON'));
 
-  // H02: Has hooks key
+  // H08: mod hooks modules ("modules": ["./register.tsx"], paths relative to hooks.json)
+  if (hooksData.modules !== undefined) {
+    if (!Array.isArray(hooksData.modules) || hooksData.modules.length === 0) {
+      results.push(fail(pluginName, 'hook', 'hooks.json', 'H08', '"modules" must be a non-empty array of paths'));
+    } else {
+      for (const mod of hooksData.modules) {
+        const ext = typeof mod === 'string' ? path.extname(mod) : '';
+        if (!HOOK_MODULE_EXTENSIONS.has(ext)) {
+          results.push(fail(pluginName, 'hook', String(mod), 'H08', `Module path must end in ${[...HOOK_MODULE_EXTENSIONS].join(', ')}`));
+        } else if (!fs.existsSync(path.resolve(path.dirname(hooksPath), mod))) {
+          results.push(fail(pluginName, 'hook', mod, 'H08', `Module file does not exist: ${mod}`));
+        } else {
+          results.push(pass(pluginName, 'hook', mod, 'H08', 'Module file exists'));
+        }
+      }
+    }
+  }
+
+  // H02: Has hooks key (optional when the file declares modules)
   const hookMap = hooksData.hooks;
   if (!hookMap || typeof hookMap !== 'object') {
-    results.push(fail(pluginName, 'hook', 'hooks.json', 'H02', 'Missing "hooks" top-level key'));
+    if (hooksData.modules === undefined) {
+      results.push(fail(pluginName, 'hook', 'hooks.json', 'H02', 'Missing "hooks" top-level key'));
+    }
     return results;
   }
   results.push(pass(pluginName, 'hook', 'hooks.json', 'H02', 'Has "hooks" key'));
@@ -498,7 +614,7 @@ function validateHooks(pluginName, pluginDir) {
       if (!Array.isArray(entry.hooks)) continue;
 
       for (const handler of entry.hooks) {
-        const scriptName = (handler.command || '').match(/([\w.-]+\.(?:js|sh|py))/)?.[1] || handler.command || handler.type;
+        const scriptName = (handler.command || '').match(/([\w.-]+\.(?:js|mjs|cjs|ts|tsx|sh|py))/)?.[1] || handler.command || handler.type;
         const hookId = `${eventName}/${entry.matcher || '*'}/${scriptName}`;
 
         // H04: Valid hook type
@@ -526,7 +642,7 @@ function validateHooks(pluginName, pluginDir) {
               try {
                 const stat = fs.statSync(scriptPath);
                 // Node.js scripts invoked via `node script.js` don't need +x
-                if (!cmd.startsWith('node ') && !(stat.mode & 0o111)) {
+                if (!/^(node|tsx|bun|deno)\b/.test(cmd) && !(stat.mode & 0o111)) {
                   results.push(warn(pluginName, 'hook', hookId, 'H06', `Script not executable: ${scriptMatch[1]}`));
                 }
               } catch (_) {
@@ -539,6 +655,23 @@ function validateHooks(pluginName, pluginDir) {
     }
   }
 
+  return results;
+}
+
+function validateWorkflows(pluginName, pluginDir) {
+  const results = [];
+  const dir = path.join(pluginDir, 'workflows');
+  if (!fs.existsSync(dir)) return results;
+  for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+    const text = fs.readFileSync(path.join(dir, file), 'utf8');
+    // Leading blank lines and comments are allowed before the meta export.
+    const code = text.replace(/^(?:\s+|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*/, '');
+    if (code.startsWith('export const meta =')) {
+      results.push(pass(pluginName, 'workflow', file, 'W01', 'Starts with export const meta ='));
+    } else {
+      results.push(fail(pluginName, 'workflow', file, 'W01', 'Workflow script must start with `export const meta =`'));
+    }
+  }
   return results;
 }
 
@@ -576,6 +709,15 @@ function validateManifest(pluginName, pluginDir, marketplaceVersion) {
   if (manifest.version) {
     if (!SEMVER_PATTERN.test(manifest.version)) {
       results.push(warn(pluginName, 'manifest', 'plugin.json', 'P04', `Invalid semver: "${manifest.version}"`));
+    }
+  }
+
+  // P06: engines, when present, maps tool names to version-range strings
+  if (manifest.engines !== undefined) {
+    const e = manifest.engines;
+    const ok = e && typeof e === 'object' && !Array.isArray(e) && Object.values(e).every(x => typeof x === 'string');
+    if (!ok) {
+      results.push(fail(pluginName, 'manifest', 'plugin.json', 'P06', '"engines" must be an object mapping names to version-range strings'));
     }
   }
 
@@ -709,6 +851,8 @@ function main() {
     allResults.push(...validateRules(rootDir, rulesDir));
   }
 
+  const roster = loadRoster(rootDir);
+
   // Per-plugin checks
   const plugins = discoverPlugins(rootDir);
   for (const plugin of plugins) {
@@ -719,13 +863,35 @@ function main() {
       allResults.push(...validateSkills(plugin.name, plugin.source, { audit: args.audit }));
     }
     if (scope === 'all' || scope === 'agents') {
-      allResults.push(...validateAgents(plugin.name, plugin.source));
+      allResults.push(...validateAgents(plugin.name, plugin.source, roster));
     }
     if (scope === 'all' || scope === 'hooks') {
       allResults.push(...validateHooks(plugin.name, plugin.source));
     }
+    if (scope === 'all' || scope === 'hooks') {
+      allResults.push(...validateWorkflows(plugin.name, plugin.source));
+    }
     if (scope === 'all' || scope === 'manifests') {
       allResults.push(...validateManifest(plugin.name, plugin.source, marketplaceVersion));
+    }
+  }
+
+  // Roster entries with no agent file (only for a full run, where every agent was seen)
+  if (roster && scope === 'all' && !args.plugin) {
+    const seenAgents = new Set(allResults.filter(r => r.component === 'agent').map(r => r.name));
+    const seenNames = new Set();
+    for (const plugin of plugins) {
+      const dir = path.join(plugin.source, 'agents');
+      if (!fs.existsSync(dir)) continue;
+      for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.md'))) {
+        const fm = parseFrontmatter(fs.readFileSync(path.join(dir, f), 'utf8'));
+        seenNames.add((fm && fm.name) || f.replace(/\.md$/, ''));
+      }
+    }
+    for (const name of Object.keys(roster)) {
+      if (!seenNames.has(name) && !seenAgents.has(name)) {
+        allResults.push(warn('(global)', 'roster', name, 'A12', 'Roster lists an agent that has no agent file'));
+      }
     }
   }
 

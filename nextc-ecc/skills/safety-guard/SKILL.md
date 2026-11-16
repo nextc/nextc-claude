@@ -1,76 +1,50 @@
 ---
 name: safety-guard
-description: Prevent destructive operations on production systems and during autonomous agent runs. Use when working on production, running agents in full-auto, or doing migrations and deploys.
+description: Explains which guards actually exist in this setup and adds a temporary, project-scoped restriction (ask or deny permission rules) for a risky session. Use when about to touch production, run migrations or deploys, or let an agent work in a part of the tree that must not change.
 when_to_use: |
-  Use when working on production, running agents in full-auto, doing migrations or deploys, or restricting edits to a specific directory. Also when user says "production mode", "lock this down", "don't break anything", "run this safely", "guard rails", or "I'm scared of this script".
+  Triggers: "lock this down", "production mode", "don't let it touch X", "guard rails", "I'm nervous about this script", "freeze this folder". Skip for unattended runs (use `/autopilot`, which has its own sandbox) and for a hard security boundary (that needs the OS sandbox, not permission rules).
 allowed-tools: Read Edit Write Bash
 ---
 
-# Safety Guard — Prevent Destructive Operations
+# Safety Guard
 
-## When to Use
+What this adds: an accurate map of what is and is not enforced, and the exact permission rules for a risky session. Nothing is switched on by the skill itself; it edits settings files.
 
-- When working on production systems
-- When agents are running autonomously (full-auto mode)
-- When you want to restrict edits to a specific directory
-- During sensitive operations (migrations, deploys, data changes)
+## What exists (verified against the repo files)
 
-## How It Works
+| Guard | Where | Effect |
+|---|---|---|
+| `block-no-verify` hook | nextc-ecc hooks | Blocks `--no-verify`, `git commit -n`, `core.hooksPath` overrides |
+| `config-protection` hook | nextc-ecc hooks | Blocks edits to linter/formatter config |
+| `pre-commit-quality` hook | nextc-ecc hooks | Blocks commits that stage secrets or `debugger` statements |
+| `permissions.ask` | `settings/user-settings.json`, merged by `setup-rules.sh` | Prompts for `rm -r*`, `git reset --hard`, `git clean`, `git checkout -- *`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push`, `sudo` |
+| `permissions.deny` | same | Blocks reading `.env*`, `.p12`, `.pem`, `.keystore`, `.jks`, `AuthKey_*.p8`, `service-account*.json` |
+| Upload guard | nextc-flutter hook | Denies a fastlane upload lane that would re-upload a recorded build number or run outside the project |
+| Autopilot guard | nextc-core, `/autopilot` runs only | Sandbox plus file-tool guard; never pushes or uploads |
 
-Three modes of protection:
+Check the merged state with `./setup-rules.sh --check` from the nextc-claude checkout.
 
-### Mode 1: Careful Mode
+Not guarded: database commands (`DROP`, migrations), `kubectl`/cloud CLIs, `docker system prune`, package publishing, `appwrite`/`supabase` CLI deploys, anything run through `sh -c` or an absolute path. Permission rules match the command text as written, so they are a speed bump, not a sandbox.
 
-Intercepts destructive commands before execution and warns:
+## Add a temporary restriction
 
-```
-Watched patterns:
-- rm -rf (especially /, ~, or project root)
-- git push --force
-- git reset --hard
-- git checkout . (discard all changes)
-- DROP TABLE / DROP DATABASE
-- docker system prune
-- kubectl delete
-- chmod 777
-- sudo rm
-- npm publish (accidental publishes)
-- Any command with --no-verify
-```
+1. List what this task could damage (tables, buckets, a prod project id, a folder).
+2. Write rules to `.claude/settings.local.json` (personal, gitignored) so they do not leak into the team's config. `ask` for risky-but-needed, `deny` for never:
 
-When detected: shows what the command does, asks for confirmation, suggests safer alternative.
-
-### Mode 2: Freeze Mode
-
-Locks file edits to a specific directory tree:
-
-```
-/safety-guard freeze src/components/
+```json
+{ "permissions": {
+  "ask":  ["Bash(supabase db push*)", "Bash(appwrite deploy*)", "Bash(docker system prune*)", "Bash(npm publish*)"],
+  "deny": ["Edit(/src/legacy/**)", "Bash(kubectl delete *)"]
+} }
 ```
 
-Any Write/Edit outside `src/components/` is blocked with an explanation. Useful when you want an agent to focus on one area without touching unrelated code.
+3. Tell the user which rules were added and that removing them ends the restriction. Remove them when the task ends if the user asks.
+4. If the real risk is the target (a prod connection string in env), say so: a rule will not stop a tool that already holds credentials. Suggest a read-only credential or a separate environment.
 
-### Mode 3: Guard Mode (Careful + Freeze combined)
+Rule syntax: https://code.claude.com/docs/en/permissions.
 
-Both protections active. Maximum safety for autonomous agents.
+## Gotchas
 
-```
-/safety-guard guard --dir src/api/ --allow-read-all
-```
-
-Agents can read anything but only write to `src/api/`. Destructive commands are blocked everywhere.
-
-### Unlock
-
-```
-/safety-guard off
-```
-
-## Implementation
-
-Uses PreToolUse hooks to intercept Bash, Write, Edit, and MultiEdit tool calls. Checks the command/path against the active rules before allowing execution.
-
-## Integration
-
-- Enable by default for fully autonomous agent sessions
-- Logs all blocked actions to `~/.claude/safety-guard.log`
+- `deny` beats `ask` beats `allow`; a broad allow in a user file does not override a project deny.
+- `Edit(...)` rules cover the edit tools, not a `sed -i` through Bash; add a matching `Bash(...)` rule if that matters.
+- Confirm the rules loaded with `/permissions` before relying on them (unverified whether a restart is needed).

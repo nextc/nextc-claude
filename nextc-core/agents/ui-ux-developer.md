@@ -71,12 +71,7 @@ Treat installed design skills as the highest-quality source of design *patterns*
 your target stack — color systems, typography, accessibility rules, component
 inventories, layout idioms.
 
-**Availability check** (run at the start of Step 1):
-
-```bash
-ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max* 2>/dev/null
-# Repeat for any other design skill the project may install.
-```
+**Availability check** (start of Step 1): see whether the `ui-ux-pro-max` skill (or another design skill) appears in your available skills list; if it does, use it.
 
 Record the result in your working plan: "design skill X available" or "no design
 skill installed."

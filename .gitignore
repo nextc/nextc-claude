@@ -13,3 +13,8 @@ specs/
 
 # Rules eval raw output (summaries are copied into rules-evals/RESULTS.md)
 rules-evals/results/
+
+# Local-only eval cases built from real, unreleased ideas, and eval raw output
+nextc-*/evals-local/
+nextc-*/evals/results/
+nextc-*/evals-local/results/

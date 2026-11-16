@@ -56,6 +56,12 @@
       "source": "./nextc-claude-toolbox",
       "description": "Utility toolkit — validation and quality checks against Claude Code specs and repo conventions.",
       "category": "quality"
+    },
+    {
+      "name": "nextc-hud",
+      "source": "./nextc-hud",
+      "description": "Heads-up display mod — live autopilot run monitor (/autopilot-watch) and a 'used this turn' line for skills and subagents.",
+      "category": "mods"
     }
   ]
 }

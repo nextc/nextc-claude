@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: flutter-dependency-selection
+tags: [kickoff, docs-only]
+context:
+  scaffold_script: fixture.sh

@@ -1,166 +1,56 @@
 ---
 name: verification-loop
-description: Confirm the build is green before handoff, commit, or PR. Use when code edits are done and before commit or PR, or as a quality gate.
+description: Runs the project's static checks (and, on the user's request, build) for the detected stack and reports every claim as verified with its command and result, or unverified. Use when the user wants the whole quality gate run before handoff, commit or PR.
 when_to_use: |
-  Use after code edits, before commit/PR, or as a quality gate. Also when user says "check the build", "is it green", "run typecheck", "make sure it compiles", "lint pass", "verify the changes", or "any errors".
-allowed-tools: Read Bash Glob
+  Triggers: "check the build", "is it green", "run the checks", "make sure it compiles", "verify the changes". The user invokes it; it never runs from another skill. For confirming a change works in the running app, use built-in `/verify` or `/run`; for a review of the diff, `/code-review`.
+disable-model-invocation: true
+allowed-tools: Read Bash Glob Grep
 ---
 
-# Verification Loop Skill
+# /verification-loop
 
-A comprehensive verification system for Claude Code sessions.
+What this adds: stack-aware commands for this team's stacks in one pass, and a report where nothing is claimed without the command that proved it. The user invoking it approves the static checks and a build; the full test suite and anything that launches an app or simulator are separate and are offered, not run.
 
-## When to Use
+`$ARGUMENTS` may narrow to a path or a stack (`flutter`, `go`).
 
-Invoke this skill:
-- After completing a feature or significant code change
-- Before creating a PR
-- When you want to ensure quality gates pass
-- After refactoring
+## 1. Success criteria
 
-## Define Success Criteria First
+Restate the task as observable checks ("invalid input is rejected with a message"). Done means each criterion has evidence, not that the code compiles.
 
-Before running the loop, restate the task as concrete, checkable criteria — then loop until every one is met:
+## 2. Detect and run (prefer commands the repo's CLAUDE.md, AGENTS.md or CI names)
 
-- Turn vague goals into observable checks: "fix the bug" → "the failing input now produces the correct output"; "add validation" → "invalid input is rejected with a clear message".
-- Confirm criteria by running the existing build, type check, lint, and app behavior. **Do not author new tests to satisfy a criterion unless the user explicitly asked** — see `testing-policy.md`. Run tests that already exist; don't write new ones.
-- Weak criteria ("make it work") force constant clarification; strong criteria let the loop run to a definite done.
+| Marker | Static checks (run) | Build (run on this invocation) |
+|---|---|---|
+| `pubspec.yaml` | `dart format --output=none --set-exit-if-changed .`, `flutter analyze` | `flutter build apk --debug` or the platform the user names; iOS builds only if asked |
+| `go.mod` | `gofmt -l .` (must print nothing), `go vet ./...` | `go build ./...` |
+| `package.json` | `npx tsc --noEmit`, the `lint` script | the `build` script |
+| `ProjectSettings/` (Unity) | `Packages/manifest.json` valid JSON; `dotnet build` on the solution if one exists | Editor compile is heavy: offer it, do not start it |
+| `Cargo.toml`, `pyproject.toml`, gradle/maven | `cargo clippy`; `ruff check .` + `pyright`/`mypy`; the lint task | `cargo build`; none; `./gradlew assemble` / `mvn compile` |
 
-State the criteria briefly up front, then use the phases below to verify each one. The loop is done only when every criterion passes — not when the code merely compiles.
+Monorepo: run per package that the diff touches (`git diff --name-only`), not the whole tree.
 
-## Project Type Detection
+On a failure: stop, report the first real error with its output, and suggest `build-error-resolver`; do not retry without a diagnosis.
 
-Detect project type and select appropriate tools:
-- pubspec.yaml → flutter analyze, flutter test
-- go.mod → go build ./..., go vet ./..., go test ./...
-- Cargo.toml → cargo build, cargo clippy, cargo test
-- package.json → npm run build, tsc --noEmit, npm run lint, npm test
-- pom.xml → mvn compile, mvn test
-- pyproject.toml → pyright/mypy, ruff check, pytest
-- build.gradle → ./gradlew build, ./gradlew test
+## 3. Changed-code scan
 
-## Verification Phases
+On changed files only: hardcoded secrets (`sk-`, `api_key`, private keys), and debug output reachable in release (bare `print(` in Dart, `debugPrint(` outside `if (kDebugMode)`, `console.log`, `fmt.Println`, `Debug.Log` outside `#if`/`[Conditional]`). `git status` and `git diff --stat` for unintended files.
 
-### Phase 1: Build Verification
+Tests: run only tests that already cover the changed code; offer the full suite, do not run it. Do not write tests.
 
-Build commands are approval-gated (`heavy-commands.md`): the user invoking `/verification-loop` (or asking "check the build") IS the approval. If this loop was reached programmatically — from another skill or agent, without the user's own request — ask before building (and before Phase 4's test run).
-
-Run the appropriate build command for the detected project type. For JavaScript/TypeScript projects:
-
-```bash
-npm run build 2>&1 | tail -20
-# OR
-pnpm build 2>&1 | tail -20
-```
-
-If build fails, STOP and fix before continuing.
-
-### Phase 2: Type Check
-
-Run the appropriate type checker for the detected project type. For JavaScript/TypeScript projects:
-
-```bash
-npx tsc --noEmit 2>&1 | head -30
-```
-
-For Python projects:
-```bash
-pyright . 2>&1 | head -30
-```
-
-Report all type errors. Fix critical ones before continuing.
-
-### Phase 3: Lint Check
-
-Run the appropriate linter for the detected project type. For JavaScript/TypeScript projects:
-
-```bash
-npm run lint 2>&1 | head -30
-```
-
-For Python projects:
-```bash
-ruff check . 2>&1 | head -30
-```
-
-### Phase 4: Test Suite
-
-Run the appropriate test command for the detected project type. For JavaScript/TypeScript projects:
-
-```bash
-npm run test -- --coverage 2>&1 | tail -50
-```
-
-Report:
-- Total tests: X
-- Passed: X
-- Failed: X
-- Coverage: X%
-
-Target: 80% minimum coverage.
-
-### Phase 5: Security Scan
-
-```bash
-# Check for secrets (all file types)
-grep -rn "sk-\|api_key\|secret_key\|password\s*=" . --include="*.py" --include="*.ts" --include="*.js" --include="*.go" --include="*.rs" --include="*.dart" --include="*.java" --include="*.kt" 2>/dev/null | head -10
-
-# Check for debug logging (adapt to project language)
-# JS/TS: grep -rn "console.log" --include="*.ts" --include="*.js" src/
-# Python: grep -rn "print(" --include="*.py" src/
-# Go: grep -rn "fmt.Println" --include="*.go" .
-# Dart: grep -rn "print(" --include="*.dart" lib/
-```
-
-### Phase 6: Diff Review
-
-```bash
-# Show what changed
-git diff --stat
-git diff HEAD~1 --name-only
-```
-
-Review each changed file for:
-- Unintended changes
-- Missing error handling
-- Potential edge cases
-
-## Output Format
-
-After running all phases, produce a verification report:
+## 4. Report (every line has a command or is unverified)
 
 ```
-VERIFICATION REPORT
-==================
-
-Build:     [PASS/FAIL]
-Types:     [PASS/FAIL] (X errors)
-Lint:      [PASS/FAIL] (X warnings)
-Tests:     [PASS/FAIL] (X/Y passed, Z% coverage)
-Security:  [PASS/FAIL] (X issues)
-Diff:      [X files changed]
-
-Overall:   [READY/NOT READY] for PR
-
-Issues to Fix:
-1. ...
-2. ...
+| Claim | Command | Result |
+|---|---|---|
+| Static analysis clean | flutter analyze | PASS (0 issues) |
+| Builds | flutter build apk --debug | FAIL: <first error> |
+| Criterion 1: <...> | <command/test> | PASS / not run |
+Unverified: <what needs the running app (offer /verify), the full suite, iOS/Unity compile>
+Overall: READY | NOT READY
 ```
 
-## Continuous Mode
+## Gotchas
 
-For long sessions, run verification every 15 minutes or after major changes:
-
-```markdown
-Set a mental checkpoint:
-- After completing each function
-- After finishing a component
-- Before moving to next task
-
-Run: /verify
-```
-
-## Integration with Hooks
-
-This skill complements PostToolUse hooks but provides deeper verification.
-Hooks catch issues immediately; this skill provides comprehensive review.
+- `flutter analyze` may fail the run on info-level issues depending on the Flutter version (unverified, from memory); report counts per severity and say which fail the gate.
+- `gofmt -l` exits 0 even when files need formatting; the signal is non-empty output.
+- A green analyzer or compiler is not a rendered screen; UI claims stay unverified until the app is run.

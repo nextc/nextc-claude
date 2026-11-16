@@ -1,0 +1,269 @@
+{
+ "resultCount": 4,
+ "results": [
+  {
+   "features": [
+    "iosUniversal"
+   ],
+   "screenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/5c/b8/05/5cb8051e-e125-e84e-f0b5-2551b6e9d69d/_U767d1.jpg/320x480bb.jpg",
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/13/5d/32/135d32df-678d-5c7e-d940-4f16d5c4e396/_U767d2.jpg/320x480bb.jpg"
+   ],
+   "ipadScreenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/b5/92/d2/b592d245-95ab-cf32-ebef-3b91d13db779/pr_source.png/576x768bb.png"
+   ],
+   "appletvScreenshotUrls": [],
+   "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/c1/6a/9f/c16a9f76-4fa1-ae72-fbf9-3f6859e2d2ba/AppIcon-pink-gr-0-0-1x_U007epad-0-1-0-85-220.png/60x60bb.jpg",
+   "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/c1/6a/9f/c16a9f76-4fa1-ae72-fbf9-3f6859e2d2ba/AppIcon-pink-gr-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/c1/6a/9f/c16a9f76-4fa1-ae72-fbf9-3f6859e2d2ba/AppIcon-pink-gr-0-0-1x_U007epad-0-1-0-85-220.png/100x100bb.jpg",
+   "artistViewUrl": "https://apps.apple.com/us/developer/innergrow/id1828382777?uo=4",
+   "supportedDevices": [
+    "iPhone5s-iPhone5s",
+    "iPadAir-iPadAir",
+    "iPadAirCellular-iPadAirCellular"
+   ],
+   "isGameCenterEnabled": false,
+   "advisories": [],
+   "kind": "software",
+   "bundleId": "com.davetech.habit",
+   "averageUserRating": 4.7906,
+   "trackCensoredName": "Habit Tracker",
+   "languageCodesISO2A": [
+    "EN",
+    "FR",
+    "DE",
+    "IT",
+    "JA"
+   ],
+   "fileSizeBytes": "318016512",
+   "formattedPrice": "Free",
+   "contentAdvisoryRating": "4+",
+   "userRatingCountForCurrentVersion": 148921,
+   "trackViewUrl": "https://apps.apple.com/us/app/habit-tracker/id1438388363?uo=4",
+   "trackContentRating": "4+",
+   "averageUserRatingForCurrentVersion": 4.7906,
+   "releaseNotes": "- support iOS 27 & iPhone Duo\n- fix bugs\n----- Beta Tester needed -----\nIf you want to help us to test new version, contact us: support@example.com\nIf your widget is not working, restart your iPho",
+   "artistId": 1828382777,
+   "artistName": "InnerGrow",
+   "price": 0,
+   "trackName": "Habit Tracker",
+   "trackId": 1438388363,
+   "releaseDate": "2019-01-31T09:10:14Z",
+   "minimumOsVersion": "15.0",
+   "genreIds": [
+    "6007",
+    "6013"
+   ],
+   "primaryGenreName": "Productivity",
+   "primaryGenreId": 6007,
+   "sellerName": "Inner Grow Limited",
+   "isVppDeviceBasedLicensingEnabled": true,
+   "currentVersionReleaseDate": "2026-11-13T01:31:30Z",
+   "version": "2.15.13",
+   "wrapperType": "software",
+   "currency": "USD",
+   "description": "Habit Tracker: A simple daily planner to schedule and track your routine, making it easy to build lasting habits. \nJoin 15M+ happy users, achieve your goals, and make every day count!\nMore than a self-care companion, it lets you share with others to grow and improve together. \n\n----Useful Features--",
+   "genres": [
+    "Productivity",
+    "Health & Fitness"
+   ],
+   "userRatingCount": 148921
+  },
+  {
+   "features": [],
+   "screenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/26/78/97/26789724-e33e-807f-0b68-333df201f461/01-progress.png/320x480bb.jpg",
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/db/25/e8/db25e8ec-c846-bdc1-5fb5-0986340c62f6/02-widgets.png/320x480bb.jpg"
+   ],
+   "ipadScreenshotUrls": [],
+   "appletvScreenshotUrls": [],
+   "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/62/d4/7b/62d47be7-10c9-07bb-ce23-28eac6ba26f4/NewAppIcon-0-0-1x_U007ephone-0-1-85-220.png/60x60bb.jpg",
+   "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/62/d4/7b/62d47be7-10c9-07bb-ce23-28eac6ba26f4/NewAppIcon-0-0-1x_U007ephone-0-1-85-220.png/512x512bb.jpg",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/62/d4/7b/62d47be7-10c9-07bb-ce23-28eac6ba26f4/NewAppIcon-0-0-1x_U007ephone-0-1-85-220.png/100x100bb.jpg",
+   "artistViewUrl": "https://apps.apple.com/us/developer/sebastian-roehl/id1602956482?uo=4",
+   "supportedDevices": [
+    "iPhone5s-iPhone5s",
+    "iPadAir-iPadAir",
+    "iPadAirCellular-iPadAirCellular"
+   ],
+   "isGameCenterEnabled": false,
+   "advisories": [],
+   "kind": "software",
+   "bundleId": "com.roehl.habitkit",
+   "sellerUrl": "https://www.habitkit.app",
+   "averageUserRating": 4.84093,
+   "trackCensoredName": "Habit Tracker - HabitKit",
+   "languageCodesISO2A": [
+    "AR",
+    "BE",
+    "CA",
+    "NL",
+    "EN"
+   ],
+   "fileSizeBytes": "236930048",
+   "formattedPrice": "Free",
+   "contentAdvisoryRating": "4+",
+   "userRatingCountForCurrentVersion": 2590,
+   "trackViewUrl": "https://apps.apple.com/us/app/habit-tracker-habitkit/id6443918070?uo=4",
+   "trackContentRating": "4+",
+   "averageUserRatingForCurrentVersion": 4.84093,
+   "releaseNotes": "- Made for iPhone Duo: HabitKit fits every pose, closed, half open and fully open\n- Fully open, your habits sit in two columns, and a habit shows its history, calendar and notes side by side\n- New \"Lo",
+   "artistId": 1602956482,
+   "artistName": "Sebastian Roehl",
+   "price": 0,
+   "trackName": "Habit Tracker - HabitKit",
+   "trackId": 6443918070,
+   "releaseDate": "2022-11-26T08:00:00Z",
+   "minimumOsVersion": "15.0",
+   "genreIds": [
+    "6007"
+   ],
+   "primaryGenreName": "Productivity",
+   "primaryGenreId": 6007,
+   "sellerName": "Sebastian Roehl",
+   "isVppDeviceBasedLicensingEnabled": true,
+   "currentVersionReleaseDate": "2026-11-12T10:34:20Z",
+   "version": "1.19.2",
+   "wrapperType": "software",
+   "currency": "USD",
+   "description": "Big life changes do not start big. They start with one small habit, done today, done again tomorrow. HabitKit turns those daily wins into a colorful grid of tiles, one square for every day you show up, so you can finally see yourself becoming the person you want to be.\n\nThat visible progress is the ",
+   "genres": [
+    "Productivity"
+   ],
+   "userRatingCount": 2590
+  },
+  {
+   "features": [
+    "iosUniversal"
+   ],
+   "screenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6f/a9/fe/6fa9feb6-41c9-7c26-0f5c-296558c9f0f1/iPhone_social_large_01.jpg/320x480bb.jpg",
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/e8/ca/ee/e8caee25-4118-702c-c751-02a9ce6b8c66/iPhone_social_large_02.jpg/320x480bb.jpg"
+   ],
+   "ipadScreenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/3e/60/f2/3e60f2c3-a26c-cde0-a7c1-421d5e2f7f1a/ipad_social_01.jpg/360x480bb.jpg"
+   ],
+   "appletvScreenshotUrls": [],
+   "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d1/d6/dd/d1d6dd17-f90f-2ad5-3356-dff011e214e8/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/60x60bb.jpg",
+   "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d1/d6/dd/d1d6dd17-f90f-2ad5-3356-dff011e214e8/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/512x512bb.jpg",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d1/d6/dd/d1d6dd17-f90f-2ad5-3356-dff011e214e8/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/100x100bb.jpg",
+   "artistViewUrl": "https://apps.apple.com/us/developer/finch-care-public-benefit-corporation/id1528595750?uo=4",
+   "supportedDevices": [
+    "iPhone5s-iPhone5s",
+    "iPadAir-iPadAir",
+    "iPadAirCellular-iPadAirCellular"
+   ],
+   "isGameCenterEnabled": false,
+   "advisories": [],
+   "kind": "software",
+   "bundleId": "com.finch.finch",
+   "averageUserRating": 4.94723,
+   "trackCensoredName": "Finch: Self-Care Pet",
+   "languageCodesISO2A": [
+    "EN"
+   ],
+   "fileSizeBytes": "532894720",
+   "formattedPrice": "Free",
+   "contentAdvisoryRating": "4+",
+   "userRatingCountForCurrentVersion": 776001,
+   "trackViewUrl": "https://apps.apple.com/us/app/finch-self-care-pet/id1528595748?uo=4",
+   "trackContentRating": "4+",
+   "averageUserRatingForCurrentVersion": 4.94723,
+   "releaseNotes": "Hey Finch Fam! This update includes:\n• Fixing those darned bugs - thanks for reporting them!\n• Tweaks here and there to make things prettier and more fun.",
+   "artistId": 1528595750,
+   "artistName": "Finch Care Public Benefit Corporation",
+   "price": 0,
+   "trackName": "Finch: Self-Care Pet",
+   "trackId": 1528595748,
+   "releaseDate": "2021-05-12T07:00:00Z",
+   "minimumOsVersion": "15.6",
+   "genreIds": [
+    "6013",
+    "6012"
+   ],
+   "primaryGenreName": "Health & Fitness",
+   "primaryGenreId": 6013,
+   "sellerName": "Finch Care Public Benefit Corporation",
+   "isVppDeviceBasedLicensingEnabled": true,
+   "currentVersionReleaseDate": "2026-11-12T18:35:37Z",
+   "version": "3.73.238",
+   "wrapperType": "software",
+   "currency": "USD",
+   "description": "Meet your new self-care best friend! Finch is a self-care pet app that helps you feel prepared and positive, one day at a time. Take care of your pet by taking care of yourself! Choose from a wide variety of self-care exercises personalized for you.\n\nTHE BEST DAILY SELF-CARE APP\n\nStruggling with str",
+   "genres": [
+    "Health & Fitness",
+    "Lifestyle"
+   ],
+   "userRatingCount": 776001
+  },
+  {
+   "features": [
+    "iosUniversal"
+   ],
+   "screenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/99/b8/b2/99b8b251-bef8-cbd8-f3fe-26ab14454e5f/Screen_1.png/392x696bb.png",
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/c2/2d/d6/c22dd6fd-07e8-5c34-ceb9-e07e9e7bf3bc/Screen_2.png/392x696bb.png"
+   ],
+   "ipadScreenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/22/23/b0/2223b0fb-e77d-48d1-b8d2-ba6327093d08/ipad-1.png/360x480bb.jpg"
+   ],
+   "appletvScreenshotUrls": [],
+   "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/23/08/7f/23087fb9-5ddc-bc14-4574-18a2b13fb909/AppIcon-0-0-1x_U007epad-0-8-0-85-220.png/60x60bb.jpg",
+   "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/23/08/7f/23087fb9-5ddc-bc14-4574-18a2b13fb909/AppIcon-0-0-1x_U007epad-0-8-0-85-220.png/512x512bb.jpg",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/23/08/7f/23087fb9-5ddc-bc14-4574-18a2b13fb909/AppIcon-0-0-1x_U007epad-0-8-0-85-220.png/100x100bb.jpg",
+   "artistViewUrl": "https://apps.apple.com/us/developer/maximilian-munker/id983733173?uo=4",
+   "supportedDevices": [
+    "iPhone5s-iPhone5s",
+    "iPadAir-iPadAir",
+    "iPadAirCellular-iPadAirCellular"
+   ],
+   "isGameCenterEnabled": false,
+   "advisories": [],
+   "kind": "software",
+   "bundleId": "me.onrise",
+   "sellerUrl": "https://onrise.me",
+   "averageUserRating": 4.83811,
+   "trackCensoredName": "Onrise: Habit Tracker & Focus",
+   "languageCodesISO2A": [
+    "NL",
+    "EN",
+    "FR",
+    "DE",
+    "HI"
+   ],
+   "fileSizeBytes": "20473856",
+   "formattedPrice": "Free",
+   "contentAdvisoryRating": "4+",
+   "userRatingCountForCurrentVersion": 2619,
+   "trackViewUrl": "https://apps.apple.com/us/app/onrise-habit-tracker-focus/id1547137474?uo=4",
+   "trackContentRating": "4+",
+   "averageUserRatingForCurrentVersion": 4.83811,
+   "releaseNotes": "Refreshed for iOS 26 with Liquid Glass navigation, redesigned Wrapped stories, smoother transitions, and improved layouts across devices.",
+   "artistId": 983733173,
+   "artistName": "Maximilian Munker",
+   "price": 0,
+   "trackName": "Onrise: Habit Tracker & Focus",
+   "trackId": 1547137474,
+   "releaseDate": "2021-01-03T08:00:00Z",
+   "minimumOsVersion": "13.0",
+   "genreIds": [
+    "6007",
+    "6013"
+   ],
+   "primaryGenreName": "Productivity",
+   "primaryGenreId": 6007,
+   "sellerName": "Maximilian Munker",
+   "isVppDeviceBasedLicensingEnabled": true,
+   "currentVersionReleaseDate": "2026-08-25T14:24:43Z",
+   "version": "1.1.9",
+   "wrapperType": "software",
+   "currency": "USD",
+   "description": "Onrise helps you to build beneficial habits, provides a Pomodoro timer to work more effectively and increase productivity, and a journal to keep track of everything. Standing on the latest research about behavior design and productivity, Onrise is your guide to achieving your goals. Give it a try an",
+   "genres": [
+    "Productivity",
+    "Health & Fitness"
+   ],
+   "userRatingCount": 2619
+  }
+ ]
+}

@@ -3,7 +3,7 @@ name: finishing-branch
 description: Decide how to integrate completed branch work, with safe worktree cleanup. Use when implementation on a branch is complete and verified and you need to decide what happens to it.
 when_to_use: |
   Use when implementation on a branch is complete and verified and you need to decide what happens to it. Triggers: "wrap this up", "finish this branch", "merge or PR?", "I'm done with this branch", "clean up the worktree", "what do I do with this work now". Skip mid-implementation or when the user already told you exactly how to integrate (just do that).
-allowed-tools: Read Bash AskUserQuestion
+allowed-tools: Read Bash Glob Grep AskUserQuestion
 ---
 
 # Finishing a Branch
@@ -18,7 +18,7 @@ Don't ask open-ended "what next?" — present a concrete menu.
 
 Confirm the work is sound **without** auto-running the whole test suite:
 
-- Run `verification-loop` (build / typecheck / lint) — this is always allowed.
+- Run the project's analyzer, typecheck, and lint commands (bounded, always allowed). A build only if the user asked for one; otherwise say it is unverified.
 - Tests: only run what `testing-policy.md` permits — the tests already covering the changed code
   (Case 2), or the suite the user explicitly asked for. **Do not** kick off the full suite unprompted.
 
@@ -57,7 +57,7 @@ or ask if ambiguous.
   <branch>`; re-verify (Step 1) on the merged result; then clean up the worktree (Step 5); then
   `git branch -d <branch>`. Merge BEFORE removing anything.
 - **Push + PR** — `git push -u origin <branch>`. **Do NOT clean up the worktree** — the user needs it
-  to iterate on PR feedback. (Follow `git-workflow.md` → Pull Request Workflow; PR body ends with the
+  to iterate on PR feedback. (Follow `git-workflow.md` → Pull requests; PR body ends with the
   Claude Code footer.)
 - **Keep as-is** — report the branch + worktree path, change nothing.
 - **Discard** — require a typed `discard` confirmation showing exactly what will be deleted (branch,
@@ -84,5 +84,5 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 ## Relationship to other skills
 
-- `verification-loop` — the Step 1 green gate.
+- `/verification-loop` - the user can run it for the fuller check before this skill.
 - `/feature-dev`, `/bug-fix`, `blueprint` — produce the work this skill integrates.

@@ -1,6 +1,6 @@
 ---
 name: doc-keeper
-description: Updates project docs to match real codebase state. Spawn ONLY with the user's explicit approval — via /update-docs or after the user accepts a suggestion at a completion point (feature built, milestone done, fix confirmed), or once at the end of an approved /autopilot run. Never auto-spawn. Reads git diff and conversation context to maintain CHANGELOG.md, docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md, docs/product-guide.md, docs/changelog.md, docs/glossary.md, docs/api.md, and docs/qc/.
+description: Updates project docs to match real codebase state. Spawn ONLY with the user's explicit approval — via /update-docs or after the user accepts a suggestion at a completion point (feature built, milestone done, fix confirmed), or once at the end of an approved /autopilot run. Never auto-spawn. Reads git diff and context to maintain the project context file, CHANGELOG.md, docs/tasks.md, docs/spec/*.md, docs/design.md, docs/proposal.md, docs/product-guide.md, docs/changelog.md, docs/glossary.md, docs/api.md, and docs/qc/.
 model: sonnet
 effort: high
 tools:
@@ -35,17 +35,13 @@ Docs are long-lived user-facing claims. NEVER hallucinate, fabricate, or fake an
 
 1. **Assess what changed** — Read the git diff or the prompt context to understand what was added, modified, or fixed.
 
-2. **Update `CLAUDE.md`** (project root) — Keep this as the concise project context file:
-   - **Must start with** a rules reminder block (add if missing):
-     ```
-     > **IMPORTANT:** All rules in `~/.claude/rules/` are mandatory. Review and follow them throughout the entire session — not just at the start. This includes git-workflow, development-workflow, security, agents, coding-style, and all custom rules. Suggest a doc-keeper doc sync at completion points (user approval required — never auto-spawn). Re-check rules before completing each response.
-     ```
-   - Project summary, tech stack, folder structure
-   - Key commands (build, run, analyze)
-   - Current phase/status (one line)
-   - Pointers to `docs/` for details
-   - Keep under 100 lines — link to docs/, don't duplicate content
-   - Update when: architecture changes, features are added/completed, project status shifts
+2. **Update the project context file** — find it first: `Glob` for `AGENTS.md` and `CLAUDE.md` at the project root.
+   - If `AGENTS.md` exists and `CLAUDE.md` is a thin file that only imports it (`@AGENTS.md`), edit `AGENTS.md` and leave `CLAUDE.md` alone.
+   - If only `CLAUDE.md` exists, edit it.
+   - Keep the file concise and keep any existing rules-reminder or import block at its top untouched; do not write a list of rule files (the set of rules differs per machine and project).
+   - Content: project summary, tech stack, folder structure, key commands (taken from the repo's real manifests/scripts, e.g. `pubspec.yaml`, `package.json`, `go.mod`, `ProjectSettings/`, `Makefile`), current phase (one line), pointers to `docs/`.
+   - Keep under 100 lines; link to `docs/` instead of duplicating.
+   - Update when architecture changes, features are added or completed, or project status shifts.
 
 3. **Update `docs/tasks.md`** — Mark completed tasks as done, add newly discovered tasks or bugs, update in-progress items.
 
@@ -116,13 +112,13 @@ Docs are long-lived user-facing claims. NEVER hallucinate, fabricate, or fake an
 - **Factual and concise** — no prose, no filler, no opinions
 - **Use tables** for models (field, type, description), routes (path, screen, params), providers (name, type, purpose)
 - **Use checkboxes** for tasks: `- [x]` done, `- [ ]` todo, `- [~]` in-progress, `- [!]` blocked
-- **Include file paths** when referencing code (e.g., `lib/providers/feed_provider.dart`)
+- **Include file paths** when referencing code, taken from the actual repo layout
 - **Date-stamp** significant changes in tasks.md with `(YYYY-MM-DD)`
 
 ## Creating New Files
 
-If `CLAUDE.md` or `docs/` don't exist yet, create the full structure:
-- `CLAUDE.md` (project root — concise context file, under 100 lines)
+If the context file or `docs/` don't exist yet, create the full structure:
+- `CLAUDE.md` (project root — concise context file, under 100 lines; or `AGENTS.md` plus a thin `CLAUDE.md` importing it, if the project already uses that layout)
 - `CHANGELOG.md` (project root — technical, comprehensive; audience: developers/contributors)
 - `docs/proposal.md`
 - `docs/product-guide.md`
@@ -135,7 +131,7 @@ If `CLAUDE.md` or `docs/` don't exist yet, create the full structure:
 - `docs/qc/test-plan.md`
 - `docs/qc/<feature>.md` (one file per testable feature area)
 
-Infer the content from the codebase — read `lib/`, `pubspec.yaml`, `.claude/plan/`, and any existing docs.
+Infer the content from the codebase — list the project root, read its manifests (whatever the stack uses), `docs/plans/`, and any existing docs.
 
 ## Rules
 
@@ -154,7 +150,7 @@ Infer the content from the codebase — read `lib/`, `pubspec.yaml`, `.claude/pl
 
 ## What NOT to Put in docs/
 
-- Implementation plans → `.claude/plan/`
+- Implementation plans → `docs/plans/`
 - Personal preferences / feedback → `.claude/memory/`
 - Raw git history → `git log` (but curated user-facing changelog goes in `docs/changelog.md`)
 - Code comments → inline in source
@@ -164,7 +160,7 @@ Infer the content from the codebase — read `lib/`, `pubspec.yaml`, `.claude/pl
 
 | Location | Purpose | Audience | Persistence |
 |----------|---------|----------|-------------|
-| `CLAUDE.md` | Project context — loaded first every conversation | Agents (primary) | Git committed |
+| `CLAUDE.md` / `AGENTS.md` | Project context — loaded first every conversation | Agents (primary) | Git committed |
 | `docs/` | Product truth — what exists now | Humans + agents | Git committed |
-| `.claude/plan/` | How to build it — implementation steps | Agents | Git committed |
+| `docs/plans/` | How to build it — implementation steps | Agents | Git committed |
 | `.claude/memory/` | Why decisions were made — context | Agents | Gitignored, per-dev |

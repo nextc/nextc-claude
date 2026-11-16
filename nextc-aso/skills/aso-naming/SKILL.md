@@ -1,177 +1,109 @@
 ---
 name: aso-naming
 description: >
-  Turn a product concept into ranked, collision-checked Title and Subtitle candidates. Use
-  when naming a product before launch, before a rename, or for naming a sister-SKU.
-user-invocable: true
-argument-hint: "[concept or flags: --validate <name> | --rename <current-name> | --from-proposal | --from-brief]"
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash WebFetch
+  Turn a product concept into ranked, collision-checked app name and subtitle candidates, with the
+  collision evidence dated and taken from live store searches. Use when naming a product before
+  launch, validating a working name, renaming an app, or naming a sister app.
+when_to_use: >
+  Triggers: "name my app", "app name ideas", "is this name taken", "rename the app", "validate this
+  name", "title and subtitle options", "/aso-naming", "/aso-naming --rename <name>",
+  "/aso-naming --validate <name>", "/aso-naming --from-proposal". Skip for optimizing an existing
+  listing's keywords and metadata (use /aso-pipeline).
+argument-hint: "[concept] | --validate <name> | --rename <current-name> | --from-proposal  [--countries us,gb] [--out <path>] [--auto]"
+allowed-tools: AskUserQuestion Read Write Edit Glob Grep Bash
 ---
 
 # /aso-naming
 
-Standalone naming pipeline. Produces a ranked shortlist of `Title + Subtitle`
-candidates following the framework at
-`specs/aso-pipeline/strategic-product-naming.md`.
+Arguments: `$ARGUMENTS`
 
-Use when:
-- Launching a new product and a name has not been locked in
-- Validating a working name before committing (App Store submission, trademark
-  filing, domain purchase)
-- Renaming an existing app (carries migration cost — surface it honestly)
-- Naming a sister-SKU in a portfolio play (per
-  `specs/aso-pipeline/smart-aso-techniques.md` §1.5)
+Runs in the main session. The framework is
+`${CLAUDE_PLUGIN_ROOT}/references/strategic-product-naming.md` (read it first: §1 formula, §2 angles,
+§7 safe vs risky, §9 subtitle rule, the 12-point rubric). Store limits come only from
+`${CLAUDE_PLUGIN_ROOT}/scripts/limits.json`. Scripts are called as
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/<script>.mjs" …`.
 
-This skill is also invoked from:
-- `/aso-pipeline build` (after the app brief is constructed)
-- `/product-explore` (offered at the end of the proposal pipeline)
+## Modes
 
-## Mode Detection
-
-Parse `$ARGUMENTS`:
-
-| Argument pattern | Mode | Behavior |
-|---|---|---|
-| _(none)_ or free text | `explore` | Generate a shortlist from scratch |
-| `--validate <name>` | `validate` | Score a specific candidate against the rubric, suggest alternates if it fails |
-| `--rename <current-name>` | `rename` | Lead with migration cost, then propose alternatives |
-| `--from-proposal` | `explore` | Read `docs/proposal.md` to seed concept / target user / category |
-| `--from-brief` | `explore` | Read `aso/config/app_brief.yaml` to seed inputs |
-
-## Phase 0: Preflight
-
-Light preflight — this skill is intentionally low-dependency.
-
-1. Verify the framework spec is present at
-   `specs/aso-pipeline/strategic-product-naming.md`. If absent, report:
-
-   > Missing spec: `specs/aso-pipeline/strategic-product-naming.md`.
-   > This skill depends on the strategic naming framework. Restore the file from
-   > the nextc-claude repo and re-run.
-
-   STOP. Do not spawn the agent.
-
-2. Optional context (informational only — never failure conditions):
-   - `docs/proposal.md` — seeds concept and target user
-   - `aso/config/app_brief.yaml` — seeds platforms, locales, competitors
-   - `aso/handoffs/keywords_to_metadata.md` — seeds measured keyword demand
-
-3. Report preflight state to the user:
-
-   ```
-   Preflight passed.
-     Spec: specs/aso-pipeline/strategic-product-naming.md ✓
-     Proposal: docs/proposal.md [found/not found]
-     App brief: aso/config/app_brief.yaml [found/not found]
-     Keyword handoff: [found/not found]
-     Mode: [explore/validate/rename]
-   ```
-
-## Output Destination
-
-Default output path:
-
-| Invocation context | Path |
+| Arguments | Mode |
 |---|---|
-| Standalone `/aso-naming` | `aso/outputs/naming-worksheet.md` |
-| Inside `/product-explore` | `docs/explore/naming.md` |
-| Inside `/aso-pipeline build` | `aso/outputs/naming-worksheet.md`, also pre-fills `aso/config/app_brief.yaml.title_options` |
+| free text or nothing | `explore` — shortlist from scratch |
+| `--validate <name>` | `validate` — score one name; alternatives only if it fails |
+| `--rename <current-name>` | `rename` — cost of renaming first, then alternatives |
+| `--from-proposal` | `explore`, seeded from `docs/proposal.md` |
 
-The spawning context passes the chosen path into the agent's spawn prompt.
+Output path: `--out` if given (`/product-explore` passes `docs/explore/naming.md`), else
+`aso/naming.md`. Storefronts: `--countries`, else the intake's countries, else `us`.
 
-## Cost & Time Estimate
+`--auto`: no questions; use the arguments and project files, state each assumption in the output.
 
-| Mode | Tokens | Time |
-|---|---|---|
-| `explore` | ~25K | ~5 min |
-| `validate` | ~12K | ~3 min |
-| `rename` | ~30K | ~6 min |
+## 1. Inputs (one batch)
 
-Show the estimate before spawning.
+From `docs/proposal.md`, `aso/intake.json` and the arguments, collect: concept (one sentence),
+target user, stage (new brand / established brand / sister app), platforms, storefronts, words to
+avoid, the current name (rename). Ask once for whatever is missing.
 
-## Spawn the Agent
+For `rename`, write the cost section before generating anything: current name's rank for its own
+terms (`store-lookup.mjs observe --terms "<current name>,<its key terms>" --country <cc> --app <id>`),
+rating count per storefront (`store-lookup.mjs listing`), and what is lost (search for the old brand,
+word of mouth). If the user's reason is neither a collision nor a legal demand, say plainly whether
+the evidence supports renaming.
 
+## 2. Terms per angle
+
+For each angle (category, result, niche, anti-category) list 3–5 candidate terms and observe them in
+the first storefront:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/store-lookup.mjs" observe --terms "a,b,c" --country <cc>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/store-lookup.mjs" keywords-csv --out aso/naming-terms.csv
 ```
-Agent(
-  subagent_type: "nextc-aso:aso-naming",
-  model: "sonnet",
-  prompt: """
-  Mode: [explore/validate/rename]
-  Working directory: [cwd]
-  Output path: [aso/outputs/naming-worksheet.md | docs/explore/naming.md | custom]
+Use the observed tiers (open / mixed / contested / thin) to pick the keyword half of each title.
+Search volume is unavailable unless a provider is connected; say so once.
 
-  [If --validate:]
-  Candidate name to validate: [name]
+## 3. Candidates
 
-  [If --rename:]
-  Current app name: [name]
-  Reason for rename (if user provided): [reason]
-
-  [If --from-proposal or proposal exists:]
-  Proposal context available: docs/proposal.md (read it for concept, target user, category)
-
-  [If --from-brief or brief exists:]
-  App brief available: aso/config/app_brief.yaml (read it for platforms, locales, competitors)
-
-  [If keywords handoff exists:]
-  Keyword handoff available: aso/handoffs/keywords_to_metadata.md (use for measured demand)
-
-  Framework spec (mandatory read): specs/aso-pipeline/strategic-product-naming.md
-  """
-)
+Draft 12 titles (3 per angle) as Brand + separator + term, then for each a subtitle that adds 2–4
+terms with no word from the title. Check every length mechanically:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/limits-check.mjs" --field ios.name --text "<title>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/limits-check.mjs" --field ios.subtitle --text "<subtitle>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/limits-check.mjs" --field android.title --text "<title>"
 ```
+Both stores cap the title at 30 characters (limits.json, read 2026-11-16). Drop anything that does not fit.
 
-## After the Agent Returns
+## 4. Collision check (dated, per storefront)
 
-1. Display the consultant SUMMARY from the agent's return block to the user.
-2. Show the path to the worksheet output.
-3. If the agent's quality gate is `WARN` or `FAILED`, surface the reason
-   prominently — never bury it.
-4. Offer next steps based on context:
-   - **Standalone:** "Run the validation checklist in
-     `aso/outputs/naming-worksheet.md` (3–5 manual searches + WoM test). Come back
-     with results and I'll lock in metadata via `/aso-pipeline run`."
-   - **From `/aso-pipeline build`:** "Brief updated with title candidates. Run
-     `/aso-pipeline run` to continue with full optimization."
-   - **From `/product-explore`:** "Proposal updated with naming recommendation.
-     Next step is `/aso-pipeline build` or `/flutter-kickoff` depending on where
-     you are."
+For the brand part of the top 6–8 candidates, in every storefront in scope:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/store-lookup.mjs" collide "<brand1>" "<brand2>" … --country us,gb
+```
+The script saves `aso/data/collisions-<date>.json` and prints a table (brand, country, verdict
+exact/near/contains/clear, closest match with rank and rating count, retrieval time). Paste that
+table into the output unchanged. A candidate with an `exact` or `near` verdict against an app with
+a meaningful rating count is rejected unless the user accepts the risk explicitly. The store search
+is not a trademark search: list the registries the user should check (for example USPTO, EUIPO,
+WIPO) without claiming any result.
 
-## Mode-Specific Notes
+Google Play: no public search; say the Play collision check needs a manual search or an export.
 
-### `explore` (default)
+## 5. Score and recommend
 
-Most common path. Spawns the agent with `mode=explore`. The agent runs all 10
-process steps (see `nextc-aso/agents/aso-naming.md`).
+Score the survivors on the 12-point rubric. Recommend one, with its angle, the observed tier of its
+term, its collision rows, and the trade-off against the runner-up.
 
-If `--from-proposal` is set or `docs/proposal.md` exists, the agent reads the
-proposal first and reuses concept + target user + category. The user is asked
-only for missing fields.
+## 6. Output (≤ 900 words)
 
-### `validate`
+At the output path: inputs and assumptions; (rename) cost of renaming; the shortlist table (title,
+subtitle, exact lengths from step 3, angle, term tier with retrieval date, rubric score); the
+collision table from step 4; the recommendation; what to verify manually (trademark registries, Play
+search, domain, spoken-aloud test); sources (data files with dates).
 
-User has a working name and wants it scored — do not generate a new shortlist
-unless the candidate fails the quality gate. The agent scores against the
-12-point rubric, runs the collision and WoM checks, and either:
+If the run came from `/aso-pipeline` or a project with `aso/intake.json`, offer `/aso-pipeline
+express` to turn the chosen name into full metadata.
 
-- **Approves:** "Strong on 11/12. The one weak point is X — here's how to mitigate."
-- **Fails:** "Weak on criterion Y (score 2). The candidate has [collision risk |
-  WoM risk | famous-brand echo]. Here are 2 alternates that score 4+ on the
-  same angle."
+## Gotchas
 
-### `rename`
-
-Highest-cost mode. Lead with the migration cost analysis (lost rankings, lost
-word-of-mouth memory, paid-reacquisition cost), THEN explore alternatives. If the
-user's stated reason for renaming is not "we hit a collision" or "we got a
-trademark cease-and-desist," challenge whether the rename is worth it before
-generating candidates.
-
-## Error Recovery
-
-| Failure | Recovery |
-|---|---|
-| Spec file missing | Stop in preflight (see Phase 0) |
-| Agent returns `QUALITY_GATE: FAILED` | Display reason, offer: revise concept and re-run, OR run `/aso-pipeline keywords` first to get measured demand data |
-| WebFetch collision check blocked | Agent produces manual collision queries — user runs them and reports back |
-| User dislikes all candidates | Re-spawn agent with refined inputs (different stage, different keyword angle, different target audience) |
+- Collision results differ by storefront; a name clear in the US can collide in the UK. Check every country in scope.
+- Store search finds apps, not trademarks or web brands.
+- Subtitles and keyword fields of other apps are not public, so you cannot see every term a competitor targets.
+- Never estimate demand for a name; the observed tier is about the competing results only.

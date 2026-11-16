@@ -2,11 +2,34 @@
 
 > Owner: `rules/nextc-claude/safety.md`. Update here when adding language coverage or expanding error-message translations.
 
-Logging APIs by language and error-message translations. Consulted when writing error handlers in unfamiliar languages or composing UI error states. The 2-language inline excerpt in `safety.md` covers Dart/Flutter and TypeScript/JS.
+Logging APIs by language and error-message translations. Consulted when writing error handlers in unfamiliar languages or composing UI error states. `safety.md` covers Dart/Flutter and TypeScript/JS inline.
 
-## Debug-Safe Logging — Additional Languages
+## The Dart/Flutter footgun
 
-| Language | Debug-Safe | NEVER Use in Production |
+`debugPrint` is not stripped in release builds. Per the Flutter docs (`testing/code-debugging.md`), it "will print messages in release mode unless part of a debug mode check or an assert." The `debug` in the name refers to throttling, not release behavior: a bare `debugPrint(...)` writes to logcat, the iOS console and `flutter run --release` output on user devices. Wrap it:
+
+```dart
+if (kDebugMode) {
+  debugPrint('[Class.method] ...');
+}
+```
+
+`kDebugMode` comes from `package:flutter/foundation.dart`; the compiler folds the branch out of release builds.
+
+## Handler pattern
+
+```
+try {
+  riskyOperation()
+} catch (error, stackTrace) {
+  DEBUG_LOG("[Class.method] Failed to <operation>: {error}, stack: {stackTrace}")
+  // then: re-throw as a user-friendly error, return an error state, or handle gracefully
+}
+```
+
+## Debug-safe logging, other languages
+
+| Language | Debug-safe | Not in production |
 |---|---|---|
 | **Python** | `logging.debug()` / `logging.exception()` | `print()` |
 | **Go** | Build-tag-gated or leveled logger (zerolog, zap) | `fmt.Println` |

@@ -1,0 +1,33 @@
+{
+  "name": "nextc-hud",
+  "version": "1.6.16",
+  "description": "Heads-up display mod — a live autopilot run monitor (/autopilot-watch) and a 'used this turn' line naming the skills and subagents each answer used. Observe-only.",
+  "author": {
+    "name": "nextc"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mod",
+    "autopilot",
+    "monitor",
+    "hud"
+  ],
+  "engines": {
+    "claude-code": ">=2.1.323"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "show_used_line": {
+      "type": "boolean",
+      "title": "Show the 'used this turn' line",
+      "description": "Under each answer, one line naming the skills and subagents that turn used. Nothing is shown for a turn that used neither.",
+      "default": true
+    },
+    "autopilot_toasts": {
+      "type": "boolean",
+      "title": "Autopilot toasts",
+      "description": "While /autopilot-watch follows a run, a toast once when it ends, stalls, uses 80% of its decider calls, or has under 15% of its budget left.",
+      "default": true
+    }
+  }
+}

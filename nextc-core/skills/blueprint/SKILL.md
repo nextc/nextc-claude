@@ -3,7 +3,7 @@ name: blueprint
 description: Turn a one-line objective into a cold-start-executable, multi-PR construction plan for work that spans several sessions or agents. Use when a task is too big for one PR or one session.
 when_to_use: |
   Use when a task is too big for one PR or one session — a feature that breaks into multiple PRs, a refactor or migration across many files/sessions, or work coordinated across sub-agents where context loss between sessions would cause rework. Triggers: "plan this", "give me a roadmap", "blueprint", "break this into PRs", "how do we sequence this", "multi-step plan". Skip when the task fits one PR / fewer than ~3 tool calls, or the user says "just do it" — use the `planner` agent or `/feature-dev` instead.
-allowed-tools: Agent Read Grep Glob Bash
+allowed-tools: Agent Read Write Edit Grep Glob Bash
 ---
 
 # Blueprint
@@ -36,46 +36,19 @@ so the plan builds on what's there rather than reinventing it.
 
 ### 2. Design (decompose)
 
-Delegate decomposition to the **planner** agent (fable) for multi-file/architectural objectives:
+For multi-file or architectural objectives, have the **planner** agent write the plan itself so it never passes through your context:
 
 ```
 Agent(subagent_type: "nextc-ecc:planner", model: "fable",
-      description: "Decompose objective into PR-sized steps",
-      prompt: "<objective> + repo context. Return PR-sized steps with dependency edges, parallel/serial ordering, model tier per step, and a rollback strategy per step.")
+      description: "Write the blueprint plan file",
+      prompt: "Objective: <objective>. Repo context: <paths worth reading>. Write the plan to docs/plans/<slug>.md following the step template in ${CLAUDE_SKILL_DIR}/references/step-template.md (read it). Return only: the path, a summary of at most 10 lines, and open questions with recommended defaults.")
 ```
 
-Each step is **one-PR-sized** (3–12 steps typical). Assign per step: dependency edges, whether it
-can run in parallel (no shared files / no output dependency on an unfinished step), the model tier
-to execute it (strongest for interface/design steps, default for mechanical ones), and a rollback
-strategy.
+Batch the planner's open questions into ONE question to the user, apply the answers to the file, then continue at step 4. For a small plan you may write the file yourself (step 3). Each step is one-PR-sized (3-12 typical) with dependency edges, parallel/serial ordering, a model tier, and a rollback.
 
 ### 3. Draft (write self-contained steps)
 
-Write `docs/plans/<slug>.md`. **Every step must be executable cold** — it carries its own context
-brief, so it declares what it consumes and what it produces:
-
-```markdown
-## Step N — <title>   [depends: Step K] [parallel-with: Step M] [model: fable|opus|sonnet|haiku]
-
-**Context brief:** what a fresh agent needs to know to do ONLY this step (the relevant files,
-the invariant to preserve, the prior decision it builds on).
-
-**Consumes:** exact inputs/signatures produced by earlier steps (so this step needs no other reading).
-**Produces:** exact outputs/signatures later steps will consume.
-
-**Decisions:** the choices this step fixes — interfaces and signatures, the test assertions that
-must hold, spec values (limits, names, formats), and constraints. Decisions, not transcribed code.
-
-**Tasks:**
-- [ ] …
-
-**Verify:** the commands that prove this step is done (build/test/lint/manual check).
-**Exit criteria:** observable conditions that must hold before the step is "done".
-**Rollback:** how to undo this step if it goes wrong.
-```
-
-`Consumes`/`Produces` are the contract that lets later-step agents work from their brief alone
-instead of re-reading the whole plan.
+Write `docs/plans/<slug>.md` using the step template in [references/step-template.md](references/step-template.md). Every step must be executable cold: it declares what it consumes and produces, and carries goal, files, verify command, exit criteria, dependencies, and a "Cannot be verified locally" note (live services, device behavior, third-party API facts, with the source or the assumption). `/autopilot` consumes these plans, and unverifiable facts are what stall its runs.
 
 **A plan records decisions, not implementation.** Write signatures, assertions, values, and
 rollback; do not paste function bodies or finished code. Implementation belongs to the executing
@@ -87,21 +60,19 @@ trim each step back to its decisions and delete the rest.
 
 ### 4. Review (adversarial gate)
 
-Do not ship the plan unreviewed. Run the **`adversarial-review`** skill on it, or delegate to the
-**architect** agent (fable) against this checklist:
+Do not ship the plan unreviewed. Spawn the **architect** agent (fable) with the plan's path (it reads the file and verifies claims against the repo) or run the `adversarial-review` skill if it is available:
 
-- Completeness — does executing all steps actually achieve the objective?
-- Dependency correctness — no cycles; every `depends` references a real earlier step; parallel steps
-  truly share no files/outputs.
-- Cold-start integrity — can each step be executed with ONLY its brief + `Consumes`?
-- Anti-patterns — steps too big for one PR, vague exit criteria, missing rollback, hidden ordering.
+```
+Agent(subagent_type: "nextc-ecc:architect", model: "fable",
+      description: "Adversarial review of the plan",
+      prompt: "Review docs/plans/<slug>.md against the repo. Return findings by severity with path:line evidence, then a verdict.")
+```
 
-Fix every critical finding before finalizing.
+Fix every CRITICAL and HIGH finding in the file before finalizing.
 
 ### 5. Register and approve
 
-Save the plan, add/refresh a pointer in `docs/tasks.md`, and report to the user: step count, the
-parallelism summary (which steps can run concurrently), and the first step to execute.
+Add/refresh a pointer in `docs/tasks.md` and report: step count, which steps can run concurrently, and the first step to execute.
 
 **Approval gate.** Point the user at the saved `docs/plans/<slug>.md` and ask them to review that
 file. No step executes until they approve the saved plan. Approving the idea or the scope earlier
@@ -114,6 +85,8 @@ re-ask.
    session, step by step, with one whole-branch review at the end.
 2. **`/team-feature-dev`** — parallel workers per step; faster wall-clock on parallel steps, but
    costs more tokens (one context per worker plus coordination).
+
+3. **`/autopilot`** - run the approved plan unattended.
 
 ## Plan mutation protocol
 
@@ -136,8 +109,7 @@ the change — never let the plan drift from what's actually being built (`lates
 
 ## Relationship to other skills
 
-- `planner` agent — does the decomposition inside step 2; blueprint adds cold-start briefs,
-  dependency graph, PR workflow, and the review gate around it.
+- `planner` agent - writes the plan file in step 2; blueprint adds the cold-start step contract and the review gate.
 - `/feature-dev` — executes a single step/feature. Blueprint sequences many.
 - `adversarial-review` — the step-4 gate for the plan itself.
 - `/clarify` — run first if the one-line objective is ambiguous.

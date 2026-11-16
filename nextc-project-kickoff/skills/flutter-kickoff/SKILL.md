@@ -1,257 +1,52 @@
 ---
 name: flutter-kickoff
-description: >-
-  Scaffold a production-grade Flutter project from docs/proposal.md. Use when starting a new
-  Flutter app or going from proposal to code. Creates project with deps and
-  docs/architecture.md that guides /feature-dev.
+description: Turn a product proposal into a scaffolded Flutter project whose architecture and task docs are specific to that product. Use when starting a new Flutter app from docs/proposal.md or from a description.
+when_to_use: |
+  Triggers: "/flutter-kickoff", "kick off the Flutter app", "scaffold the project from the proposal", "start the Flutter project", "proposal to code". Also resumes an interrupted kickoff when `.kickoff/state.json` exists. Skip for adding features to an existing app (use /feature-dev), for Unity games (use /unity-kickoff), and when no product idea exists yet (use /product-explore).
+argument-hint: "[--auto] [--proposal path] [--dir path] [--org id] [--docs-only] [--stop-after step] [--ios-signing team]"
 user-invocable: true
-argument-hint: [--auto/--full/--minimal/--proposal path/--resume/--org id/--ios-signing team]
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash
+allowed-tools: Bash Read Write Edit Glob Grep Agent
 ---
 
 # /flutter-kickoff
 
-Reads `docs/proposal.md` (from `/product-explore`) and scaffolds a production-grade
-Flutter project seeded with real product context — not generic boilerplate.
+Arguments: `$ARGUMENTS`
 
-**Four components:**
-- This skill: preflight checks, mode detection, spawn orchestrator
-- `flutter-kickoff-agent`: orchestrator — decisions, phase sequencing, summary
-- `flutter-scaffolder`: Phase 2 — `flutter create` + deps + build config (no code generation)
-- `flutter-doc-seeder`: Phase 3 — architectural blueprints + docs seeded from proposal
+Scaffolds a Flutter project with the official tools, then writes `docs/architecture.md` and `docs/tasks.md` from the proposal's MVP features so `/feature-dev` starts with product-specific guidance. This skill runs in the main session and does all user interaction itself.
 
-## Mode Detection
+Read `${CLAUDE_SKILL_DIR}/../../references/kickoff-flow.md` first: it holds the rules of the flow (one intake, state checkpoints, long commands, report format). `$KICKOFF` = `${CLAUDE_SKILL_DIR}/../..`. Flutter specifics (package table, commands, gotchas) are in `${CLAUDE_SKILL_DIR}/../../references/flutter-guide.md`; document content rules in `references/architecture-guide.md`; file templates in `references/docs-templates.md`.
 
-Parse `$ARGUMENTS` to determine mode:
+## Steps
 
-| Argument | Mode | Phases | Description |
-|----------|------|--------|-------------|
-| _(none)_ | Default | 0-3 | Standard kickoff: preflight, decisions, create, docs |
-| `--auto` | Autopilot | 0-3 (identity gate only) | All decisions from proposal, uses default subfolder; still confirms product name + org |
-| `--full` | Full | 0-8 | Default + l10n, design, routes, collision, git |
-| `--auto --full` | Full autopilot | 0-8 (identity gate only) | Full with no interaction beyond the identity gate |
-| `--minimal` | Minimal | 0-2 | Bare project + deps, no docs |
-| `--resume` | Resume | From last checkpoint | Continue from where it stopped |
+State step ids are in `references/state-schema.md`. After each step run `kickoff-state.mjs step ... --status done --evidence "..."`. `--stop-after <step>` ends the run after that step; `--docs-only` marks `create identity deps verify-static ios-signing commit` as `skipped` (state `deps` are still written and checked with `pub-check.mjs`).
 
-Additional flags (combinable with modes):
-- `--proposal /path/to/file.md` — use proposal from specified path
-- `--dir /path/to/create` — create project at specified location
-- `--org <identifier>` — organization identifier for the package/bundle ID (e.g. `com.mgvlabs`,
-  or a bare `mgvlabs`). If omitted, the kickoff agent asks for it in the identity gate before
-  scaffolding — even in `--auto` mode, since a bundle ID cannot be guessed from a proposal.
-- `--ios-signing <team>` — run the nextc iOS signing setup (`setup-ios-signing.sh`, see
-  Optional Checks) for that team key without asking. This is the only way the setup runs in
-  `--auto` modes; without the flag, interactive modes offer it after scaffolding and `--auto`
-  modes skip it.
+1. **preflight**: parse `$ARGUMENTS`, resolve the target directory and proposal, create `.kickoff/state.json` (or resume: see kickoff-flow). Check `flutter --version`, `flutter create -h`, `node --version`, the nextc-ecc plugin, and the optional iOS-signing and dart-flutter items from the guide. Report every problem at once; a missing Flutter SDK stops the run (not for `--docs-only`).
+2. **extract**: write and validate `.kickoff/proposal-extract.json` (`references/extract-schema.md`).
+3. **intake**: the single batched message from kickoff-flow, built with the items in the guide's "Intake items" table. Wait for the one reply (skip with `--auto`). Record decisions and identity with the scripts. This is the last question of the run.
+4. **create**: `flutter create --empty --org <org> --project-name <slug> --platforms <csv> .` in the target directory, with a 300000 ms timeout. Record in the evidence the Flutter version, the Dart constraint, and which design package `lib/main.dart` imports. Append the guide's lines to `.gitignore`, write `config/app_config.json` and the `Makefile` template.
+5. **identity**: `stamp-app-id.mjs --check`, then without `--check` if it reports a difference.
+6. **deps**: choose packages from the decisions (guide table), write them to state with reasons and feature ids, run `pub-check.mjs --state <proj>`, then `flutter pub add` (and `--dev`), no version pins. A missing, discontinued or unaccepted-unmaintained package stops this step with the checker's message.
+7. **verify-static**: `flutter analyze`, `dart format --output=none --set-exit-if-changed .`. Fix what you wrote, once. A debug build or simulator run only when the intake chose it, in the background with a log.
+8. **docs-architecture** and **docs-tasks**: write `docs/architecture.md` and `docs/tasks.md` yourself, following `references/architecture-guide.md` and the guide's "Architecture section content". Read `pubspec.yaml` first so the Dependencies section covers exactly what is installed.
+9. **docs-support**: spawn one `kickoff-doc-writer` (model `sonnet`, foreground) with absolute paths to the project dir, extract, state, architecture.md, the docs-templates reference and the proposal. Check its return block: `GAPS` go to open questions in architecture.md.
+10. **agent-files**: write `AGENTS.md` and the thin `CLAUDE.md` from `references/docs-templates.md`. If the intake chose the dart-flutter plugin: install it and append its rules to `CLAUDE.md` as the guide says.
+11. **ios-signing**: only when chosen; run the script as the guide says. Never run the lanes it lists.
+12. **coverage**: `node $KICKOFF/scripts/coverage-check.mjs --dir <proj> --kind flutter`. Fix the document that lacks the item and rerun until it passes; do not edit the extract to make it pass.
+13. **commit**: only when chosen (guide). Otherwise mark `skipped`.
+14. **report**: print the report block from kickoff-flow with its three separated results, assumptions (`kickoff-state.mjs show`), and "Needs your action" (org id if assumed, iOS signing lanes, manual installs, anything unverified). Run `kickoff-state.mjs validate` last.
 
-## Phase 0: Preflight Check
+## Do and do not
 
-Before spawning the agent, validate ALL dependencies. Run ALL checks before reporting —
-never fail one-at-a-time.
+- Run `flutter create`, `flutter pub add/get`, `flutter analyze` and the scripts without asking: they are the purpose of this skill. Do not run a full build, launch a simulator, install plugins, run the signing script or commit unless the intake said yes.
+- No Dart application code in `lib/`: `/feature-dev` writes it against the architecture doc.
+- Never edit `analysis_options.yaml` by hand; keep the one `flutter create` wrote unless the user chose otherwise.
+- Nothing is written outside the target directory except what the user accepted (dart-flutter plugin install).
 
-### Required Plugins
+## Gotchas
 
-Check that these plugin agents/skills are accessible. For each, check if the plugin
-cache directory exists:
-
-**nextc-ecc** (primary dependency):
-```
-~/.claude/plugins/cache/*/nextc-ecc/
-```
-Provides: `planner`, `architect`, `code-reviewer`, `security-reviewer` agents.
-These are not used by kickoff directly, but `/feature-dev` (the next step after kickoff)
-requires them. Warn now so the user doesn't hit a wall after scaffolding.
-
-### How to Check Plugins
-
-Check for cached plugin directories:
-```bash
-ls -d ~/.claude/plugins/cache/*/nextc-ecc/ 2>/dev/null
-```
-
-### Required Tools
-
-**1. Flutter SDK:**
-```bash
-flutter --version
-```
-Extract version. Fail if not installed. Warn if < 3.7 (needed for `--empty` flag).
-
-**2. Platform tools:**
-Quick parse of proposal for target platforms, then verify:
-- Android: check for Android SDK via `flutter doctor`
-- iOS: check for Xcode (macOS only)
-- Web: always available
-
-### Required Files
-
-**3. proposal.md exists:**
-
-Determine proposal path:
-- If `--proposal /path` argument: use that path
-- Otherwise: check `docs/proposal.md` in current directory
-
-If not found:
-```
-No proposal.md found.
-
-Options:
-1. Run /product-explore first to generate a proposal
-2. Provide a path: /flutter-kickoff --proposal /path/to/proposal.md
-3. Start without a proposal (manual setup — no product context seeding)
-```
-
-**4. Proposal quality scan:**
-
-Quick-read the proposal and classify:
-- **Full:** Most sections populated with content → proceed normally
-- **Fast-mode:** Most sections say `[run /product-explore for full analysis]` →
-  warn: "This is a fast-mode proposal. Many sections are incomplete. I can work
-  with it but you'll need more manual decisions. `--auto` not recommended."
-- **Non-standard:** Doesn't follow the proposal.md template → warn: "Non-standard
-  format. I'll extract what I can."
-- **Non-Flutter:** Mentions React Native, web-only SaaS, backend API → halt:
-  "This proposal doesn't describe a Flutter app. /flutter-kickoff is for Flutter projects."
-
-**5. Target directory:**
-
-**Always ask the user where to create the project** (unless `--dir` was provided):
-
-```
-Where should I create the project?
-
-  1. Current directory (.) — scaffold directly here
-  2. Subfolder: ./[derived-name]/ (default)
-  3. Custom path
-
-Choice (1/2/3, or enter a path):
-```
-
-Derive the default subfolder name from proposal product name (kebab-case).
-If the chosen directory already exists and is non-empty: offer rename, delete (confirm), or abort.
-If the user picks `.` (current directory), verify it's empty or only contains `docs/` and dotfiles.
-When passing to the orchestrator, set `Target dir` to `.` — the scaffolder will create
-files directly in the working directory instead of a subfolder.
-
-**6. Git context:**
-
-Check if cwd is inside a git repo. If yes, Phase 8 skips `git init`.
-
-### Optional Checks
-
-- **FVM:** If `fvm` is detected on PATH, offer: "FVM detected. Use it for Flutter
-  version management? (creates .fvmrc)"
-
-- **iOS signing script** (only when the proposal targets iOS and the host is macOS): the
-  kickoff agent can drop the nextc fastlane + match signing setup into the new project by
-  running `setup-ios-signing.sh` from the `fastlane-ios-signing` project — the same setup
-  `/flutter-build` detects via `ios/fastlane/Fastfile`. This check only **locates** it; the
-  offer to run it comes later, in the agent, because the script needs the created `ios/`.
-
-  Resolve the script path, first match wins:
-  ```bash
-  s="${IOS_SIGNING_SETUP_SCRIPT:-}"
-  [ -f "$s" ] || s="$HOME/.fastlane-nextc/setup-ios-signing.sh"
-  [ -f "$s" ] || s="$(command -v setup-ios-signing.sh || true)"
-  echo "${s:-not-found}"
-  ```
-  1. `$IOS_SIGNING_SETUP_SCRIPT` — a file path to the script
-  2. `~/.fastlane-nextc/setup-ios-signing.sh` — next to the config the script reads
-  3. `setup-ios-signing.sh` on `PATH`
-
-  If none matches, **ask the user** with `AskUserQuestion` — never guess a path, never
-  `find` the disk for it:
-  ```
-  setup-ios-signing.sh not found (checked $IOS_SIGNING_SETUP_SCRIPT,
-  ~/.fastlane-nextc/setup-ios-signing.sh, PATH).
-
-    1. Enter the path to setup-ios-signing.sh
-    2. Skip — set up iOS signing later
-  ```
-  A path the user gives must exist as a file. If it doesn't, say so and ask once more;
-  a second miss means skipped.
-
-  Also record whether the signing config exists:
-  `${IOS_SIGNING_CONFIG:-$HOME/.fastlane-nextc/config/teams.json}` — `found` or `missing`.
-  SECURITY: never read or print that file's contents here; it holds the match passphrase.
-
-### Resume Check
-
-If `--resume` flag: look for `.flutter-kickoff/decisions.json` in cwd. If found,
-read `completed_phases` and report which phases are done. If not found, error.
-
-### On Failure
-
-Report ALL missing items at once with exact install commands:
-
-```
-Preflight FAILED. Missing dependencies:
-
-PLUGINS:
-  - nextc-ecc — Required for /feature-dev (your next step after kickoff).
-    Install:
-      /plugin install nextc-ecc@nextc-claude
-
-TOOLS:
-  - Flutter SDK not found
-    Install: https://docs.flutter.dev/get-started/install
-
-  - Android SDK not configured
-    Run: flutter doctor --android-licenses
-
-Install missing dependencies and run /flutter-kickoff again.
-```
-
-STOP here. Do NOT proceed to the agent until all required items are resolved.
-
-### On Success
-
-```
-Preflight passed.
-  Plugins: nextc-ecc ✓
-  Flutter: 3.x.x (channel stable)
-  Platforms: android ✓, ios ✓, web ✓
-  Proposal: docs/proposal.md (full)
-  FVM: detected / not detected
-  Git: new repo / inside existing repo
-  iOS signing: script at [path], config found / skipped / not found / n/a (no iOS target)
-  Target: [name]/ (clean)
-```
-
-## Spawn the Agent
-
-After preflight passes, spawn the flutter-kickoff-agent with mode and context:
-
-```
-Agent(
-  subagent_type: "nextc-project-kickoff:flutter-kickoff-agent",
-  model: "sonnet",
-  prompt: """
-  Mode: [default/auto/full/auto-full/minimal/resume]
-  Arguments: $ARGUMENTS
-  Working directory: [cwd]
-  Proposal path: [path to proposal.md]
-  Proposal quality: [full/fast/non-standard]
-  FVM: [yes/no]
-  Git context: [new/existing]
-  Target dir: [derived name]
-  Org: [--org value, or "ask" if not provided]
-  iOS signing script: [absolute path | skipped | not found | n/a (no iOS target)]
-  iOS signing config: [found | missing]
-  iOS signing team: [--ios-signing value, or "ask" if not provided]
-
-  [For resume mode:]
-  Existing state: .flutter-kickoff/decisions.json exists
-  Completed phases: [list]
-  """
-)
-```
-
-## Preconditions by Mode
-
-| Mode | Precondition | On Failure |
-|------|-------------|------------|
-| Default / Full | proposal.md found | Offer 3 options (above) |
-| `--auto` | proposal.md found AND quality is "full" | "Auto mode needs a full proposal. Run /product-explore first." |
-| `--minimal` | proposal.md found | Offer 3 options |
-| `--resume` | `.flutter-kickoff/decisions.json` exists | "No previous session found. Run /flutter-kickoff first." |
+- Flutter 3.50 changed `flutter create` defaults (standalone `material_ui` import, Android toolchain, SPM direction). Read what the installed SDK generated; do not assume. Details and sources: guide, Gotchas.
+- Gradle is `.kts` on current SDKs, Groovy on old ones: only `stamp-app-id.mjs` edits it, and only when ids diverge.
+- `freezed_generator` does not exist (the generator ships in `freezed`); `isar` is unmaintained. `pub-check.mjs` stops the step on the first and flags the second.
+- `config/app_config.json` is embedded in the binary: no secrets, and never name it `.env`: `/flutter-build` refuses secret-named files for `--dart-define-from-file`.
+- `--auto` without `--org` assumes `com.example` and says so at the top of the report; bundle ids cannot change after a store release.
+- The legacy `--full`, `--minimal` flags are gone: use `--stop-after` and `--docs-only`. Legacy `.flutter-kickoff/decisions.json` is migrated on resume.

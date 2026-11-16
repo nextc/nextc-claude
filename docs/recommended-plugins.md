@@ -2,7 +2,7 @@
 
 Curated list of Claude Code marketplaces and plugins that complement nextc-claude.
 
-> **Note:** Plugins marked with **(dep)** are required dependencies — see [README Dependencies](../README.md#dependencies) for details.
+> **Note:** Plugins marked **(optional)** are third-party accelerators that some nextc skills use when installed; nothing stops without them. See the third-party section of the [README](../README.md) for details.
 
 ## Marketplaces
 
@@ -25,14 +25,14 @@ Curated list of Claude Code marketplaces and plugins that complement nextc-claud
 
 | Marketplace | Install | Description |
 |-------------|---------|-------------|
-| pm-skills **(dep)** | `/plugin marketplace add phuryn/pm-skills` | 65 PM skills — required by `/product-explore` |
+| pm-skills **(optional)** | `/plugin marketplace add phuryn/pm-skills` | 65 PM skills — optional accelerator for `/product-explore` |
 
 ### Marketing & Growth
 
 | Marketplace | Install | Description |
 |-------------|---------|-------------|
-| marketingskills **(dep)** | `/plugin marketplace add coreyhaines31/marketingskills` | 33 marketing skills — required by `/product-explore` |
-| aso-skills **(dep)** | `/plugin marketplace add Eronred/aso-skills` | 27 ASO skills — required by `/aso-pipeline` |
+| marketingskills **(optional)** | `/plugin marketplace add coreyhaines31/marketingskills` | 33 marketing skills — optional accelerator for `/product-explore` |
+| aso-skills **(optional)** | `/plugin marketplace add Eronred/aso-skills` | 27 ASO skills — optional accelerator for `/aso-pipeline` |
 
 ## Plugins
 
@@ -55,12 +55,12 @@ Curated list of Claude Code marketplaces and plugins that complement nextc-claud
 
 | Plugin | Marketplace | Description |
 |--------|-------------|-------------|
-| pm-market-research **(dep)** | pm-skills | Competitor analysis, personas — used by `/product-explore` |
-| pm-execution **(dep)** | pm-skills | Job stories, pre-mortem — used by `/product-explore` |
-| pm-go-to-market **(dep)** | pm-skills | Beachhead segment — used by `/product-explore` |
-| pm-product-strategy **(dep)** | pm-skills | Vision, value proposition, lean canvas — used by `/product-explore` |
-| pm-product-discovery **(dep)** | pm-skills | Assumptions, experiments — used by `/product-explore` |
-| pm-marketing-growth **(dep)** | pm-skills | Positioning — used by `/product-explore` |
+| pm-market-research **(optional)** | pm-skills | Competitor analysis, personas — optional, used by `/product-explore` |
+| pm-execution **(optional)** | pm-skills | Job stories, pre-mortem — optional, used by `/product-explore` |
+| pm-go-to-market **(optional)** | pm-skills | Beachhead segment — optional, used by `/product-explore` |
+| pm-product-strategy **(optional)** | pm-skills | Vision, value proposition, lean canvas — optional, used by `/product-explore` |
+| pm-product-discovery **(optional)** | pm-skills | Assumptions, experiments — optional, used by `/product-explore` |
+| pm-marketing-growth **(optional)** | pm-skills | Positioning — optional, used by `/product-explore` |
 | pm-toolkit | pm-skills | PRDs, NDAs, privacy policies |
 | pm-data-analytics | pm-skills | Cohort analysis, A/B tests, SQL |
 
@@ -68,6 +68,6 @@ Curated list of Claude Code marketplaces and plugins that complement nextc-claud
 
 | Plugin | Marketplace | Description |
 |--------|-------------|-------------|
-| marketing-skills **(dep)** | marketingskills | Customer research — used by `/product-explore` |
-| aso-skills **(dep)** | aso-skills | Keywords, competitors, metadata — used by `/aso-pipeline` |
+| marketing-skills **(optional)** | marketingskills | Customer research — optional, used by `/product-explore` |
+| aso-skills **(optional)** | aso-skills | Keywords, competitors, metadata — optional, used by `/aso-pipeline` |
 | claude-seo | claude-seo-marketplace | Technical SEO, content audits, schema markup |

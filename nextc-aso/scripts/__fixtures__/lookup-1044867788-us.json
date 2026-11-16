@@ -1,0 +1,74 @@
+{
+ "resultCount": 1,
+ "results": [
+  {
+   "isGameCenterEnabled": false,
+   "artistViewUrl": "https://apps.apple.com/us/developer/bloom-built-inc/id379561506?uo=4",
+   "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/23/d0/d6/23d0d6ab-f3ff-ef45-47ac-350995d21fd1/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/60x60bb.jpg",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/23/d0/d6/23d0d6ab-f3ff-ef45-47ac-350995d21fd1/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/100x100bb.jpg",
+   "screenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/e7/6a/ba/e76abac9-086c-a4cd-c9a2-691571dee2f1/iphone-6.9-01.png/320x480bb.jpg",
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/88/a8/02/88a80261-bd3d-bcf5-9251-26d4b15e952b/iphone-6.9-02.png/320x480bb.jpg"
+   ],
+   "ipadScreenshotUrls": [
+    "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b5/d8/66/b5d866b2-595a-515d-a6ec-49c7e1d0bd3e/ipad-13-01.png/360x480bb.jpg"
+   ],
+   "appletvScreenshotUrls": [],
+   "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/23/d0/d6/23d0d6ab-f3ff-ef45-47ac-350995d21fd1/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/512x512bb.jpg",
+   "advisories": [],
+   "kind": "software",
+   "features": [
+    "iosUniversal"
+   ],
+   "supportedDevices": [
+    "iPhone5s-iPhone5s",
+    "iPadAir-iPadAir",
+    "iPadAirCellular-iPadAirCellular"
+   ],
+   "trackCensoredName": "Day One: Daily Journal & Diary",
+   "trackViewUrl": "https://apps.apple.com/us/app/day-one-daily-journal-diary/id1044867788?uo=4",
+   "contentAdvisoryRating": "4+",
+   "sellerUrl": "https://dayoneapp.com",
+   "languageCodesISO2A": [
+    "AR",
+    "CS",
+    "DA",
+    "NL",
+    "EN"
+   ],
+   "fileSizeBytes": "210419712",
+   "formattedPrice": "Free",
+   "userRatingCountForCurrentVersion": 118973,
+   "trackContentRating": "4+",
+   "averageUserRatingForCurrentVersion": 4.83094,
+   "averageUserRating": 4.83094,
+   "artistId": 379561506,
+   "artistName": "Bloom Built Inc",
+   "genres": [
+    "Health & Fitness",
+    "Productivity"
+   ],
+   "price": 0,
+   "trackName": "Day One: Daily Journal & Diary",
+   "trackId": 1044867788,
+   "minimumOsVersion": "18.0",
+   "genreIds": [
+    "6013",
+    "6007"
+   ],
+   "releaseDate": "2016-02-04T02:19:21Z",
+   "primaryGenreName": "Health & Fitness",
+   "primaryGenreId": 6013,
+   "sellerName": "Bloom Built Inc",
+   "isVppDeviceBasedLicensingEnabled": true,
+   "currentVersionReleaseDate": "2026-11-10T03:22:17Z",
+   "releaseNotes": "- The tag picker can now sort by name, most used, or most recently used\n- Fixed tag lists freezing or taking a long time to load in large journals, including Search › Tags\n- Fixed a crash in the day v",
+   "version": "2026.23",
+   "wrapperType": "software",
+   "currency": "USD",
+   "description": "Apple’s App of the Year with over 15 million downloads and 200,000 5-star ratings globally, Day One has reinvented journaling, letting you record your life as you live it. Securely save audio, video, photos, notes, and more wherever you are, whenever you want. \n\n“Day One creates something so rare it",
+   "bundleId": "com.bloombuilt.dayone-ios",
+   "userRatingCount": 118973
+  }
+ ]
+}

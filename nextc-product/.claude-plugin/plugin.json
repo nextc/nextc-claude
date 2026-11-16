@@ -1,10 +1,17 @@
 {
   "name": "nextc-product",
   "version": "1.6.16",
-  "description": "Product exploration — raw idea to validated proposal with market research, competitor analysis, and collision insights.",
+  "description": "Product exploration: an idea or problem to a short, sourced decision memo, built on checked evidence records, the founder's own data, and analysis lenses chosen to fit the question.",
   "author": {
     "name": "nextc"
   },
   "license": "MIT",
-  "keywords": ["product", "exploration", "proposal", "validation", "market-research"]
+  "keywords": [
+    "product",
+    "exploration",
+    "decision-memo",
+    "validation",
+    "evidence",
+    "prior-art"
+  ]
 }

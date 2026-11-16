@@ -1,0 +1,39 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Uu]serSettings/
+
+# Crash reports
+sysinfo.txt
+crashlytics-build.properties
+
+# IDE project files (generated)
+.vs/
+*.csproj
+*.sln
+*.suo
+*.user
+.idea/
+.vscode/settings.json
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+*.keystore
+*.jks
+*.p12
+*.pem
+
+# Unity Cloud Build
+UnityCloudBuildDetail.json
+
+# kickoff working files (state and logs); remove this line to commit them
+.kickoff/

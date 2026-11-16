@@ -1,32 +1,19 @@
 # Project Documentation
 
-Every project MUST maintain a `docs/` folder as the single source of truth for product state.
+Keep each project's `docs/` folder the single source of truth for product state, updated at completion points and only with verified facts.
 
-## Doc Updates Are Approval-Gated (No Auto-Spawn)
+## When docs get updated
 
-NEVER spawn the `doc-keeper` agent on your own initiative. Doc updates happen through exactly three paths:
+Run the `doc-keeper` agent (in the background) in one of three ways:
 
-1. **Suggest → user approves → spawn.** At a proper completion point (see below), suggest spawning `doc-keeper` — e.g. "The feature is built and verified. Want me to spawn doc-keeper to sync the docs?" Spawn only after the user explicitly approves. Once approved, run it in the background — never block the user waiting for doc updates.
-2. **User-driven.** The user runs `/update-docs` (or asks for a doc sync) themselves. Their invocation IS the approval.
-3. **An approved `/autopilot` plan.** Approving the plan approves one `doc-keeper` run at the end of that autopilot run, and no other.
+1. **Offer it once, at a completion point, as the last line of your report**, naming what is stale ("Docs now behind: tasks.md, the sync spec. Say 'sync docs' and I'll run doc-keeper."). It is an offer, not a blocking question: do not stop the task or use a question prompt for it, and do not repeat it if the user moves on. Spawn when the user says yes. Under a standing approval ("don't ask", "full auto") spawn it without offering and say that you did.
+2. **The user asks**, for example with `/update-docs`; that request is the approval.
+3. **An approved `/autopilot` plan**, which covers one run at the end.
 
-**When to suggest (and ONLY then):**
-- A feature is completely built and verified — not mid-implementation
-- A phase or milestone completes
-- A bug fix is confirmed working
-- An architectural decision has been finalized
+Completion points are: a feature completely built and verified, a phase or milestone done, a bug fix confirmed, an architectural decision finalized. Do not suggest it after small edits or intermediate steps, because repeated offers are noise. If `doc-keeper` is unavailable when approved, update the docs inline under the same rules.
 
-Do NOT suggest after every response that touches code. Small edits, intermediate steps, and work-in-progress changes don't warrant a suggestion — let the docs update once, at the completion point, or leave it to the user's own `/update-docs` call.
+This does not stop you syncing a spec record your own change made stale (`latest-spec-wins.md`) or the changelog before a commit (`git-workflow.md`).
 
-If `doc-keeper` is unavailable when the user approves or asks, update docs inline following the same guidelines (including Real Data Only below).
+## Real data only
 
-## Real Data Only (CRITICAL)
-
-Docs record what actually exists — never what is assumed, remembered, or plausible. This applies to `doc-keeper`, `/update-docs`, and any inline doc editing:
-
-- Every fact written to docs MUST be verified in-session against the real source: the actual git diff/log, the actual file contents, the actual command output
-- NEVER invent or estimate numbers, dates, versions, counts, metrics, file paths, API shapes, or feature behavior — if a value isn't verifiable right now, write it as unknown (e.g. `*(unverified — needs check)*`) or omit it, never fabricate a plausible one
-- NEVER document planned or speculative behavior as if it exists
-- This composes with `verify-before-claim.md` — docs are user-facing claims with a long shelf life; a hallucinated doc entry misleads every future session
-
-The doc-keeper agent definition contains the full documentation structure, file purposes, and update guidelines.
+Docs record what exists, verified this session against the real source: the git diff and log, file contents, command output. Do not write invented or estimated numbers, dates, versions, counts, paths, API shapes or behavior; write `*(unverified — needs check)*` or leave it out. Do not document planned behavior as if it exists. `doc-keeper`'s definition holds the doc structure and update guidelines.

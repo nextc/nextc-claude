@@ -1,499 +1,75 @@
 ---
 name: team-feature-dev
-description: >
-  Team-orchestrated feature development with parallel specialist agents. Use when building
-  a feature that benefits from multiple agents working concurrently. You act as Product
-  Director coordinating the team.
+description: Build a feature with a team of parallel specialist agents coordinated through a shared task list. Use when a feature splits into 3+ independent sub-tasks across layers.
+when_to_use: |
+  Triggers: "team build", "team feature", "team-feature-dev", "parallel build", or a feature with 4+ files across independent layers (model, provider, screen, navigation). Skip for 1-3 file features or strictly sequential work (use /feature-dev), bug fixes (/bug-fix), and cleanup (/cleanup).
+argument-hint: "[feature description]"
 user-invocable: true
-allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill SendMessage TaskCreate TaskUpdate TaskList TaskGet
+allowed-tools: Agent AskUserQuestion Read Glob Grep Bash Edit Write Skill SendMessage TaskCreate TaskUpdate TaskList TaskGet TaskStop
 ---
 
 # /team-feature-dev
 
-Team-orchestrated feature development pipeline. You are the **Product Director** —
-you plan, decompose, spawn specialist teammates, coordinate their work via shared
-task lists, and verify the result. Teammates do the hands-on coding.
+You are the Product Director: plan, decompose, spawn teammates, coordinate through the shared task list, verify. Teammates write the code; you do not.
 
-Uses Claude Code's native agent-teams orchestration — teammates spawned via the `Agent`
-tool, coordinated through `SendMessage` and a shared `TaskCreate` list — for real parallel
-execution. Requires the experimental agent-teams flag (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
-There is no `TeamCreate`/`TeamDelete` step (both removed in v2.1.178): the team forms on the
-first teammate spawn and cleans up on session exit.
+Requires the experimental agent-teams flag (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). The team forms on the first teammate spawn; there is no create or delete call. If the flag is off, say so and offer `/feature-dev`.
 
-## When to Use
+Feature: $ARGUMENTS
 
-- Feature is large enough to benefit from parallel work (3+ independent sub-tasks)
-- User says "team build", "team feature", "team-feature-dev", "parallel build"
-- Multiple layers need work simultaneously (model + provider + screen + navigation)
-- User wants to see coordinated multi-agent execution
+Read [references/lead-conduct.md](references/lead-conduct.md) before Phase 4.
 
-## When NOT to Use
+## 0. Vague request?
 
-- Small feature (1-3 files) → use `/feature-dev` (solo pipeline, less overhead)
-- Bug fix → use `/bugfix`
-- Code cleanup → use `/cleanup`
-- User says "just do it" or wants you to code directly → implement directly
+Same anchors as `/feature-dev` (path, entity, acceptance criteria, numbered steps, spec). If none, run `/clarify` if available, then resume from its spec. "just do it" skips this.
 
-## Your Role: Product Director
+## 1. Scope
 
-You are the **lead orchestrator**. You do NOT write implementation code yourself.
+Read the project context file, `docs/tasks.md`, `docs/spec/`, `docs/design.md`, the stack manifest, `git log --oneline -10`. Classify UI vs backend (mixed = UI).
 
-**You do:**
-- Analyze requirements and plan the approach
-- Decompose work into independent sub-tasks
-- Create the team and assign tasks
-- Spawn specialist teammates matched to each task
-- Monitor progress via TaskList and incoming messages
-- Coordinate: unblock, reassign, resolve conflicts
-- Verify the final result
-- Stop every teammate with `TaskStop` once its work is consumed (Phase 8)
+## 2. Plan and decompose
 
-**You don't:**
-- Write implementation code (teammates do this)
-- Spawn sub-agents from teammates (workers work directly)
-- Micromanage — trust teammates to complete their assigned tasks
+1. Spawn `nextc-ecc:planner` (model fable) to write `docs/spec/<slug>.md` (or reuse an existing spec) and return path, summary, and open questions.
+2. Spawn `nextc-ecc:architect` (model fable) with the path to review the plan against the code; fix CRITICAL/HIGH in the file.
+3. Decompose into a task graph in the same file. Each sub-task is file- or module-scoped with: subject, files, dependencies, acceptance criteria. Shared files (router, ARB, DI registry) go to ONE worker. Group into waves of independent tasks.
+4. Show the task graph (table of task, files, depends-on, worker type, plus waves and acceptance criteria) and ask once, batching planner open questions: approve and launch / adjust / cancel.
 
-## Gate 0: Vagueness Check
+## 3. Design (UI features only)
 
-Same as `/feature-dev` — assess if the request has concrete anchors.
+Before spawning workers. Obey `ui-ux-design` rules: #6 whole-product consistency is hard (workers use shared tokens and components and never invent per-screen visuals).
 
-**Passes:** file paths, entity names, acceptance criteria, numbered steps, spec reference.
-**Fails:** "add something cool", "improve the app".
-**On failure:** Invoke `Skill("clarify")`. Resume at Phase 1 when spec is ready.
-**Bypass:** `!` prefix or "just do it".
+- `docs/design.md` exists: workers honor it through the `ui-ux-developer` persona.
+- Missing and the `ui-ux-pro-max` skill is available: use it to draft `design.md` first.
+- Missing and no design skill: tell the user before launching; parallel workers improvising visuals produce drift.
 
-## Phase 1: Scope & Classify
+## 4. Execute
 
-Read project context in parallel:
-- `CLAUDE.md`, `docs/tasks.md`, `docs/spec/`, `docs/design.md`
-- `pubspec.yaml` or `package.json`
-- `git log --oneline -10`
+1. `TaskCreate` per sub-task, `TaskUpdate addBlockedBy` for dependencies, pre-assign `owner`.
+2. Spawn teammates in parallel as `subagent_type: "general-purpose"` with a `name` and an explicit `model` (sonnet standard, opus for complex multi-file state or data flow, haiku for mechanical edits). Prompt = worker preamble from [references/worker-preamble.md](references/worker-preamble.md) with `{team_name}`/`{worker_name}` filled, plus the persona body for specialists, plus the task list and project context.
+3. UI screen persona: read `${CLAUDE_PLUGIN_ROOT}/agents/ui-ux-developer.md`, drop its frontmatter, and append the body to the worker prompt.
+4. Monitor incoming messages and `TaskList`. Unblock the next wave, answer failures by message or reassign, status-check a silent worker, route shared-file conflicts through one worker.
+5. Pass artifacts between agents as file paths, not pasted text. Keep a progress ledger (`docs/plans/<slug>/progress.md` or the plan's `## Progress`): task id, status, artifact path, reviewer verdict. After compaction the ledger is the truth.
 
-### Existing Spec Detection
+## 5. Verify
 
-If `docs/spec/{feature}.md` exists from a prior `/clarify` run:
-- Use it as plan input — skip the planning sub-step (Phase 2a)
-- Still run architecture review
+Run the analyzer/typecheck/lint; check each acceptance criterion; for Flutter UI with l10n, check for hardcoded strings. Builds, device runs, and the full suite run only if the user asked; otherwise tag them unverified in the report.
 
-### Feature Type Detection
+Failures go back to the original implementing worker by `SendMessage` ([references/fix-loop.md](references/fix-loop.md)). Retry rule: a written diagnosis before each retry; after two diagnosed attempts on the same issue, stop and report to the user.
 
-Classify as **UI** or **Backend** (same rules as `/feature-dev`).
+## 6. Review and cleanup
 
-Present classification and ask user to confirm.
+Spawn `nextc-ecc:code-reviewer` (model sonnet) over all changed files, looking for cross-worker inconsistency; add `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. Fix CRITICAL/HIGH. Then `/cleanup <changed files>` (pipeline call, no prompt) and re-run the analyzer; revert cleanup changes that break it.
 
-## Phase 2: Plan & Decompose
+## 7. Shut down (mandatory)
 
-This is where team-feature-dev diverges from solo feature-dev. You must produce
-a **task graph** — not just a plan, but a set of independent sub-tasks with
-dependencies that can be assigned to parallel workers.
+A finished teammate parks idle with its full context. `TaskStop(task_id="<name>")` each one after its final report is consumed, never mid-task; confirm with `ListAgents` that none of your spawns remain. Then suggest `doc-keeper` / `/update-docs` and spawn only if the user agrees.
 
-### Step 2a: Plan
+## 8. Report
 
-Spawn an `nextc-ecc:planner` agent:
-- Input: feature description + project context + existing spec
-- Output: implementation plan with steps, files, dependencies, acceptance criteria
+Workers spawned, tasks completed/total, fix loops, files changed, each acceptance criterion with how it was verified (or "unverified"), review results, cleanup result.
 
-### Step 2b: Architecture Review
+## Gotchas
 
-Spawn an `nextc-ecc:architect` agent:
-- Review plan for soundness, missed dependencies, simpler alternatives
-- Must provide at least one alternative considered and why rejected
-- Must flag risks
-
-### Step 2c: Reconcile & Decompose into Task Graph
-
-Take the approved plan and decompose it into **parallelizable sub-tasks**:
-
-**Decomposition rules:**
-- Each sub-task should be **file-scoped** or **module-scoped** to avoid conflicts
-- Sub-tasks must be independent OR have explicit dependency ordering
-- Each sub-task needs: subject, description, files it will touch, acceptance criteria
-- Identify shared files that need coordination (e.g., `router.dart`, `app_en.arb`)
-- Assign shared-file tasks to a single worker to avoid merge conflicts
-
-**Example decomposition:**
-```
-Task #1: "Create GuildInvite model and migration"
-  Files: lib/models/guild_invite.dart, supabase/migrations/045_guild_invites.sql
-  Depends on: nothing
-
-Task #2: "Create guild_invite_repository"
-  Files: lib/repositories/guild_invite_repository.dart
-  Depends on: #1 (needs the model)
-
-Task #3: "Create guild_invite_provider"
-  Files: lib/providers/guild_invite_provider.dart
-  Depends on: #2 (needs the repository)
-
-Task #4: "Create invite screen and wire navigation"
-  Files: lib/features/guild/screens/guild_invite_screen.dart, lib/app/router.dart
-  Depends on: #3 (needs the provider)
-
-Task #5: "Add l10n keys for invite feature"
-  Files: lib/l10n/app_en.arb
-  Depends on: nothing (can run in parallel with #1-#3)
-```
-
-### Step 2d: Persist Plan
-
-Write the plan and task graph to `docs/spec/{feature-slug}.md`.
-
-### Step 2e: Present Plan & Task Graph
-
-Show the user the plan with the task graph:
-
-```
-## Team Plan: {feature name}
-
-### Approach
-{summary}
-
-### Task Graph ({N} tasks, {M} parallelizable)
-| # | Task | Files | Depends On | Worker Type |
-|---|------|-------|------------|-------------|
-| 1 | Create model | model.dart, migration.sql | — | executor |
-| 2 | Create repository | repository.dart | #1 | executor |
-| 3 | Create provider | provider.dart | #2 | executor |
-| 4 | Create screen + nav | screen.dart, router.dart | #3 | ui-ux-developer |
-| 5 | Add l10n keys | app_en.arb | — | executor |
-
-### Parallel Execution Waves
-Wave 1: #1, #5 (independent, run simultaneously)
-Wave 2: #2 (after #1)
-Wave 3: #3 (after #2)
-Wave 4: #4 (after #3)
-
-### Acceptance Criteria
-- [ ] {criterion 1}
-- [ ] {criterion 2}
-
-### Team Size: {N} workers
-```
-
-Ask:
-1. **Approve and launch team (Recommended)**
-2. **Adjust the plan** (free text)
-3. **Cancel**
-
-## Phase 3: Design (UI Features Only)
-
-**Skip entirely for backend-only features.** Run BEFORE the team is created — design decisions inform task details and worker prompts.
-
-> **Obey `~/.claude/rules/nextc-claude/ui-ux-design.md`.** #5 (propose-before-execute) is soft — in a team run the user has opted into autonomy, so workers proceed without pausing. #6 (whole-product consistency) is a **hard rule**: every UI worker applies the shared design system, reuses centralized tokens/components (never duplicates a design value), and the lead verifies cross-screen consistency before sign-off. Parallel workers drifting into per-screen visual decisions is the exact failure this forbids.
-
-Follow the same paths as `/feature-dev` Phase 3 (Paths A–D in `nextc-core/skills/feature-dev/SKILL.md`): check `docs/design.md` and design assets in the project folder, then choose the path that matches.
-
-### Design-skill leverage (mandatory check)
-
-Before falling back to "code first" or hand-rolled design, check for an installed design skill:
-
-```
-ls -d ~/.claude/plugins/cache/*/ui-ux-pro-max* 2>/dev/null
-# Repeat for any other design skill the project may install.
-```
-
-- **If `ui-ux-pro-max` (or equivalent) is installed AND `docs/design.md` is missing or insufficient**: invoke the design skill first to generate or extend `design.md` (palette, typography, components, accessibility, stack-specific patterns). Do this *before* spawning teammates so workers inherit a real design system instead of inventing one in parallel.
-- **If a design skill is installed AND `design.md` already exists**: assume `design.md` already encodes the skill's inventory — workers honor it via the injected `ui-ux-developer` persona. No re-invocation needed.
-- **If no design skill is installed AND no `design.md` exists**: surface this to the user before launching the team. Workers freelancing visual decisions in parallel produces drift that's expensive to reconcile later.
-
-This mirrors `/feature-dev`'s Path D recommendation and the `ui-ux-developer` agent's "Design Skill Integration" section — the team lead must do this check at the lead level, not delegate it to workers.
-
-## Phase 4: Create Team & Execute
-
-### Step 4a: Form the Team
-
-There is no setup call — the team forms automatically when you spawn the first teammate
-(Step 4c), with this session as the lead. Requires the experimental agent-teams flag
-(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in env or `settings.json`).
-
-> `TeamCreate`/`TeamDelete` were removed in v2.1.178. The `Agent` tool's `team_name` is accepted
-> but ignored (name derives from the session ID) — refer to teammates by the `name` you assign.
-
-You are now the team lead.
-
-### Step 4b: Create Tasks
-
-For each sub-task in the task graph:
-
-```
-TaskCreate(subject="...", description="...", activeForm="...")
-```
-
-Then set dependencies:
-```
-TaskUpdate(taskId="2", addBlockedBy=["1"])
-TaskUpdate(taskId="3", addBlockedBy=["2"])
-```
-
-Pre-assign owners to avoid race conditions:
-```
-TaskUpdate(taskId="1", owner="worker-1")
-TaskUpdate(taskId="5", owner="worker-2")
-```
-
-### Step 4c: Spawn Teammates
-
-Spawn all teammates **in parallel**. Each teammate gets a worker preamble + their assigned tasks.
-
-**Worker type selection (see `model-selection` rule):**
-
-| Task Type | Agent Type | Persona Injected | Model | Rationale |
-|-----------|-----------|------------------|-------|-----------|
-| Data model, repository, provider, service, logic | general-purpose | — | sonnet | Standard implementation |
-| Complex state management, multi-file coordination | general-purpose | — | opus | Deep reasoning, multi-file trade-offs |
-| UI screen implementation | general-purpose | `nextc-core/agents/ui-ux-developer.md` | sonnet | UI specialist instructions injected into worker prompt |
-| Simple rename, import fix, config change | general-purpose | — | haiku | Minimal reasoning, scripted steps |
-| L10n string extraction | general-purpose | — | haiku | Mechanical text processing |
-
-**Team workers spawn as `subagent_type: "general-purpose"`, with any specialist persona injected via the prompt (Step 4c)** rather than referencing a custom file-based `subagent_type`. A teammate needs `SendMessage` to report to you (its plain-text output never reaches the lead) and `Task*` to claim work. `general-purpose` has both by default; our shipped agents include `SendMessage` too (enforced in `agents.md`), but general-purpose + injection stays the standard path — it also avoids the teammate/subagent gap: a definition's `skills`/`mcpServers` frontmatter are ignored as a teammate and its body is *appended* (not replacing) the system prompt. If you do use a custom `subagent_type`, confirm its `tools:` include `SendMessage` and set `model`/effort explicitly at spawn.
-
-**Specialist behavior is delivered via prompt injection, not subagent_type.** When a task needs a specialist persona (e.g. UI screen implementation, security review, code archeology), the specialist agent's markdown file is read and its body (everything after the closing frontmatter `---`) is prepended into the worker prompt. The file's frontmatter (`tools:`, `model:`, `description:`) is ignored in this mode — only the body matters as instructions.
-
-**Worker preamble** (included in every teammate's prompt):
-
-> Read `references/worker-preamble.md` for the full verbatim template to inject.
-> Replace `{team_name}` and `{worker_name}` before including it in the `Agent()` prompt.
-
-**Prompt composition rule:**
-
-```
-prompt =
-  <worker preamble, with {team_name} / {worker_name} filled in>
-  + (if persona row in table above) "\n\n" + <persona body from .md file>
-  + "\n\nYour assigned tasks:\n" + <task list>
-  + "\n\nProject context: ..." + <relevant project rules>
-```
-
-**Spawn example (standard worker, no persona):**
-```
-Agent(
-  subagent_type="general-purpose",
-  name="worker-1",
-  model="sonnet",
-  prompt="<worker preamble>\n\nYour assigned tasks:\n- Task #1: Create GuildInvite model...\n- Task #2: Create repository (after #1)...\n\nProject context: Flutter app, see CLAUDE.md. Follow error-handling and coding-style rules."
-)
-```
-
-**Spawn example (UI worker with `ui-ux-developer` persona injected):**
-```
-# Step 1: load persona body (skip the frontmatter block)
-persona = Read("nextc-core/agents/ui-ux-developer.md", from_line_after_second_---)
-
-# Step 2: spawn as general-purpose with persona in the prompt
-Agent(
-  subagent_type="general-purpose",
-  name="worker-3",
-  model="sonnet",
-  prompt="<worker preamble>\n\n<persona body>\n\nYour assigned tasks:\n- Task #4: Create invite screen + wire navigation...\n\nProject context: Flutter app, see CLAUDE.md and docs/design.md."
-)
-```
-
-### Step 4d: Monitor & Coordinate
-
-Once teammates are spawned, monitor via two channels:
-
-1. **Incoming messages** — teammates send completion reports and error alerts automatically
-2. **TaskList polling** — check overall progress periodically
-
-**Coordination actions:**
-
-| Situation | Action |
-|-----------|--------|
-| Worker completes all assigned tasks | Assign unowned pending tasks or tell them to stand by |
-| Worker reports failure | Analyze the error, provide guidance via SendMessage, or reassign to another worker |
-| Worker is stuck (no message for 5+ min) | Send a status check via SendMessage |
-| Blocked task becomes unblocked | Notify the assigned worker via SendMessage |
-| Shared file conflict | Coordinate: one worker finishes first, then the other starts |
-| New sub-task discovered | TaskCreate + assign to an idle worker |
-
-**Wave coordination:**
-As each wave completes, unblock the next wave's tasks and notify assigned workers.
-
-### Step 4e: Context-efficient handoff & progress ledger
-
-> Source: distilled from obra/Superpowers `subagent-driven-development` (MIT).
-
-Two disciplines keep a long multi-task run cheap and compaction-proof:
-
-- **Hand off artifacts as file PATHS, not pasted text.** When a worker produces a diff, spec, or
-  report another agent must review, write it to a file (e.g. `docs/plans/<feature>/<task>.diff`) and
-  pass the **path** in the next agent's prompt — never paste the full content into the prompt. Pasted
-  artifacts bloat context fast (a real session hit 42K chars of pasted history); a path costs almost
-  nothing and the agent reads only what it needs. This also keeps the Director's own context lean.
-- **Keep a durable progress ledger.** Record each completed task to a file the Director re-reads after
-  any compaction — `docs/plans/<feature>/progress.md` (or the plan file's `## Progress` section):
-  task id, status, the artifact path, and the reviewer verdict. If the session compacts mid-run, the
-  ledger — not fading context — is the source of truth for what's done, so finished work is never
-  re-dispatched. The shared `TaskList` is the live view; the ledger is the durable record.
-
-Per `agents.md`, always pass each spawned worker an explicit `model` — an omitted model inherits the
-Director's (often the most expensive) model and silently defeats per-role tiering.
-
-## Phase 5: Verify
-
-After all tasks are completed:
-
-1. **Run analyzer** — `flutter analyze` or project equivalent. Must be zero errors.
-2. **Build check** — verify the project builds successfully
-3. **Acceptance criteria** — walk through each criterion from the spec
-4. **L10n check (Flutter UI)** — if l10n is enabled, check for hardcoded strings
-
-### On Verification Failure (Fix Loop)
-
-Route each fix to the **original implementing worker** via `SendMessage` (it keeps its context);
-spawn fresh only if that worker was already stopped. Re-verify scoped to the fix diff, then run
-one full verification at the end. A non-destructive ambiguity gets a ruling in the progress
-ledger; only destructive or irreversible ambiguity stops for the user. **Max 3 fix loops** — if
-the same issue persists after 3 attempts, stop and report. Details: `references/fix-loop.md`.
-
-## Phase 6: Review
-
-Spawn a **code-reviewer** agent (NOT as a team worker — as a direct agent):
-- Review ALL files changed across all workers
-- Check for: consistency between workers' code, style alignment, error handling
-- Flag cross-worker issues (e.g., worker-1 used pattern A, worker-2 used pattern B)
-
-For auth/payments/user data: also spawn `nextc-ecc:security-reviewer`.
-
-Fix any CRITICAL/HIGH issues (assign to idle workers or fix directly).
-
-## Phase 7: Cleanup + Re-verify
-
-Invoke `/cleanup` on all files changed by the team.
-Re-run analyzer after cleanup. Revert cleanup changes that break the build.
-
-## Phase 8: Shutdown Team
-
-Mandatory — a finished teammate parks idle with its full context until you stop it.
-
-1. **Stop each teammate with `TaskStop(task_id="<teammate name>")`** once its tasks are `completed`
-   and its report is consumed (not mid-task — it kills immediately). Detail: `references/lead-conduct.md`.
-2. **Confirm with `ListAgents`** that none of your spawns is still listed (other sessions aren't yours).
-   No team-delete call exists (`TeamDelete` removed in v2.1.178).
-3. **Suggest a doc-keeper doc sync** — the feature is complete, so offer it and spawn in background only after the user approves (per `project-docs.md`); if declined, point them to `/update-docs`.
-
-## Phase 9: Report
-
-Present the final summary to the user:
-
-```
-## Team Feature Complete: {feature name}
-
-### Team
-- Workers spawned: {N}
-- Tasks completed: {M}/{total}
-- Fix loops: {count}
-
-### Files Changed
-{list of all files modified across all workers}
-
-### Acceptance Criteria
-- [x] {criterion 1} — verified by {method}
-- [x] {criterion 2} — verified by {method}
-
-### Review
-- Code review: {passed / issues fixed}
-- Security review: {passed / N/A}
-
-### Cleanup
-- Lines removed: {net}
-- Post-cleanup verification: passed
-```
-
-## Pipeline Summary
-
-```
-┌────────────────────────────────────────────────────────────┐
-│ Gate 0: Vagueness Check → /clarify if needed               │
-└──────────────────────┬─────────────────────────────────────┘
-                       │
-┌──────────────────────▼─────────────────────────────────────┐
-│ Phase 1: Scope & Classify (detect UI/Backend, find spec)   │
-└──────────────────────┬─────────────────────────────────────┘
-                       │
-┌──────────────────────▼─────────────────────────────────────┐
-│ Phase 2: Plan & Decompose into Task Graph                  │
-│   Planner → Architect → Task graph → User approve          │
-│   Persist to docs/spec/                                    │
-└──────────────────────┬─────────────────────────────────────┘
-                       │
-              ┌────────┴────────┐
-              │ UI feature?     │
-              └───┬─────────┬───┘
-                yes         no
-                  │           │
-┌─────────────────▼──┐       │
-│ Phase 3: Design    │       │
-└─────────────────┬──┘       │
-                  │           │
-┌─────────────────▼───────────▼──────────────────────────────┐
-│ Phase 4: Create Team & Execute                             │
-│                                                            │
-│   Spawn teammates (team forms) → TaskCreate (deps) → run    │
-│                                                            │
-│   ┌──────────┐  ┌──────────┐  ┌──────────┐                │
-│   │ worker-1 │  │ worker-2 │  │ worker-3 │  ...           │
-│   │ model    │  │ l10n     │  │ provider │                │
-│   └────┬─────┘  └────┬─────┘  └────┬─────┘                │
-│        │              │              │                      │
-│   Product Director monitors, coordinates, unblocks         │
-│                                                            │
-└──────────────────────┬─────────────────────────────────────┘
-                       │
-              ┌────────▼─────────┐
-              │ Phase 5: Verify  │◄── fail? fix loop (max 3)
-              └────────┬─────────┘
-                       │
-              ┌────────▼─────────┐
-              │ Phase 6: Review  │
-              └────────┬─────────┘
-                       │
-              ┌────────▼─────────┐
-              │ Phase 7: Cleanup │◄── re-verify after
-              └────────┬─────────┘
-                       │
-              ┌────────▼─────────┐
-              │ Phase 8: Shutdown│
-              │  Team + doc-keeper│
-              └────────┬─────────┘
-                       │
-              ┌────────▼─────────┐
-              │ Phase 9: Report  │
-              └──────────────────┘
-```
-
-## Lead Conduct
-
-> Read `references/lead-conduct.md` for the full set of invariants, setup rules,
-> shutdown rules, and coordination heuristics. Review at the start of Phase 4 and
-> revisit whenever a coordination decision arises during Phases 4d–8.
-
-## Composability
-
-| Phase | Tool / Skill / Agent | Model | Purpose |
-|-------|---------------------|-------|---------|
-| Gate 0 | `/clarify` skill | — | Vague request → clear spec |
-| Phase 1 | Existing `docs/spec/` | — | Skip planning if spec exists |
-| Phase 2a | `nextc-ecc:planner` | sonnet | Create implementation plan |
-| Phase 2b | `nextc-ecc:architect` | fable | Adversarial architecture review |
-| Phase 3 | User provides design assets | — | Core screen design (UI features) |
-| Phase 4 | `Agent` (spawn teammates) + `TaskCreate` | — | Native team orchestration (team forms on first spawn) |
-| Phase 4 | `ui-ux-developer` persona (injected into a `general-purpose` worker prompt) | sonnet | UI screen implementation — file body is the prompt, NOT a custom subagent_type |
-| Phase 5 | Fix loop via `SendMessage` to the original worker | haiku/sonnet | Verification failures (fresh worker only if the original was stopped) |
-| Phase 6 | `nextc-ecc:code-reviewer` | sonnet | Cross-worker code review |
-| Phase 6 | `nextc-ecc:security-reviewer` | sonnet | Security review (when needed) |
-| Phase 7 | `/cleanup` skill | — | Post-implementation slop cleaning |
-| Phase 8 | `TaskStop` per teammate + `doc-keeper` agent | sonnet | Stop every teammate (they park idle, not exit) + doc sync suggestion (spawn on user approval) |
-
-## When to Use /team-feature-dev vs /feature-dev
-
-| Signal | Use |
-|--------|-----|
-| 1-3 files, simple feature | `/feature-dev` (solo) |
-| 4+ files, multiple layers | `/team-feature-dev` |
-| Independent sub-tasks exist | `/team-feature-dev` |
-| Sequential-only work (each step depends on the last) | `/feature-dev` (team adds overhead without parallelism) |
-| User says "team" or "parallel" | `/team-feature-dev` |
-| User wants speed over coordination overhead | `/feature-dev --quick` |
-
-Task: {{ARGUMENTS}}
+- Always pass `model` to every spawn: an omitted model inherits yours.
+- A teammate reports only through `SendMessage`; its plain output never reaches you.
+- Custom file-based `subagent_type` workers ignore their `skills`/`mcpServers` frontmatter as teammates, which is why personas are injected into a general-purpose worker.
+- Sequential-only work gains nothing from a team; use `/feature-dev`.

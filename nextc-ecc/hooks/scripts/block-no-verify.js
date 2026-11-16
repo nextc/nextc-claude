@@ -189,7 +189,6 @@ if (require.main === module) {
   process.stdin.on('end', () => {
     const result = run(raw, { truncated, maxStdin: MAX_STDIN });
     if (result.stderr) process.stderr.write(result.stderr + '\n');
-    if (result.exitCode === 2) process.exit(2);
-    process.stdout.write(raw);
+    process.exit(result.exitCode === 2 ? 2 : 0);
   });
 }

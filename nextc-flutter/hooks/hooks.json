@@ -1,0 +1,17 @@
+{
+  "description": "Upload guard: denies a fastlane TestFlight/upload lane that would re-upload a build number the buildlog already records as uploaded, or that runs outside the Flutter project root, ios/ or android/. Fails open; skipped inside /autopilot runs.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/upload-guard.js\"",
+            "if": "Bash(*fastlane*)"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -80,10 +80,10 @@ This repo depends on third-party marketplaces (see the root README). Plugins can
 - [ ] Pin `ref` or `sha`; do not follow a moving default branch.
 - [ ] Read `hooks/hooks.json`, `.mcp.json`, any `bin/` directory, and every hook script.
 - [ ] List MCP servers and the data they would receive.
-- [ ] Check for network calls and `npx`/remote code at runtime. nextc-ecc's hooks run local `node` scripts and fetch nothing.
+- [ ] Check for network calls and `npx`/remote code at runtime. The hooks in nextc-ecc and nextc-flutter run local `node` scripts and fetch nothing.
 - [ ] Re-review on every version bump you accept.
 - [ ] Record the approval and the pinned ref.
 
 ## 8. What this repo's rules and hooks are
 
-The rules in `rules/nextc-claude/` and the hooks in nextc-ecc are advisory guard-rails for cooperative developers, not security controls. Rules are text the model is asked to follow and are symlinked to a mutable clone by `setup-rules.sh`. Hooks can be switched off by environment variables in the developer's shell (for example `FACT_FORCE_GUARD=off`, `PRECOMMIT_QUALITY=off`, `SKIP_VALIDATE=1` for the repo git hook). The destructive-command check is pattern-based. If you need guarantees, use the managed policy layer in section 2 and branch protection/rulesets in your git host. Some rules (for example no-auto-branch, no-auto-commit) are one person's workflow preferences and may conflict with a PR-based company flow; decide which rules your company adopts before distributing them.
+The rules in `rules/nextc-claude/` and the hooks in nextc-ecc and nextc-flutter are advisory guard-rails for cooperative developers, not security controls. Rules are text the model is asked to follow and are symlinked to a mutable clone by `setup-rules.sh`. Hooks can be switched off by environment variables in the developer's shell (for example `PRECOMMIT_QUALITY=off`, or `SKIP_VALIDATE=1` for the repo git hook). The destructive-command check is pattern-based. If you need guarantees, use the managed policy layer in section 2 and branch protection/rulesets in your git host. Some rules (for example no-auto-branch, no-auto-commit) are one person's workflow preferences and may conflict with a PR-based company flow; decide which rules your company adopts before distributing them.

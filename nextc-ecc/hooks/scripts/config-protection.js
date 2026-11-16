@@ -16,8 +16,6 @@
 const path = require('path');
 
 const MAX_STDIN = 1024 * 1024;
-let raw = '';
-
 const PROTECTED_FILES = new Set([
   // ESLint (legacy + v9 flat config, JS/TS/MJS/CJS)
   '.eslintrc',
@@ -59,6 +57,9 @@ const PROTECTED_FILES = new Set([
   '.markdownlint.json',
   '.markdownlint.yaml',
   '.markdownlintrc',
+  // Dart / Flutter analyzer, cross-editor style
+  'analysis_options.yaml',
+  '.editorconfig',
 ]);
 
 function parseInput(inputOrRaw) {
@@ -74,8 +75,7 @@ function parseInput(inputOrRaw) {
 }
 
 /**
- * Exportable run() for in-process execution via run-with-flags.js.
- * Avoids the ~50-100ms spawnSync overhead when available.
+ * Pure decision function: returns { exitCode, stderr? } for a hook payload.
  */
 function run(inputOrRaw, options = {}) {
   if (options.truncated) {
@@ -84,12 +84,14 @@ function run(inputOrRaw, options = {}) {
       stderr:
         `BLOCKED: Hook input exceeded ${options.maxStdin || MAX_STDIN} bytes. ` +
         'Refusing to bypass config-protection on a truncated payload. ' +
-        'Retry with a smaller edit or disable the config-protection hook temporarily.'
+        'Retry with a smaller edit.'
     };
   }
 
   const input = parseInput(inputOrRaw);
-  const filePath = input?.tool_input?.file_path || input?.tool_input?.file || '';
+  // EXTERNAL: Edit/Write send `file_path`; NotebookEdit sends `notebook_path` (code.claude.com/docs/en/permissions).
+  const toolInput = input?.tool_input || {};
+  const filePath = toolInput.file_path || toolInput.notebook_path || toolInput.file || '';
   if (!filePath) return { exitCode: 0 };
 
   const basename = path.basename(filePath);
@@ -97,44 +99,38 @@ function run(inputOrRaw, options = {}) {
     return {
       exitCode: 2,
       stderr:
-        `BLOCKED: Modifying ${basename} is not allowed. ` +
-        'Fix the source code to satisfy linter/formatter rules instead of ' +
-        'weakening the config. If this is a legitimate config change, ' +
-        'disable the config-protection hook temporarily.',
+        `BLOCKED: ${basename} is a linter/formatter config; editing it is not allowed. ` +
+        'Fix the source code to satisfy the rules instead of weakening the config. ' +
+        'If the config change itself is the task, ask the user to make it or to approve it explicitly. ' +
+        'In an unattended run (no human to ask), do not work around this: mark the step blocked and report it.',
     };
   }
 
   return { exitCode: 0 };
 }
 
-module.exports = { run };
+module.exports = { run, PROTECTED_FILES };
 
-// Stdin fallback for spawnSync execution
-let truncated = /^(1|true|yes)$/i.test(String(process.env.ECC_HOOK_INPUT_TRUNCATED || ''));
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', chunk => {
-  if (raw.length < MAX_STDIN) {
-    const remaining = MAX_STDIN - raw.length;
-    raw += chunk.substring(0, remaining);
-    if (chunk.length > remaining) truncated = true;
-  } else {
-    truncated = true;
-  }
-});
-
-process.stdin.on('end', () => {
-  const result = run(raw, {
-    truncated,
-    maxStdin: Number(process.env.ECC_HOOK_INPUT_MAX_BYTES) || MAX_STDIN,
+if (require.main === module) {
+  let raw = '';
+  let truncated = /^(1|true|yes)$/i.test(String(process.env.ECC_HOOK_INPUT_TRUNCATED || ''));
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', chunk => {
+    if (raw.length < MAX_STDIN) {
+      const remaining = MAX_STDIN - raw.length;
+      raw += chunk.substring(0, remaining);
+      if (chunk.length > remaining) truncated = true;
+    } else {
+      truncated = true;
+    }
   });
 
-  if (result.stderr) {
-    process.stderr.write(result.stderr + '\n');
-  }
-
-  if (result.exitCode === 2) {
-    process.exit(2);
-  }
-
-  process.stdout.write(raw);
-});
+  process.stdin.on('end', () => {
+    const result = run(raw, {
+      truncated,
+      maxStdin: Number(process.env.ECC_HOOK_INPUT_MAX_BYTES) || MAX_STDIN,
+    });
+    if (result.stderr) process.stderr.write(result.stderr + '\n');
+    process.exit(result.exitCode === 2 ? 2 : 0);
+  });
+}

@@ -72,7 +72,7 @@
       "id": 12,
       "should_trigger": false,
       "query": "audit my plugin install for token bloat",
-      "expected_output": "Should NOT trigger — context-budget territory"
+      "expected_output": "Should NOT trigger — `/context` territory"
     }
   ]
 }

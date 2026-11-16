@@ -145,28 +145,14 @@ const VALID_ISOLATION_VALUES = new Set(['worktree']);
 // --- Memory scopes ---
 const VALID_MEMORY_SCOPES = new Set(['user', 'project', 'local']);
 
-// --- Repo-specific: model tier assignments from rules/nextc-claude/agents.md ---
-const MODEL_TIER_TABLE = {
-  'doc-keeper': 'sonnet',
-  'flutter-builder': 'haiku',
-  'flutter-l10n-agent': 'sonnet',
-  'ui-ux-developer': 'sonnet',
-  'aso-director': 'opus',
-  'planner': 'fable',
-  'autopilot-decider': 'fable',
-  'architect': 'fable',
-  'code-reviewer': 'sonnet',
-  'security-reviewer': 'sonnet',
-  'code-architect': 'sonnet',
-  'code-explorer': 'sonnet',
-  'code-simplifier': 'sonnet',
-  'silent-failure-hunter': 'sonnet',
-  'build-error-resolver': 'sonnet',
-  'refactor-cleaner': 'sonnet',
-  'opensource-forker': 'sonnet',
-  'opensource-sanitizer': 'sonnet',
-  'opensource-packager': 'sonnet',
-};
+// Agent types built into Claude Code; an Agent() spawn of one of these inherits the parent's model unless the call passes `model`.
+const BUILTIN_AGENT_TYPES = new Set(['Explore', 'Plan', 'general-purpose', 'claude', 'statusline-setup']);
+
+// Hook module file extensions accepted in hooks.json "modules".
+const HOOK_MODULE_EXTENSIONS = new Set(['.js', '.mjs', '.ts', '.tsx']);
+
+// Where the model/effort roster (single source of truth) lives, relative to the marketplace root.
+const ROSTER_RELATIVE_PATH = 'rules-references/agents-roster.md';
 
 // --- Content antipatterns ---
 // These scan rule bodies, agent bodies, and skill bodies for language that
@@ -219,7 +205,9 @@ module.exports = {
   VALID_PERMISSION_MODES,
   VALID_ISOLATION_VALUES,
   VALID_MEMORY_SCOPES,
-  MODEL_TIER_TABLE,
+  BUILTIN_AGENT_TYPES,
+  HOOK_MODULE_EXTENSIONS,
+  ROSTER_RELATIVE_PATH,
   CONTENT_ANTIPATTERNS,
   KEBAB_CASE_PATTERN,
   SKILL_NAME_PATTERN,

@@ -33,7 +33,6 @@ const lines = [
   'case | before | after',
   ...cases.map((c) => `${c.name} | ${frac(of('before', c.name), (r) => r.pass)} | ${frac(of('after', c.name), (r) => r.pass)}`),
   `TOTAL | ${frac(of('before'), (r) => r.pass)} | ${frac(of('after'), (r) => r.pass)}`,
-  `context block | ${frac(of('before'), (r) => r.contextBlock)} | ${frac(of('after'), (r) => r.contextBlock)}`,
   `avg cost/run | $${avgCost('before')} | $${avgCost('after')}`,
   `total cost $${results.reduce((s, r) => s + r.cost, 0).toFixed(2)}`,
   `results: ${path.relative(REPO, OUT)}`,

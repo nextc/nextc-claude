@@ -1,205 +1,178 @@
 ---
 name: aso-pipeline
 description: >
-  ASO optimization pipeline for an app store listing. Use when
-  optimizing an App Store or Play Store listing.
-user-invocable: true
-argument-hint: "[mode: run/score/express/audit/diff/build/status] or [phase: competitive/keywords/metadata/creative/localization/ratings/tracking/collision]"
-allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill
+  App Store and Google Play optimization for one app, built from live store data: what to change in
+  the listing, why, and proposed metadata that passes the store limits. Use when optimizing,
+  auditing or launching an App Store or Google Play listing.
+when_to_use: >
+  Triggers: "ASO", "optimize my App Store listing", "improve store ranking", "keywords for my app",
+  "audit our listing", "App Store metadata", "subtitle and keywords", "Play Store listing",
+  "prepare the store listing for launch", "/aso-pipeline run|audit|express|status".
+  Skip for naming or renaming the app (use /aso-naming) and for the playbook gap audit
+  (use /aso-edge-tactics).
+argument-hint: "[run|audit|express|status] [--auto] [intake answers, e.g. app=1044867788 countries=us,gb decision=update]"
+allowed-tools: Agent AskUserQuestion Read Write Edit Glob Grep Bash Skill ToolSearch
 ---
 
 # /aso-pipeline
 
-Multi-agent ASO optimization pipeline. Composes 23 aso-skills into a structured
-pipeline that analyzes competitors, discovers keywords, crafts metadata, defines
-creative strategy, localizes for target markets, optimizes ratings, and sets up
-tracking — with cross-phase insights no single skill produces alone.
+Arguments: `$ARGUMENTS`
 
-**Architecture:**
-- This skill: entry point, preflight, mode routing, score mode (inline)
-- `aso-director` agent: pipeline orchestrator (state, checkpoints, signals, phases)
-- 8 specialist agents: one per pipeline phase (thin composition layers over aso-skills)
+You run this whole skill in the main session: you own every question to the user, the decision
+checkpoint and the final delivery. Workers only collect evidence or write one optional plan.
 
-## Mode Detection
+Scripts (Node, no dependencies) live in `${CLAUDE_PLUGIN_ROOT}/scripts/`; call them as
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/<script>.mjs" …` from the project root. References:
+`${CLAUDE_PLUGIN_ROOT}/references/` — read `output-contract.md` before writing any output.
 
-Parse mode from `$ARGUMENTS`:
+## Modes
 
-| Argument | Mode | Action |
-|----------|------|--------|
-| _(none)_ or `run` | Full pipeline | Spawn director in `run` mode |
-| `score` | Instant scorecard | Run inline (no agent spawn) |
-| `express` | Quick keywords + metadata | Spawn director in `express` mode |
-| `audit` | ASO health check | Spawn director in `audit` mode |
-| `diff` | What changed since last run | Spawn director in `diff` mode |
-| `build` | Scaffold ASO project | Spawn director in `build` mode |
-| `status` | Show progress | Read state file inline (no agent spawn) |
-| `competitive` `keywords` `metadata` `creative` `localization` `ratings` `tracking` `collision` | Single phase | Spawn director in `phase` mode with phase name |
+| Mode | Use | Output |
+|---|---|---|
+| `run` (default) | Full proposal: evidence, one decision, metadata, optional plans, independent review | `report.md`, `metadata/`, `keywords.csv`, `plans/` |
+| `audit` | Read-only scorecard of the live listing against limits and observed data | `report.md` (audit variant), `keywords.csv` |
+| `express` | Keywords + metadata for one locale, no plans, no reviewer | `report.md`, `metadata/<locale>.json`, `keywords.csv` |
+| `status` | Show the state file | — |
 
-## Phase 0: Preflight Check
+`--auto`: never stop to ask. Take intake answers from the arguments and prompt, use the defaults in
+`references/intake.md`, record each default with `state.mjs assume`, pick the recommended option at
+the checkpoint, and finish.
 
-Before spawning the agent, validate ALL dependencies. Run ALL checks before
-reporting — never fail one-at-a-time.
+Removed modes and where they went: `score` → `audit`; `diff` → every run ends with a diff against
+the previous run; `build` → the intake; single phases (`keywords`, `metadata`, …) → `express`;
+`collision` → the script checks plus the independent reviewer.
 
-### Required Plugins
+## Status
 
-**aso-skills:**
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/state.mjs" show` and print the result. Done.
+
+## 1. Intake (one batch)
+
+Follow `references/intake.md`: read what the project already has, ask once for everything missing,
+write `aso/intake.json`. Then:
+
 ```bash
-ls ~/.claude/plugins/cache/aso-skills/ 2>/dev/null
-```
-Provides: `competitor-analysis`, `competitor-tracking`, `market-pulse`, `market-movers`,
-`keyword-research`, `seasonal-aso`, `metadata-optimization`, `android-aso`,
-`screenshot-optimization`, `app-icon-optimization`, `ab-test-store-listing`,
-`in-app-events`, `app-clips`, `localization`, `rating-prompt-strategy`,
-`review-management`, `crash-analytics`, `app-analytics`, `asc-metrics`,
-`aso-audit`, `app-marketing-context`, `app-launch`, `app-store-featured`
-
-### Optional Checks
-
-- **DataForSEO MCP:** Check if any tool whose name contains `dataforseo` exists, in any MCP
-  namespace (a user-configured `mcp__dataforseo__*` or a plugin-provided `mcp__plugin_<plugin>_dataforseo__*`).
-  If absent, warn: no verified keyword volumes — qualitative tiering mode only.
-- **`docs/proposal.md`:** If exists, product context available for brief seeding.
-
-### On Failure
-
-```
-Preflight FAILED. Missing dependencies:
-
-PLUGINS:
-  - aso-skills — Install:
-    /plugin marketplace add Eronred/aso-skills
-    /plugin install aso-skills@aso-skills
-
-OPTIONAL:
-  - DataForSEO not detected — keyword data will be qualitative (Tier A/B/C), not numeric.
-
-Install missing dependencies and run /aso-pipeline again.
+node "${CLAUDE_PLUGIN_ROOT}/scripts/state.mjs" init --mode <mode> --app "<name>" [--auto]
 ```
 
-STOP here. Do NOT proceed until required plugins are installed.
+Record each data source's availability: `state.mjs source itunes-search-api available`,
+`state.mjs source app-store-connect available|unavailable`, `state.mjs source google-play-api …`,
+`state.mjs source search-volume unavailable --note "no provider connected"` (or `used` with the
+tool's name — detect providers by capability with ToolSearch, as `references/data-sources.md`
+describes). Wrap every later stage in `state.mjs step <name> start` / `done` / `failed --note "…"`.
+A failed stage is reported in the delivery, never skipped silently.
 
-### On Success
+## 2. Baseline: what is live now
 
+For each country in scope (skip for a pre-launch app):
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/store-lookup.mjs" listing <id|bundleId> --country <cc>
 ```
-Preflight passed.
-  Plugins: aso-skills ✓
-  Optional: DataForSEO [✓/missing]
-  Proposal: docs/proposal.md [found/not found]
-  Prior state: aso/.pipeline-state.json [found/not found]
+With keys from the intake (paths or env-var names only; see `data-sources.md` → Key handling):
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/asc.mjs" app-info <id|bundleId> --key-id <id> --issuer-id <id> --key-file <path>   # or --key-env NAME
+node "${CLAUDE_PLUGIN_ROOT}/scripts/play.mjs" listing <package> --key-file <path>                                  # or --key-env NAME
 ```
+Fields the user typed in (for example a pre-launch app's locked name) are recorded with
+`store-lookup.mjs manual --platform ios --locale en-US --country us --in aso/data/user-input.json`
+so that every "Current" value has a dated source on disk. Reviews, when the decision needs them:
+`asc.mjs reviews …`, `play.mjs reviews …`.
 
-## Score Mode (inline — no agent spawn)
+## 3. Observe the stores
 
-If mode is `score`, run the scorecard inline without spawning the director.
-This is the fastest path to value (~5K tokens).
+Write `aso/data/terms-<cc>.txt` per country (method: `references/metadata-method.md` §1).
 
-### Requirements
-
-Need EITHER a store URL to fetch listing data OR user-provided answers.
-
-### Process
-
-1. Ask for store URL (App Store or Play Store) if not in existing `app_brief.yaml`
-2. Attempt to fetch the public listing page via WebFetch
-3. If fetch succeeds, extract: title, subtitle, description length, screenshot count,
-   video presence, rating, review count, localization count
-4. If fetch fails, ask the user to provide:
-   - Current title and subtitle
-   - Number of screenshots and whether video exists
-   - Current rating and review count
-   - Number of locales supported
-5. Apply 10 heuristic checks:
-
-| Check | Scoring | Max Points |
-|-------|---------|------------|
-| Title character utilization (30 chars) | % used | 10 |
-| Subtitle utilization (iOS: 30 chars) | % used, 0 if empty | 10 |
-| Feature keyword in title | present = 10, absent = 0 | 10 |
-| Screenshot count (min 6 iOS, 8 Android) | meets min = 10, below = proportional | 10 |
-| App preview video | present = 10, absent = 5 | 10 |
-| Rating (target: 4.5+) | 4.5+ = 10, 4.0-4.5 = 7, 3.5-4.0 = 4, <3.5 = 0 | 10 |
-| Review volume | >1000 = 10, 100-1000 = 7, 10-100 = 4, <10 = 0 | 10 |
-| Description length (target: >500 chars) | >500 = 10, 200-500 = 5, <200 = 2 | 10 |
-| Localization coverage | 5+ locales = 10, 2-4 = 5, 1 = 0 | 10 |
-| Promotional text utilization (iOS) | non-empty = 10, empty = 0 | 10 |
-
-6. Output scorecard with letter grades (A: 9-10, B: 7-8, C: 5-6, D: 3-4, F: 0-2)
-7. Add **Top priority** line: the single most impactful fix
-8. Offer upgrade: "Want me to fix these? `/aso-pipeline express` or `/aso-pipeline run`"
-
-If data was user-provided (not fetched), label: "Score based on self-reported data."
-
-## Status Mode (inline — no agent spawn)
-
-If mode is `status`, read the state file inline:
-
-1. Check if `aso/.pipeline-state.json` exists
-2. If not found: "No pipeline state found. Run `/aso-pipeline build` to start."
-3. If found: read and display phase status table:
-   ```
-   ASO Pipeline Status — [app_name]
-   Started: [date]  |  Mode: [mode]  |  Maturity: [level]
-
-   | Phase | Status | Completed | Signals |
-   |-------|--------|-----------|---------|
-   | Setup | ✓ | Apr 4 | — |
-   | Competitive | ✓ | Apr 4 | SATURATED_MARKET |
-   | Keywords | in progress | — | — |
-   | ... | pending | — | — |
-
-   Next: Keywords phase is in progress.
-   Run: /aso-pipeline keywords to continue.
-   ```
-
-## Cost & Time Estimate
-
-After preflight passes (for modes that spawn the director), show estimate:
-
-| Mode | Tokens | Maturity Adjustment |
-|------|--------|--------------------|
-| `run` (established) | ~247K | Full 8 phases |
-| `run` (pre_launch) | ~140K | Phases 0-4 only |
-| `run` (early) | ~180K | Phases 0-4 + 6 |
-| `express` | ~58K | Phases 0, 2, 3 |
-| `audit` | ~35K | Audit skill + recommendations |
-| `diff` | ~15K | Snapshot comparison |
-| `build` | ~12K | Interactive brief only |
-| Single phase | ~20-40K | Varies by phase |
-
-## Spawn the Director
-
-After preflight passes and estimate is shown:
+- **One country (and every `express`/`audit` run):** observe in this session:
+  `store-lookup.mjs observe --terms-file aso/data/terms-<cc>.txt --country <cc> [--app <id>]`,
+  expand once, fetch up to five competitor listings, write `aso/data/term-notes-<cc>.json`.
+- **Two or more countries (`run`):** spawn one observer per country in a single message:
 
 ```
 Agent(
-  subagent_type: "nextc-aso:aso-director",
+  subagent_type: "nextc-aso:aso-observer",
   model: "sonnet",
-  prompt: """
-  Mode: [run/express/audit/diff/build/phase-name]
-  Phase (if single-phase): [phase name]
-  Working directory: [cwd]
-  DataForSEO available: [yes/no]
-  Proposal exists: [yes/no]
-  Prior state exists: [yes/no]
-  Prior snapshots exist: [yes/no]
-
-  Data quality: [ESTIMATED/MIXED/VERIFIED]
-  - ESTIMATED: no DataForSEO, no AppTweak, no ASA → qualitative keyword tiering
-  - MIXED: some verified sources + LLM estimates
-  - VERIFIED: DataForSEO or AppTweak connected → numeric keyword scoring
-  """
+  description: "Observe <CC> storefront",
+  prompt: "Country: <cc>\nScripts: ${CLAUDE_PLUGIN_ROOT}/scripts\nTerms file: aso/data/terms-<cc>.txt\nApp: <id or none>\nCompetitors: <list>\nDecision: <decision>"
 )
 ```
 
-## Mode-Specific Preconditions
+Google Play: no public search data. If the user supplied an export, import it
+(`play.mjs import-search …`); otherwise state the gap in the report.
 
-| Mode | Precondition | On Failure |
-|------|-------------|------------|
-| `run` | None | Proceed (brief built interactively) |
-| `express` | None | Proceed |
-| `audit` | None | Proceed (brief built if needed) |
-| `diff` | `aso/.snapshots/` must have entries | "No snapshots found. Run the pipeline first, then use diff to track changes." |
-| `build` | None | Proceed |
-| `status` | `aso/.pipeline-state.json` must exist | "No pipeline state found." |
-| Single phase | `aso/config/app_brief.yaml` must exist | "No app brief found. Run `/aso-pipeline build` first." |
-| `collision` | 3+ phases completed in state | "Collision needs 3+ completed phases." |
+Then set `placement` for the terms you will use in `aso/data/term-notes.json` and build the table:
+`store-lookup.mjs keywords-csv`. In `audit` mode, continue with `references/audit-scorecard.md` and
+skip to step 7.
+
+## 4. Decide (the one checkpoint)
+
+Draft two or three complete options in `aso/metadata/options/`, run `limits-check.mjs` on each, and
+ask once (`references/metadata-method.md` §3). The user may pick, edit, or reject all; on reject,
+ask what to change and redraft once. `--auto` takes the recommended option. `express` presents the
+options the same way.
+
+## 5. Proposed metadata
+
+Write `aso/metadata/<locale>.json` for the chosen option (schema in `output-contract.md`) and run:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/limits-check.mjs" aso/metadata/<locale>.json --embed aso/report.md
+```
+Fix and re-run until PASS (three rounds at most; then stop and report the blocking rule).
+
+## 6. Optional plans (`run` only, only when the decision needs them)
+
+| Decision / situation | Topic |
+|---|---|
+| rating problem, or review data exists | `reviews` |
+| localization, or more than one locale | `localization` (one worker per extra locale) |
+| launch, update with screenshot gaps | `creative` |
+| changes will ship | `tracking` |
+
+Spawn the needed workers in one message (they write disjoint files):
+```
+Agent(
+  subagent_type: "nextc-aso:aso-specialist",
+  model: "sonnet",
+  description: "ASO <topic> plan",
+  prompt: "Topic: <topic>\nLocale: <locale or n/a>\nReferences: ${CLAUDE_PLUGIN_ROOT}/references\nScripts: ${CLAUDE_PLUGIN_ROOT}/scripts\nDecision: <decision>\nEvidence: aso/intake.json, aso/data/, aso/keywords.csv, aso/metadata/"
+)
+```
+Workers return file paths and three lines. Read the files before using them.
+
+## 7. Report
+
+Get the run-to-run diff first: `state.mjs diff`. Write `aso/report.md` to the structure in
+`output-contract.md` (about 1,200 words; audit under 800). Keep the embedded table markers intact;
+re-run `limits-check.mjs … --embed aso/report.md` for each locale after the prose is written.
+
+## 8. Check, then review
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/consistency.mjs"
+```
+Fix every failure. Then, in `run` mode only, one independent reviewer:
+```
+Agent(
+  subagent_type: "nextc-aso:aso-reviewer",
+  model: "sonnet",
+  description: "Review ASO outputs",
+  prompt: "Review the outputs under aso/ for the decision: <decision>. Write aso/data/review.md."
+)
+```
+Fix blocking findings, re-run the checks once, and leave non-blocking ones listed in the report's
+"What could not be determined" if they are gaps rather than errors.
+
+## 9. Deliver
+
+`state.mjs snapshot`, `state.mjs step deliver done`. Tell the user, in under 15 lines: the top three
+changes, where the files are, what was unavailable (volume, Play search, missing keys), any failed
+stage, and the assumptions made under `--auto`.
+
+## Gotchas
+
+- The public API does not expose the subtitle, the keyword field or promotional text — for the app or competitors. Without App Store Connect access or the user's input those are "unknown", never guessed. <!-- validate:ignore -->
+- Results and rating counts differ by country and by device; compare within one storefront only. Ranks from the API approximate, but do not equal, what a user sees.
+- The iOS keyword field limit is 100 bytes, not characters: CJK text fills it three times faster.
+- Google Play has no public search API and no keyword field. Play competitor data comes only from an export the user supplies.
+- A key is never echoed, written to `aso/`, or placed on a command line; only its path or env-var name is.
+- Search volume is unavailable without a provider. "Observed competition" tiers describe the top results, not demand.
+- A cached observation keeps its original retrieval date; quote that date.
