@@ -98,6 +98,62 @@ export type RunSource = {
 /** The project runs the last scan found, and which one /hud watch shows in a pane. */
 export type Projects = { runs: RunSource[]; scannedAtMs: number | null; watchId: string | null }
 
+/** One agent the roster names, as the agents pane shows it. */
+export type CrewAgent = {
+  id: string
+  /** What SendMessage addresses it by; a teammate's name in its team. */
+  name: string | null
+  team: string | null
+  type: string
+  description: string
+  status: string
+  parentId: string | null
+}
+
+/** What one loop has done, from its own tool calls. */
+export type CrewActivity = { startedAtMs: number | null; tools: number; last: string | null; lastAtMs: number | null }
+
+export type CrewTask = { id: string; subject: string; status: 'pending' | 'in_progress' | 'completed'; owner: string | null }
+
+/** The agents pane's value: roster, per-loop activity, the shared task list and each loop's todos. */
+export type Crew = {
+  roster: CrewAgent[]
+  activity: Record<string, CrewActivity>
+  tasks: CrewTask[]
+  todos: Record<string, { done: number; total: number; active: string | null }>
+  isOpen: boolean
+  isCollapsed: boolean
+  /** Whether the last look found enough going on for the pane to open by itself. */
+  wasBusy: boolean
+}
+
+/** Critical files edited this session and the critical-reviewer pass that covers them. */
+export type Review = {
+  /** Project paths of critical files edited and not yet covered by a finished review. */
+  pending: string[]
+  /** Every file edited since the last finished review, critical or not. */
+  unreviewed: string[]
+  /** The check's one-line reason for the files it marked, or null. */
+  why: string | null
+  /** True while the check after a turn is waiting for its answer. */
+  isChecking: boolean
+  /** What the running review covers: the pending list as it stood when the reviewer started. */
+  covering: string[]
+  reviewerId: string | null
+  /** The model the reviewer was resolved to (Fable, or its Opus fallback). */
+  model: string | null
+  state: 'none' | 'running' | 'done'
+  reviewed: number
+  /** The reminder toast was shown for the current pending list. */
+  isNudged: boolean
+}
+
+/** When one build command's tool call started and ended, for the card under its row. */
+export type BuildCall = { startedAtMs: number; endedAtMs: number | null; isBackground?: boolean }
+
+/** One finished (or still open) session in the cross-session history `/hud costs` reads. */
+export type SessionRecord = { id: string; project: string; startedAtMs: number; endedAtMs: number; usd: number | null; compactions: number; agents: number }
+
 declare module 'claude-code' {
   interface PluginState {
     'nextc-hud': {
@@ -109,7 +165,12 @@ declare module 'claude-code' {
       coach: Shaped<Coach>
       prefs: Shaped<HudPrefs>
       projects: Shaped<Projects>
-      autoWatch: Shaped<{ runningIds: string[]; liveIds: string[]; isCollapsed: boolean }>
+      crew: Shaped<Crew>
+      review: Shaped<Review>
+      buildCalls: Shaped<Record<string, BuildCall>>
+      tally: Shaped<{ spawned: number }>
+      turnWork: Shaped<{ path: string; snippet: string }[]>
+      autoWatch: Shaped<{ runningIds: string[]; liveIds: string[]; activeIds?: string[]; isCollapsed: boolean }>
     }
   }
 }

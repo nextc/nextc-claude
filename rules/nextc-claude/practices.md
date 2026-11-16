@@ -39,6 +39,7 @@ Use the `planner` agent for multi-file features or architectural changes, not fo
 Review your own code changes before you call the work done, at a depth that matches the risk, and without asking first:
 
 - **Small and contained** (one file, no auth, payments, user data, concurrency or schema): re-read the diff yourself. No reviewer agent.
-- **Anything larger, or touching those areas**: spawn `code-reviewer` on the diff and untracked files, and in parallel `security-reviewer` when auth, payments, secrets or user data are involved. Give them the diff and the acceptance criteria, not your reasoning.
+- **Anything larger**: spawn `code-reviewer` on the diff and untracked files. Give it the diff and the acceptance criteria, not your reasoning.
+- **Critical logic, always, whatever the size** (auth, authorization, payments, user data, secrets, concurrency, schema or migrations): spawn `critical-reviewer` (Fable at `high`; Opus at `xhigh` when Fable is unavailable), in parallel with `code-reviewer` and with `security-reviewer` when auth, payments, secrets or user data are involved. If that agent type is not installed, run the same review with a general-purpose agent on that model rather than skipping it. Say in your report that it ran, on which model, and its verdict.
 - Fix CRITICAL and HIGH findings after checking each against the code; push back on wrong ones (see "Receiving review feedback"). In your report say what was reviewed, what you fixed, and what you left with the reason.
 - One review pass per piece of work. Re-review only the parts a fix changed materially.

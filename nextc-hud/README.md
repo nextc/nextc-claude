@@ -1,13 +1,19 @@
 # nextc-hud
 
-A Claude Code mod with four observe-only features:
+A Claude Code mod with ten features. Nine only observe; the critical-review check also makes one small model call per turn that changed code and can send one message asking for the review:
 
 1. **Always-on session row**: one row above the prompt with context used, compactions, the session's cost estimate, rate-limit use, agents and any live project run. It warns once context gets heavy and offers two actions that fill the prompt box (never send it).
 2. **Project run monitor**: `/hud runs` and `/hud watch` read the state files that `/flutter-build`, `/unity-build`, `/product-explore`, `/idea-explore`, `/aso-pipeline` and the kickoff skills write in your project.
 3. **Autopilot monitor**: `/autopilot-watch` follows a running `/autopilot` run in a pane beside the chat (or a one-row band above the prompt), with a Stop button.
-4. **"Used this turn" line**: under each answer, one line naming the skills and subagents that turn used. A turn that used neither gets no line.
+4. **Agents pane**: `/hud agents` shows every subagent and teammate: what it is working on, its status, how long it has run, how many tool calls it has made, what it is doing now, and its progress where a task list gives one. It opens by itself when two agents are working or a team is running.
+5. **"Used this turn" line**: under each answer, one line naming the skills and subagents that turn used. A turn that used neither gets no line.
+6. **Critical-review check**: after each turn that changed code, a small model reads the changes and says which files hold critical logic (auth, payments, user data, secrets, concurrency, schema), judged by what the code does. If none of them got a `critical-reviewer` pass, the mod asks Claude to run one. The row shows the files waiting, the review while it runs and the model it runs on.
+7. **Build card**: one dim line under a build command's own row with the build's version and step, how long the command has run, and how it ended.
+8. **Done notice**: a toast and a short chime when a long turn ends, a build or pipeline run finishes, or a long stretch of agent work ends.
+9. **`#` task typeahead**: typing `#` in the prompt box lists the open tasks from `docs/tasks.md`.
+10. **Session history**: `/hud costs` shows the last 7 days by project (sessions, cost estimate, compactions, agents).
 
-The mod never denies, rewrites or approves anything, never calls a model, never makes a network request, never starts a process and never submits a prompt or starts a compaction. The only file it can write is an autopilot run's `STOP` file, and only after you confirm. Its two coach actions put text in the prompt box with `$.prompt.fill`; you press Enter or edit it.
+The mod never denies, rewrites or approves anything, never makes a network request of its own, never starts a process and never starts a compaction. It calls a model and submits a prompt in one place only, the critical-review check, and both can be turned off (`critical_check`, `critical_followup`). The done chime is a file the mod ships, played by Claude Code itself. The only file it writes by path is an autopilot run's `STOP` file, and only after you confirm. The session history goes into the mod's own store, a JSON file Claude Code keeps for the mod in its configuration folder. Its two coach actions put text in the prompt box with `$.prompt.fill`; you press Enter or edit it.
 
 ## What it shows
 
@@ -61,6 +67,36 @@ The command runs at once, even while Claude is working.
 | `/hud runs` | List the project runs found, with their state |
 | `/hud watch [build\|explore\|idea\|aso\|kickoff]` | Open a read-only pane for one run (the live one, else the most recent); `/hud watch off` closes it. The pane has Collapse and Expand instead of Close: collapsed, it is one line with the run's last state. It also opens by itself when a run starts (see `auto_watch`) |
 
+| `/hud review` | The critical-review state and the files waiting for a review |
+| `/hud costs` | The last 7 days of sessions by project, from the session history |
+| `/hud agents` | Open the agents pane (below), or print the same as text where nothing can draw; `/hud agents off` closes it |
+
+### Agents pane
+
+One line per agent in a wide pane, two in a narrow one:
+
+```
+agents: 2 running, 1 idle · tasks 1/3 done, 1 in progress
+team sprint · tasks 1/3 done, 1 in progress
+dev  Build login  running · 2m 10s · 1/2 tasks · 14 tools  Edit login.dart
+qa  verify  idle
+  unassigned: Write release notes
+other agents
+code-reviewer  review the diff  running · 40s · 1/3 steps · 6 tools  Read sync.dart
+  Explore  find call sites  running · 12s · 2 tools  Grep fastlane
+```
+
+| Shown | Where it comes from |
+|---|---|
+| Who, status, parent | The engine's agent roster: name or type, `running` / `idle` / `completed` / `failed`, and which agent spawned it (children are indented under their parent). Teammates are grouped under their team. |
+| Task | A teammate's task in progress from the shared task list; otherwise the active item of the agent's own todo list; otherwise the few words it was started with. |
+| Time and tool count | Counted from the agent's own tool calls since it started. A finished agent's clock stops at its last call. |
+| Doing now | Its latest tool call: the file name for a file tool, the description for a shell command (never the command line, which can hold a token), the pattern for a search. |
+| Progress | `n/m steps` from the agent's own todo list, or `n/m tasks` from the tasks it owns in the shared list. The team line carries the whole list's tally and the tasks nobody owns yet. Nothing gives a percentage, so none is shown. |
+| Unlisted loops | Agents the roster does not name (a workflow's agents, the engine's own forks) are counted for a minute after their last tool call, with the latest call. |
+
+The pane opens by itself when two or more agents are working or a team has a member (`auto_agents`), collapses to its summary line when the last one finishes, and expands again when work restarts. It has Collapse and Expand, not Close: only the frame's close mark or `/hud agents off` closes it. While agents work it re-reads the roster every 5 seconds; once all are done it reads nothing. One plain subagent stays in the row's count and opens nothing.
+
 ### Project run monitor
 
 Each run becomes one shape: kind, state (`running`, `stale`, `failed`, `finished`), current step, progress where the file records it, when it last wrote, and its facts. The row, the pane and the text all draw from it.
@@ -110,6 +146,64 @@ The monitor re-reads the run's files every 5 seconds, but only while the pane is
 
 **Stop** asks first: "Stop run <id>? It ends after the current tool call; the branch and ledger are kept." If you confirm, the mod creates `~/.claude/autopilot/<run-id>/STOP`, the same file `touch` would create. After that the run's guard hook denies every tool call except writes to the run's own folder, so the run logs the stop, writes its report and ends. The mod writes the file only when the run folder exists and holds a `lock` file, so it never creates a folder and never touches a run that is not running.
 
+### Critical-review check
+
+The `practices` rule asks for a `critical-reviewer` pass (Fable, with Opus as the fallback) whenever a change touches critical logic. This makes sure it happens, and shows it.
+
+**After each turn that changed code:**
+
+1. The mod collects what the turn's edits wrote (by the main session and by any agent): each file's path and up to 1,200 characters of the new code, the 12 most recently edited files at most (in a larger change the earlier files are judged by path only). An interrupted turn's changes are kept for the check after the next turn. Docs, images, lock files and tests are left out.
+2. One small model call (`haiku` by default, through the session's own API client) reads those changes and names the files that hold critical logic: authentication or sessions, access rules, payments or money arithmetic, personal user data, secrets or encryption, concurrency, schema or migrations. It judges what the code does, not the file name, so `order_service.dart` granting a purchase is critical even though nothing in its name says so.
+3. Files it names that no finished `critical-reviewer` pass has covered go on the waiting list. If Claude already ran the reviewer in that turn, as the rule asks, nothing is waiting and nothing more happens.
+4. If files are waiting, the mod asks for the review (`critical_followup`):
+   - `send` (default): it sends one message, shown in the transcript as coming from this plugin, asking Claude to run the `critical-reviewer` on those files and fix what it finds. Only a prompt you send allows one such message, and sending it uses that up. Turns nobody typed (the one the message starts, a background reviewer reporting back) are still checked but never produce a second message, so the mod cannot keep a review-and-fix loop going by itself. On a login where Claude Code keeps user mods off prompt events, the mod never sees your prompts and falls back to the toast.
+   - `fill`: the same text is put in the prompt box for you to send.
+   - `off`: a toast names the files.
+
+| State | The row says |
+|---|---|
+| The check is waiting for its answer | `checking the changes for critical logic` |
+| Critical files with no review covering them | `2 critical files not reviewed` in the warning colour |
+| A `critical-reviewer` is running | `critical review running (<model>) · 5 files`, where the model is the one the reviewer was resolved to, so a fallback to Opus is visible, and the count is every file edited since the last review |
+| The review finished and nothing was edited since | `critical review done (<model>) · 5 files` |
+
+- **The path floor:** a file whose path inside the project matches `critical_paths` is critical whatever the model answers, and at once, before the turn ends. So a reply cannot talk the check out of an auth file, and the check still works when the model call fails or `critical_check` is off. The built-in list is auth, oauth, login, signin, signup, session, password, permission, rbac, role, rls, policy, payment, billing, purchase, subscription, entitlement, checkout, wallet, secret, crypto, encryption, migration, schema, access/refresh/api/jwt/id tokens and `.sql`. A word must stand alone, so `authoring.md`, `urls.dart` and `design_tokens.dart` do not match while `AuthProvider.tsx` and `refresh_token.dart` do. Test files are left out.
+- **What clears the list:** only an agent of type `critical-reviewer` that finishes with an answer. It covers every file edited before it started; a file edited while it runs stays waiting. A reviewer that is interrupted or fails covers nothing. A `code-reviewer` pass does not clear it.
+- **Cost:** one call of about 4,000 input tokens at most and a few dozen output tokens per turn that changed code, on the small model. It counts toward the session's cost total. A turn that changed no code asks nothing.
+- **Where it does not run:** `claude -p`, the SDK, cloud sessions and autopilot runs. Nothing is checked or sent where nobody is watching.
+- `/hud review` prints the state and the full list. The agents pane shows the reviewer's own progress.
+
+Limits: the model sees a part of each change, not the whole file or its callers, so it can miss critical logic that only shows in context, and it can flag something harmless. The file contents are untrusted input to that call. The mod accepts only paths it sent, and the model's one-line reason is shown by `/hud review` only and never put in the message sent to Claude, so a file cannot use the check to pass instructions on, but a file could still persuade the model to answer "not critical" for itself, which is what the path floor is for. The mod never blocks a tool call or a turn.
+
+### Build card
+
+Under a build command's row in the transcript:
+
+```
+⏺ Bash(cd ios && bundle exec fastlane beta)
+  ⎿ build 1.4.0+52 · uploading? · running 6m 10s
+```
+
+It appears for `fastlane <lane>`, `flutter build <target>`, `gradlew` assemble or bundle tasks, `xcodebuild` and a Unity `-batchmode` command. While the command runs the line carries the build's title and step from `docs/buildlog.md` and the elapsed time; afterwards it says `finished`, `failed`, `command failed` or `interrupted` and how long it took. A build started in the background (as `/flutter-build` and `/unity-build` do) returns at once, so its line says `started in the background` with the step and never `finished` until the buildlog records an outcome. A buildlog entry older than the command is taken for the previous build and left out. When the command ends but the buildlog still says "in progress", the line says so, since that is the case where an upload may not have been recorded. The row above it is Claude Code's own, unchanged. `build_card` turns it off.
+
+### Done notice
+
+A toast and one short chime when:
+
+- a turn that took at least `done_after_seconds` (60 by default) ends without being interrupted;
+- a build or pipeline run that was running gets an outcome;
+- a stretch of agent work that lasted at least as long ends (two quick search agents do not chime).
+
+Two events within four seconds give one toast and one chime. A turn that ends in an error does not count as finished. The chime plays on macOS only; other systems get the toast. `done_toasts` and `done_sound` turn each off.
+
+### `#` task typeahead
+
+Typing `#` in the prompt box lists up to eight open tasks from `docs/tasks.md` (`- [ ]` todo, `- [~]` in progress, `- [!]` blocked; done tasks are left out), in-progress first. Typing more filters them (`#login`). Taking a row writes the task's text into the prompt. The file is re-read only when it changes. On Team and Enterprise logins Claude Code may keep user-installed mods off the prompt events; the typeahead is then simply absent. `task_typeahead` turns it off.
+
+### Session history
+
+When a turn ends, the mod records the session in its own store: project folder name, the engine's cost estimate, compactions and agents spawned. One record per session, the newest 400 kept. With two terminals ending a turn in the same instant one record can be missed until that session's next turn. `/hud costs` prints the last 7 days by project and the last 24 hours. These are the engine's estimates, not a bill. `cost_history` turns it off.
+
 ### Used this turn
 
 ```
@@ -148,12 +242,24 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 |---|---|---|
 | `always_on_row` | `true` | The session row. Off: no row (and no project scan) unless `/hud on` in a session. |
 | `auto_watch` | `true` | Open the run pane by itself when a project run starts. Once the run's outcome has left the row the pane collapses to one line; the next run expands it. It is never closed for you: only the frame's close mark or `/hud watch off` closes it. Works while the row is on; autopilot runs still need `/autopilot-watch`. |
+| `auto_agents` | `true` | Open the agents pane by itself when two or more agents are working or a team is running, and collapse it when the last one finishes. Off: `/hud agents` still opens it. |
 | `heavy_percent` | `50` | Context % that makes the row "heavy". |
 | `act_percent` | `80` | Context % that makes it "act now". |
 | `heavy_tokens` | `200000` | Also "heavy" from this many tokens on any window (a 1M window reaches 200k at 20%). `0` turns it off. |
 | `act_compactions` | `3` | "Act now" from this many compactions. |
 | `coach_toasts` | `true` | One toast per crossing per session. `/hud coach off` silences them for one session. |
 | `toasts_when_hidden` | `false` | Also toast while the row is off, hidden or collapsed. |
+| `critical_check` | `true` | The small model call after a turn that changed code. Off: only `critical_paths` decides. |
+| `critical_followup` | `send` | What happens when critical files have no review: `send` one message asking for it, `fill` the prompt box, or `off` (toast only). |
+| `critical_model` | `haiku` | The model the check uses. |
+| `critical_paths` | (built-in list) | A case-insensitive regular expression; a file whose path inside the project matches is critical whatever the check says. |
+| `review_reminder` | `true` | The toast naming files with no review, shown when the follow-up is off, could not be sent, or was already sent once for this prompt. |
+| `build_card` | `true` | The line under a build command's row. |
+| `done_toasts` | `true` | Toasts for a long turn, a finished run and the last agent finishing. |
+| `done_sound` | `true` | The chime with those events (macOS only). |
+| `done_after_seconds` | `60` | How long a turn or a stretch of agent work must take to count as long. From 10 to 3600; a smaller value counts as 10. |
+| `task_typeahead` | `true` | The `#` list of open tasks. |
+| `cost_history` | `true` | The session records behind `/hud costs`. |
 | `show_used_line` | `true` | The turn line. Off: its hooks aren't registered either. |
 | `autopilot_toasts` | `true` | Autopilot toasts. The pane and band still show every warning. |
 
@@ -167,7 +273,12 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 | Reads | `~/.claude/autopilot/<run-id>/status.json`, `result.json`, `approved.json`; in the project: `docs/buildlog.md`, `docs/explore/state.json`, `docs/explore/evidence/_index.json`, `docs/idea-explorations/<slug>/state.json` and `evidence/_index.json`, `aso/.pipeline-state.json`, `.kickoff/state.json` |
 | Checks for | `~/.claude/autopilot/<run-id>/lock`, `STOP`; `.git` in the session folder and up to 12 parents (once, to find the git root) |
 | Writes (Stop only) | `~/.claude/autopilot/<run-id>/STOP`, empty |
-| Prompt box | Reads the draft, fills it (`/hud compact`, `/hud handoff` and their buttons) only when the box is empty; never submits |
+| Reads (project) | `docs/tasks.md`, for the `#` typeahead |
+| Store | One value, `sessions`, in the mod's own `$.store` (a JSON file Claude Code keeps for the mod in its configuration folder): per session the project folder name, cost estimate, compactions and agent count. It stays on this machine |
+| Plays | `sounds/done.wav`, a file the mod ships, through Claude Code's `$.audio.play` |
+| Agents | The engine's agent roster (`$.agent.list`), and each tool call's name plus one short field of its input (file name, description, pattern, task subject, todo list). Kept in the session's state only; never written to disk or sent anywhere |
+| Prompt box | Reads the draft, fills it (`/hud compact`, `/hud handoff`, their buttons, and the review request in `fill` mode) only when the box is empty. Submits one thing only: the review request in `send` mode |
+| Model | One call per turn that changed code, with the paths and parts of the changed code, through the session's own API client (`critical_check`) |
 | Environment | `HOME`, or `USERPROFILE` when `HOME` is unset |
 
 Project paths are the session folder and its git root joined to the fixed names above. An idea-explore folder name must match `^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$` before it is joined, and a file over 2 MB is skipped. Text from these files has control characters removed before it is drawn.
@@ -186,6 +297,9 @@ Errors go to the debug log only (`claude --debug`), through `$.ui.log(..., { to:
 ## Known limits
 
 - In split-pane (tmux) agent teams, tool calls made by teammates that run in their own terminal panes are not seen by the lead session's mods, so they're missing from the turn line. In-process teammates and ordinary subagents are counted.
+- For the same reason the agents pane shows a split-pane teammate's name, status and tasks but not its tool calls, time or "doing now", and the shared task list is as fresh as the last time the lead session created, changed or listed tasks.
+- The agents pane has no progress bar: an agent reports no percentage. Progress is a count from a todo or task list, and an agent that keeps neither shows only its time and tool calls.
+- A workflow's agents are counted but not named, because the roster does not list them.
 - A background subagent that finishes after the turn ends is counted in the turn it started in. Skills it calls later show up in the next turn's line.
 - Slash commands from plugins aren't labelled as skills or commands by Claude Code. `/name` is counted when the command isn't built in and printed no text of its own. A plugin command that opens a panel and prints nothing would also be counted.
 - **Team and Enterprise logins, or managed settings**: Claude Code's built-in guard keeps user-installed mods from hooking `skill.prompt`, `prompt.*`, `settings.read`, `classic.*` and a few other events, and on these logins `session.compact` is hidden too. This mod hooks only `session.compact` among them, so there compactions are counted from the token drop instead. Everything else works unchanged. The exception is an administrator setting `allowManagedModsOnly`, `allowManagedHooksOnly` or `disableAllHooks`. Then no user-installed mod runs, this one included.
@@ -228,6 +342,9 @@ The mod is TypeScript (`hooks/register.tsx`) because the official tooling handle
 | `hooks/projects.ts` | Finds and reads project run files through `$.fs`, cached by modification time. |
 | `hooks/lib/coach.ts` | Thresholds, the compaction counter, toasts due, the texts the actions fill. |
 | `hooks/lib/row.ts` | The row's segments and the width-priority layout. |
+| `hooks/lib/crew.ts` | The agents pane: roster, per-agent activity, task and todo progress, and its lines. |
+| `hooks/lib/extras.ts` | The critical-review tracker, build card, done notice, `#` typeahead and session history. |
+| `sounds/done.wav` | The done chime (two short tones, generated, about 20 KB). |
 | `hooks/lib/sources.ts` | Each project file's parser and the shared run shape. |
 | `hooks/lib/runs.ts`, `hooks/lib/format.ts`, `hooks/lib/used.ts` | Autopilot and turn-line logic. |
 | `types/index.d.ts` | The `$.state` contract. |

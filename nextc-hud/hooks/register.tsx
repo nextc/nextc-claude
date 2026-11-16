@@ -1,12 +1,15 @@
 // nextc-hud: an always-on session row (context, compactions, cost, limits, agents, live runs),
 // a project run monitor (/hud watch), an autopilot run monitor (/autopilot-watch, a pane or a
-// band) and a "used this turn" line under each answer. Observe-only: it never denies, rewrites,
-// approves, calls a model, fetches, starts a process or submits a prompt. Its one write is the
-// STOP file, behind a confirm step; its actions only fill the prompt box for the person to send.
+// band), an agents pane (/hud agents), a critical-review check, a card under build commands,
+// a done notice, a # task typeahead, a session history (/hud costs) and a "used this turn" line
+// under each answer. It never denies, rewrites or approves a call, fetches or starts a process.
+// Two things go beyond observing, both for the critical-review check and both optional: one
+// small model call after a turn that changed code, and one follow-up message asking for the
+// review. Its one file write by path is the STOP file, behind a confirm step.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { RunSource, RunView } from '../types'
+import type { Crew, RunSource, RunView } from '../types'
 import {
   HANDOFF_PLAIN,
   applyCompactEvent,
@@ -22,6 +25,61 @@ import {
   toastText,
   type Thresholds,
 } from './lib/coach'
+import {
+  applyTaskCreate,
+  applyTaskList,
+  applyTaskUpdate,
+  applyTodos,
+  crewLines,
+  crewReport,
+  emptyCrew,
+  isBusy,
+  isQuiet,
+  recordSpawn,
+  recordTool,
+  setRoster,
+  summaryLine,
+  toolLabel,
+} from './lib/crew'
+import {
+  CHECK_SYSTEM,
+  activeRunIds,
+  addCritical,
+  buildCard,
+  checkPrompt,
+  codeChanges,
+  costsText,
+  criticalPattern,
+  doneAfterMs,
+  emptyReview,
+  endReview,
+  endedRuns,
+  followupMode,
+  followupText,
+  isBuildCommand,
+  isCriticalPath,
+  isCriticalReviewer,
+  isEditTool,
+  noteBuildEnd,
+  noteBuildStart,
+  noteChange,
+  noteEdit,
+  parseTasks,
+  parseVerdict,
+  reviewItems,
+  reviewNudge,
+  reviewText,
+  runDoneText,
+  runForCall,
+  snippetOf,
+  startReview,
+  taskSuggestions,
+  turnDoneText,
+  upsertSession,
+  type Change,
+  type Followup,
+  type TaskLine,
+} from './lib/extras'
 import { STOP_QUESTION, bandParts, listText, paneRows, textReport, truncate } from './lib/format'
 import { actionItems, coachItems, extraItems, layoutRows, rowText, runItems, type FittedRow } from './lib/row'
 import { alertsOf, isLiveState, isRunId, pickLiveRun, recentRuns, runDirOf, stopPathOf } from './lib/runs'
@@ -36,6 +94,10 @@ const COMMAND = 'autopilot-watch'
 const HUD = 'hud'
 const PANE = 'autopilot-watch'
 const RUN_PANE = 'hud-run'
+const CREW_PANE = 'hud-agents'
+// MAGIC: the agents pane re-reads the roster every 5 s while agents work, so a status change
+// or an elapsed time is never more than a few seconds old; nothing is read once all are done.
+const CREW_REFRESH_MS = 5000
 // MAGIC: matches the launcher's own 5 s status tick; faster only re-reads an unchanged file.
 const REFRESH_MS = 5000
 const LIST_LIMIT = 10
@@ -58,6 +120,17 @@ const projects = atom({ plugin: 'nextc-hud', key: 'projects' } as const, { runs:
 
 // Ids of the runs that were running and live at the last scan, and whether the run pane is collapsed.
 const autoWatch = atom({ plugin: 'nextc-hud', key: 'autoWatch' } as const, { runningIds: [], liveIds: [], isCollapsed: false }, { shape: 'autoWatch-1' })
+const crew = atom({ plugin: 'nextc-hud', key: 'crew' } as const, emptyCrew(), { shape: 'crew-1' })
+const review = atom({ plugin: 'nextc-hud', key: 'review' } as const, emptyReview(), { shape: 'review-1' })
+const buildCalls = atom({ plugin: 'nextc-hud', key: 'buildCalls' } as const, {}, { shape: 'buildCalls-1' })
+const turnWork = atom({ plugin: 'nextc-hud', key: 'turnWork' } as const, [], { shape: 'turnWork-1' })
+const tally = atom({ plugin: 'nextc-hud', key: 'tally' } as const, { spawned: 0 }, { shape: 'tally-1' })
+// The cross-session history is one $.store value: the mod's own JSON store, which Claude Code
+// keeps in its configuration folder. The mod names no path for it.
+const SESSIONS_KEY = 'sessions'
+const DONE_SOUND = 'sounds/done.wav'
+// MAGIC: two "done" events a moment apart (the last agent, then the turn) give one notice.
+const DONE_GAP_MS = 4000
 const AUTO_EMPTY = { runningIds: [], liveIds: [], isCollapsed: false }
 const setCollapsed = ($: $, isCollapsed: boolean) => update($, autoWatch, (cur) => ({ ...(cur ?? AUTO_EMPTY), isCollapsed }))
 
@@ -68,7 +141,7 @@ const TOAST_TEXT: Record<string, (id: string) => string> = {
   ended: (id) => `Autopilot ${id} has ended.`,
 }
 
-const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off]]'
+const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off] | agents [off] | review | costs]'
 
 // Module variables reset on a hot reload; register() sets them again and session.start
 // restarts the timers for what is still being watched.
@@ -80,6 +153,27 @@ let isRowConfigOn = true
 let isCoachToastOn = true
 let isHiddenToastOn = false
 let isAutoWatchOn = true
+let isAutoAgentsOn = true
+let crewTimer: Timer | null = null
+let crewRun: Promise<unknown> = Promise.resolve()
+let isReviewReminderOn = true
+let isCheckOn = true
+let followup: Followup = 'send'
+let checkModel = 'haiku'
+// SECURITY: only a prompt the person sends grants one follow-up message, and sending it uses
+// the grant up. The mod's own message, a background agent's report or a reload grants none,
+// so the mod cannot keep a review-and-fix loop going by itself.
+let canFollowUp = false
+let critical = criticalPattern(undefined)
+let isBuildCardOn = true
+let isDoneToastOn = true
+let isDoneSoundOn = true
+let doneMs = doneAfterMs(undefined)
+let isTaskTypeaheadOn = true
+let isHistoryOn = true
+let lastDoneAtMs = 0
+let workSinceMs: number | null = null
+let tasksCache: { path: string; mtimeMs: number; tasks: TaskLine[] } | null = null
 let scanTimer: Timer | null = null
 
 function stopTicker() {
@@ -266,6 +360,7 @@ async function autoWatchTick($: $, runs: readonly RunSource[], now: number) {
   let watchId = pr.watchId
   const isLive = (id: string) => live.some((r) => r.id === id)
   if (watchId !== null && before.liveIds.includes(watchId) && !isLive(watchId)) isCollapsed = true
+  for (const run of endedRuns(before.activeIds ?? before.runningIds, runs)) await notifyDone($, runDoneText(run))
   const started = running.filter((r) => !before.runningIds.includes(r.id))
   // A run already on screen and still going is not replaced; the same run starting again is.
   const isWatchedRunning = watchId !== null && running.some((r) => r.id === watchId) && !started.some((r) => r.id === watchId)
@@ -284,7 +379,7 @@ async function autoWatchTick($: $, runs: readonly RunSource[], now: number) {
       await $.ui.close({ id: RUN_PANE })
     }
   }
-  await update($, autoWatch, () => ({ runningIds: running.map((r) => r.id), liveIds: live.map((r) => r.id), isCollapsed }))
+  await update($, autoWatch, () => ({ runningIds: running.map((r) => r.id), liveIds: live.map((r) => r.id), activeIds: activeRunIds(runs), isCollapsed }))
 }
 
 async function scanTick($: $) {
@@ -294,12 +389,223 @@ async function scanTick($: $) {
     await autoWatchTick($, runs, await $.clock.now())
     const agents = await agentCounts($)
     await update($, coach, (cur) => ({ ...(cur ?? emptyCoach()), agents }))
+    await refreshCrew($).catch((err) => debug($, 'scan agents', err))
     const now = await $.clock.now()
     scheduleScan($, liveRuns(runs, now).length > 0 ? SCAN_LIVE_MS : SCAN_IDLE_MS)
   } catch (err) {
     debug($, 'scanTick', err)
     scheduleScan($, SCAN_IDLE_MS)
   }
+}
+
+// ─── done notice, critical review, build card, history ──────────────
+
+// A toast and one short chime when something long finishes. Both can be turned off.
+async function notifyDone($: $, text: string) {
+  try {
+    if (!(await canDraw($))) return
+    const now = await $.clock.now()
+    if (now - lastDoneAtMs < DONE_GAP_MS) return
+    lastDoneAtMs = now
+    if (isDoneToastOn) $.ui.toast(text)
+    if (!isDoneSoundOn) return
+    // Not awaited: the call resolves when the clip ends, and nothing waits for a sound.
+    void $.audio.play({ asset: DONE_SOUND }).catch((err) => debug($, 'done sound', err))
+  } catch (err) {
+    debug($, 'notifyDone', err)
+  }
+}
+
+// ASSUMPTION: a tool.call event carries the tool's input fields flat (command,
+// run_in_background, file_path), as this build's tool types declare.
+async function observeCritical($: $, e: { tool: string; agentId?: string; tool_use_id?: string }, phase: 'before' | 'after', now: number) {
+  const input = e as unknown as Record<string, unknown>
+  if (e.tool === 'Bash' && isBuildCardOn && typeof e.tool_use_id === 'string' && isBuildCommand(input.command)) {
+    const id = e.tool_use_id
+    const isBackground = input.run_in_background === true
+    await update($, buildCalls, (c) => (phase === 'before' ? noteBuildStart(c ?? {}, id, now, isBackground) : noteBuildEnd(c ?? {}, id, now)))
+    // The buildlog is read right away, so the card does not wait for the next scan. Not
+    // awaited: the command and its result never wait for a file read.
+    void canDraw($)
+      .then(async (can) => {
+        if (!can) return
+        await scanNow($)
+        ensureScanner($)
+      })
+      .catch((err) => debug($, 'build scan', err))
+  }
+  if (phase === 'after' && isEditTool(e.tool)) {
+    const path = input.file_path ?? input.notebook_path
+    if (typeof path !== 'string') return
+    const cwd = await $.session.cwd()
+    const isCritical = isCriticalPath(path, cwd, critical)
+    await update($, review, (r) => noteEdit(r ?? emptyReview(), path, cwd, isCritical))
+    await update($, turnWork, (w) => noteChange(w ?? [], path, snippetOf(input), cwd))
+  }
+}
+
+// The check after a turn: one small model call reads what the turn changed and says which
+// files hold critical logic, judged by what the code does. A file whose path says "critical"
+// counts whatever the model answers, so a reply cannot talk the check out of it. When files
+// are left waiting, the mod asks for the review: it sends that request as a message of its
+// own (framed as coming from this plugin), puts it in the prompt box, or only toasts.
+async function afterTurnCheck($: $, work: readonly Change[]) {
+  // Nothing is checked or sent where nobody watches (claude -p, an autopilot run).
+  if (!(await canDraw($))) return
+  const code = codeChanges(work)
+  if (isCheckOn && code.length > 0) {
+    try {
+      await update($, review, (r) => ({ ...(r ?? emptyReview()), isChecking: true }))
+      // MAGIC: 400 tokens holds a dozen paths and one sentence; 30 s is far past a small model's reply.
+      const reply = await $.model.complete({ model: checkModel, system: CHECK_SYSTEM, prompt: checkPrompt(code), maxTokens: 400, timeoutMs: 30_000 })
+      if (reply.isAnswered) {
+        const verdict = parseVerdict(reply.text, code.map((c) => c.path))
+        if (verdict !== null && verdict.files.length > 0) await update($, review, (r) => addCritical(r ?? emptyReview(), verdict.files, verdict.why))
+      } else debug($, 'critical check', reply.reason)
+    } catch (err) {
+      debug($, 'critical check', err)
+    } finally {
+      await update($, review, (r) => ({ ...(r ?? emptyReview()), isChecking: false })).catch((err) => debug($, 'critical check end', err))
+    }
+  }
+  const state = await read($, review)
+  const nudge = reviewNudge(state)
+  if (nudge === null) return
+  await update($, review, (r) => ({ ...(r ?? emptyReview()), isNudged: true }))
+  if (followup === 'send' && canFollowUp) {
+    // ORDER: the grant is used up before the message leaves, so two checks cannot both send.
+    canFollowUp = false
+    try {
+      const sent = await $.prompt.submit({ text: followupText(state) })
+      // A dropped prompt (another hook or the engine refused it) falls through to the toast.
+      if (sent.drop === undefined) return
+    } catch (err) {
+      debug($, 'critical follow-up', err)
+    }
+  } else if (followup === 'fill') {
+    const filled = await fillPrompt($, followupText(state), '')
+    if (filled.isFilled) return
+  }
+  if (isReviewReminderOn) $.ui.toast(nudge)
+}
+
+async function recordSession($: $, sessionId: string) {
+  if (!isHistoryOn) return
+  const c = await read($, coach)
+  const t = await read($, tally)
+  const now = await $.clock.now()
+  const cwd = await $.session.cwd()
+  const usage = await $.session.usage()
+  const startedAtMs = typeof usage.startedAt === 'number' ? usage.startedAt : now
+  // A session that never ran a turn has nothing to record.
+  if (c.costUsd === null && c.tokens === null && t.spawned === 0) return
+  const project = (cwd ?? '').split(/[\\/]/).filter((p) => p !== '').pop() ?? ''
+  // The get and the set are two calls: a second terminal ending a turn between them can lose
+  // one record until that session's next turn writes it again.
+  const rec = { id: sessionId, project, startedAtMs, endedAtMs: now, usd: c.costUsd, compactions: c.compactions, agents: t.spawned }
+  await $.store.set(SESSIONS_KEY, upsertSession(await $.store.get(SESSIONS_KEY), rec))
+}
+
+// EXTERNAL: open tasks from the project's docs/tasks.md, re-read only when the file changes.
+async function openTasks($: $): Promise<TaskLine[]> {
+  const cwd = await $.session.cwd()
+  if (cwd === null || cwd === '') return []
+  const path = `${cwd}/docs/tasks.md`
+  if (!(await $.fs.exists(path))) return []
+  const stat = await $.fs.stat(path)
+  // MAGIC: a tasks file past 2 MB is not a tasks file; the same cap the run monitor uses.
+  if (stat.kind !== 'file' || stat.size > 2_000_000) return []
+  if (tasksCache !== null && tasksCache.path === path && tasksCache.mtimeMs === stat.mtimeMs) return tasksCache.tasks
+  const tasks = parseTasks(await $.fs.read(path))
+  tasksCache = { path, mtimeMs: stat.mtimeMs, tasks }
+  return tasks
+}
+
+// ─── agents pane ────────────────────────────────────────────────────
+
+function stopCrewTimer() {
+  crewTimer?.cancel()
+  crewTimer = null
+}
+
+async function openCrewPane($: $): Promise<boolean> {
+  const opened = await $.ui.open({ id: CREW_PANE, title: 'agents' })
+  // A pane that cannot be placed now would appear later by itself; close it.
+  if (!opened.isPlaced) await $.ui.close({ id: CREW_PANE })
+  return opened.isPlaced
+}
+
+// Reads the roster, then opens the pane when work starts (two loops, or a team) and collapses
+// it when the last one finishes. It never closes the pane: only the person does.
+// ORDER: refreshes run one at a time. Spawn hooks, turn ends, the scan and the timer all call
+// this, and two overlapping runs would let the older roster overwrite the newer one.
+function refreshCrew($: $): Promise<Crew> {
+  const run = crewRun.then(() => doRefreshCrew($), () => doRefreshCrew($))
+  crewRun = run.catch(() => undefined)
+  return run
+}
+
+// The timer follows the stored value: it runs only while the pane is open and something works.
+async function syncCrewTimer($: $, now: number): Promise<Crew> {
+  const cur = await read($, crew)
+  if (cur.isOpen && !isQuiet(cur, now)) {
+    if (crewTimer === null) crewTimer = $.clock.every(CREW_REFRESH_MS, () => void refreshCrew($).catch((err) => debug($, 'crew tick', err)))
+  } else stopCrewTimer()
+  return cur
+}
+
+async function doRefreshCrew($: $): Promise<Crew> {
+  const agents = await $.agent.list()
+  const now = await $.clock.now()
+  const before = await read($, crew)
+  const listed = setRoster(before, agents)
+  const busy = isBusy(listed, now)
+  const quiet = isQuiet(listed, now)
+  // Latched: an idle team is busy but not working, so the flag falls only when neither holds.
+  const wasBusy = before.wasBusy ? busy || !quiet : busy
+  const isStarting = busy && !before.wasBusy && isAutoAgentsOn && (await canDraw($))
+  const isShown = isStarting && (before.isOpen || (await openCrewPane($)))
+  const isEnding = (!isQuiet(before, now) && quiet) || (before.wasBusy && !wasBusy)
+  // Only what this run decided is written; a Collapse, Expand or close pressed meanwhile stays.
+  await update($, crew, (c) => {
+    const cur = setRoster(c ?? emptyCrew(), agents)
+    return { ...cur, isOpen: cur.isOpen || isShown, isCollapsed: isShown ? false : isEnding ? true : cur.isCollapsed, wasBusy }
+  })
+  if (quiet) {
+    // A fan-out that took seconds is not worth a chime: the same bar as a long turn applies.
+    const worked = workSinceMs === null ? 0 : now - workSinceMs
+    workSinceMs = null
+    if (before.wasBusy && !isQuiet(before, now) && worked >= doneMs) await notifyDone($, 'All agents have finished.')
+  } else if (workSinceMs === null) workSinceMs = now
+  return syncCrewTimer($, now)
+}
+
+// ASSUMPTION: a tool.call event carries the tool's input fields flat (taskId, owner, status,
+// todos) and the task tools answer { task }, { success } and { tasks }, as this build's tool
+// types declare. A different shape is ignored, not an error.
+async function observeTool($: $, e: { tool: string; agentId?: string }, result: unknown) {
+  const input = e as unknown as Record<string, unknown>
+  if (e.tool === 'TaskCreate') await update($, crew, (c) => applyTaskCreate(c ?? emptyCrew(), result))
+  else if (e.tool === 'TaskUpdate') await update($, crew, (c) => applyTaskUpdate(c ?? emptyCrew(), input, result))
+  else if (e.tool === 'TaskList') await update($, crew, (c) => applyTaskList(c ?? emptyCrew(), result))
+  else if (e.tool === 'TodoWrite' && e.agentId !== undefined) await update($, crew, (c) => applyTodos(c ?? emptyCrew(), e.agentId!, input.todos))
+}
+
+async function agentsCommand($: $, arg: string): Promise<string> {
+  if (arg === 'off') {
+    stopCrewTimer()
+    await update($, crew, (c) => ({ ...(c ?? emptyCrew()), isOpen: false }))
+    await $.ui.close({ id: CREW_PANE })
+    return 'Agents pane closed. It opens again by itself when agents start working (auto_agents in /config).'
+  }
+  if (arg !== '') return 'Usage: /hud agents [off]'
+  const now = await $.clock.now()
+  const cur = await refreshCrew($)
+  if (!(await canDraw($))) return crewReport(cur, now)
+  if (!(await openCrewPane($))) return `No room for a pane in this window, so here are the agents as text.\n${crewReport(cur, now)}`
+  await update($, crew, (c) => ({ ...(c ?? emptyCrew()), isOpen: true, isCollapsed: false }))
+  await syncCrewTimer($, now)
+  return `Agents pane open. ${summaryLine(cur, now)}`
 }
 
 type Prepared = { isFilled: boolean; text: string }
@@ -347,7 +653,7 @@ async function rowsFor($: $, width: number): Promise<FittedRow[]> {
   const c = await read($, coach)
   const runs = await liveNow($, await $.clock.now())
   const level = levelOf(c, thresholds)
-  const items = [...coachItems(c, thresholds, { hasMeasure: c.lastTokens !== null }), ...actionItems(level), ...extraItems(c)]
+  const items = [...coachItems(c, thresholds, { hasMeasure: c.lastTokens !== null }), ...actionItems(level), ...extraItems(c), ...reviewItems(await read($, review))]
   return layoutRows(items, runItems(runs), width)
 }
 
@@ -414,6 +720,9 @@ async function hudCommand($: $, args: string): Promise<string> {
     return coachText($)
   }
   const now = await $.clock.now()
+  if (sub === 'agents') return agentsCommand($, arg)
+  if (sub === 'review') return reviewText(await read($, review))
+  if (sub === 'costs') return isHistoryOn ? costsText(await $.store.get(SESSIONS_KEY), now) : 'The session history is off (cost_history in /config).'
   if (sub === 'runs') return runsText(await scanNow($), now)
   if (sub === 'watch') {
     if (arg === 'off') {
@@ -449,6 +758,18 @@ export const register: Register = (on, options) => {
   isCoachToastOn = options.coach_toasts !== false
   isHiddenToastOn = options.toasts_when_hidden === true
   isAutoWatchOn = options.auto_watch !== false
+  isAutoAgentsOn = options.auto_agents !== false
+  isReviewReminderOn = options.review_reminder !== false
+  critical = criticalPattern(options.critical_paths)
+  isCheckOn = options.critical_check !== false
+  followup = followupMode(options.critical_followup)
+  checkModel = typeof options.critical_model === 'string' && options.critical_model.trim() !== '' ? options.critical_model.trim() : 'haiku'
+  isBuildCardOn = options.build_card !== false
+  isDoneToastOn = options.done_toasts !== false
+  isDoneSoundOn = options.done_sound !== false
+  doneMs = doneAfterMs(options.done_after_seconds)
+  isTaskTypeaheadOn = options.task_typeahead !== false
+  isHistoryOn = options.cost_history !== false
   thresholds = thresholdsOf(options as Record<string, unknown>)
 
   on('session.start', async ($, e, next) => {
@@ -467,7 +788,7 @@ export const register: Register = (on, options) => {
       await $.command.register({
         name: 'hud',
         description: 'Session HUD: context, compactions, cost, live runs; prepare a /compact or a handoff',
-        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch]',
+        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch | agents | review | costs]',
         immediate: true,
       })
     } catch (err) {
@@ -532,15 +853,66 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('session.end', async ($, e, next) => {
+    try {
+      await recordSession($, e.sessionId)
+    } catch (err) {
+      debug($, 'session.end history', err)
+    }
     // /clear and a resume start another conversation: its counts start from zero.
     if (e.reason === 'clear' || e.reason === 'resume') {
       try {
         await update($, coach, () => emptyCoach())
+        await update($, review, () => emptyReview())
+        await update($, turnWork, () => [])
+        await update($, tally, () => ({ spawned: 0 }))
       } catch (err) {
         debug($, 'session.end', err)
       }
     }
     return next(e)
+  })
+
+  // The build card: one dim line under a build command's own row. The row itself is the
+  // engine's, drawn unchanged above it.
+  on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
+    const command = (e.props.input as { command?: unknown } | null)?.command
+    if (!isBuildCardOn || e.props.tool !== 'Bash' || !isBuildCommand(command)) return next(e)
+    const row = await next(e)
+    const calls = await read($, buildCalls)
+    const call = calls[e.props.tool_use_id]
+    // A build command from before this mod loaded has no times: its row stays as it was.
+    if (call === undefined) return row
+    const { Box, Text } = $.ui.resolve(e)
+    const now = await $.clock.now()
+    const isNewest = Object.values(calls).every((c) => c.startedAtMs <= call.startedAtMs)
+    // The buildlog describes the latest build only, so an older command's card gets its times alone.
+    const run = isNewest ? runForCall(pickRun((await read($, projects)).runs, 'build', now), call) : null
+    const card = buildCard({ call, run, now, isRunning: e.props.isRunning, isErrored: e.props.isErrored, isInterrupted: e.props.isInterrupted })
+    return (
+      <Box flexDirection="column">
+        {row}
+        <Text color={card.isWarning ? 'warning' : undefined} dimColor={!card.isWarning}>{`  ⎿ ${card.text}`}</Text>
+      </Box>
+    )
+  })
+
+  // A prompt the person sends (typed here, or from a connected app) allows one follow-up.
+  on('prompt.submit', ($, e, next) => {
+    if (e.origin.kind === 'composer' || e.origin.kind === 'bridge') canFollowUp = true
+    return next(e)
+  })
+
+  // "#" in the prompt box lists the open tasks of docs/tasks.md; taking one writes its text.
+  on('prompt.autocomplete', { token: /^#/ }, async ($, e, next) => {
+    const base = await next(e)
+    if (!isTaskTypeaheadOn) return base
+    try {
+      const mine = taskSuggestions(await openTasks($), e.token)
+      return mine.length === 0 ? base : { suggestions: [...base.suggestions, ...mine] }
+    } catch (err) {
+      debug($, 'prompt.autocomplete', err)
+      return base
+    }
   })
 
   on('command.run', { command: 'autopilot-watch' }, async ($, e) => {
@@ -635,6 +1007,134 @@ export const register: Register = (on, options) => {
         )}
       </Box>
     )
+  })
+
+  on('ui.close', { id: CREW_PANE }, async ($, e, next) => {
+    const closed = await next(e)
+    if (e.origin.kind === 'person') {
+      stopCrewTimer()
+      await update($, crew, (c) => ({ ...(c ?? emptyCrew()), isOpen: false }))
+    }
+    return closed
+  }).catch(($, e, next) => next(e))
+
+  // The agents pane: one or two lines per agent, teams first. Read-only; nothing here reaches
+  // an agent. It collapses to one line instead of closing.
+  on('ui.render', { component: 'Pane', requestId: CREW_PANE }, async ($, e) => {
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const c = await read($, crew)
+    const now = await $.clock.now()
+    const width = Math.max(20, e.props.bodyColumns)
+    if (c.isCollapsed) {
+      return (
+        <Box flexDirection="row">
+          <Text wrap="truncate-end" dimColor>{truncate(summaryLine(c, now), Math.max(10, width - 12))}</Text>
+          <Text> </Text>
+          <Button key="expand" label="Expand" onPress={() => update($, crew, (cur) => ({ ...(cur ?? emptyCrew()), isCollapsed: false }))} />
+        </Box>
+      )
+    }
+    return (
+      <Box flexDirection="column">
+        <Text weight="semibold">{truncate(summaryLine(c, now), width)}</Text>
+        {crewLines(c, now, width).map((l) => (
+          <Text weight={l.isHead ? 'semibold' : undefined} color={l.isWarning ? 'warning' : undefined} dimColor={l.isDim && !l.isWarning}>{l.text}</Text>
+        ))}
+        <Box flexDirection="row">
+          <Button key="collapse" label="Collapse" onPress={() => update($, crew, (cur) => ({ ...(cur ?? emptyCrew()), isCollapsed: true }))} />
+        </Box>
+      </Box>
+    )
+  })
+
+  // Every loop's tool calls: what an agent is doing now, and the task lists that give progress.
+  // Observed only: the call and its result pass through unchanged.
+  on('tool.call', async ($, e, next) => {
+    if (e.agentId !== undefined) {
+      const agentId = e.agentId
+      const label = toolLabel(e.tool, e as unknown as Record<string, unknown>)
+      // Not awaited: the note is made while the call runs, and never holds the call up.
+      void $.clock.now()
+        .then((now) => update($, crew, (c) => recordTool(c ?? emptyCrew(), agentId, label, now)))
+        .catch((err) => debug($, 'tool.call observe', err))
+    }
+    const isBuild = e.tool === 'Bash' && isBuildCommand((e as unknown as { command?: unknown }).command)
+    if (isBuild) {
+      try {
+        await observeCritical($, e, 'before', await $.clock.now())
+      } catch (err) {
+        debug($, 'tool.call build start', err)
+      }
+    }
+    const ran = await next(e)
+    try {
+      if (ran.deny === undefined && ran.isError !== true) await observeTool($, e, ran.result)
+      const isEdited = isEditTool(e.tool) && ran.deny === undefined && ran.isError !== true
+      if (isBuild || isEdited) await observeCritical($, e, 'after', await $.clock.now())
+    } catch (err) {
+      debug($, 'tool.call tasks', err)
+    }
+    return ran
+  }).catch(($, e, next) => next(e))
+
+  on('agent.spawn', async ($, e, next) => {
+    const spawned = await next(e)
+    try {
+      if (spawned.deny === undefined) {
+        // ORDER: the review is marked running before anything else is awaited, so a reviewer
+        // that ends at once cannot report its end before its start is recorded.
+        if (spawned.agentId !== undefined && isCriticalReviewer(e.subagentType)) {
+          await update($, review, (r) => startReview(r ?? emptyReview(), spawned.agentId!, spawned.model))
+        }
+        const now = await $.clock.now()
+        if (spawned.agentId !== undefined) await update($, crew, (c) => recordSpawn(c ?? emptyCrew(), spawned.agentId!, now))
+        if (e.resume === undefined) await update($, tally, (t) => ({ spawned: (t?.spawned ?? 0) + 1 }))
+        await refreshCrew($)
+      }
+    } catch (err) {
+      debug($, 'agent.spawn observe', err)
+    }
+    // The turn line: a resumed subagent (SendMessage) was counted when it first started.
+    if (isUsedLineOn && spawned.deny === undefined && e.resume === undefined) {
+      await update($, used, (u) => addAgent(u, { type: e.subagentType, model: e.model, background: e.background }))
+    }
+    return spawned
+  }).catch(($, e, next) => next(e))
+
+  // A turn ending in any loop is when an agent finishes or goes idle. On the main loop it is
+  // also where the "used this turn" line is added.
+  on('turn.complete', async ($, e, next) => {
+    const done = await next(e)
+    try {
+      if ((await read($, crew)).roster.length > 0 || e.agentId !== undefined) await refreshCrew($)
+      if (e.agentId !== undefined) {
+        const agentId = e.agentId
+        const isAnswered = e.reason === 'answer' && !e.isAborted
+        await update($, review, (r) => endReview(r ?? emptyReview(), agentId, isAnswered))
+      } else {
+        // An interrupted or failed turn keeps its changes for the check after the next turn.
+        if (e.reason === 'answer' && !e.isAborted) {
+          const work = await read($, turnWork)
+          await update($, turnWork, (w) => (w ?? []).filter((c) => !work.some((x) => x.path === c.path && x.snippet === c.snippet)))
+          // Not awaited: the answer does not wait for the check.
+          void afterTurnCheck($, work).catch((err) => debug($, 'afterTurnCheck', err))
+        }
+        if (!e.isAborted && e.reason === 'answer' && e.durationMs >= doneMs) await notifyDone($, turnDoneText(e.durationMs))
+        // Not awaited: the answer does not wait for the history to be stored.
+        void $.session.id()
+          .then((id) => recordSession($, id))
+          .catch((err) => debug($, 'turn.complete history', err))
+      }
+    } catch (err) {
+      debug($, 'turn.complete observe', err)
+    }
+    if (!isUsedLineOn || e.agentId !== undefined) return done
+    const u = await read($, used)
+    await update($, used, () => emptyUsed())
+    const line = usedLine(u)
+    if (line === null) return done
+    const hasOtherNote = done.text !== e.answer && done.text !== ''
+    return { ...done, text: hasOtherNote ? `${done.text}\n${line}` : line }
   })
 
   // The project run pane: the autopilot pane's layout, read-only, with nothing to stop. It
@@ -754,15 +1254,6 @@ export const register: Register = (on, options) => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  on('agent.spawn', async ($, e, next) => {
-    const spawned = await next(e)
-    // A resumed subagent (SendMessage) was counted when it first started.
-    if (spawned.deny === undefined && e.resume === undefined) {
-      await update($, used, (u) => addAgent(u, { type: e.subagentType, model: e.model, background: e.background }))
-    }
-    return spawned
-  }).catch(($, e, next) => next(e))
-
   // Slash-typed skills: the Skill tool never sees them, and skill.prompt is hidden from user
   // mods on managed logins, so a typed /name that hands the model a prompt is counted here.
   on('command.run', async ($, e, next) => {
@@ -776,15 +1267,4 @@ export const register: Register = (on, options) => {
     }
     return ran
   }).catch(($, e, next) => next(e))
-
-  on('turn.complete', async ($, e, next) => {
-    const done = await next(e)
-    if (e.agentId !== undefined) return done
-    const u = await read($, used)
-    await update($, used, () => emptyUsed())
-    const line = usedLine(u)
-    if (line === null) return done
-    const hasOtherNote = done.text !== e.answer && done.text !== ''
-    return { ...done, text: hasOtherNote ? `${done.text}\n${line}` : line }
-  })
 }

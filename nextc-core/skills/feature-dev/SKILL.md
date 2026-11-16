@@ -67,7 +67,7 @@ If a step shows the plan was wrong, adjust the plan file and tell the user.
 
 ## 6. Review
 
-Skip for Spike and `--quick`. Spawn `nextc-ecc:code-reviewer` (model sonnet) on everything changed (it reads untracked files), and in parallel `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. Fix CRITICAL and HIGH; fix MEDIUM if quick.
+Skip for Spike and `--quick`. Spawn `nextc-ecc:code-reviewer` (model sonnet) on everything changed (it reads untracked files), and in parallel `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. When the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema), also spawn `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable); this one runs even for Spike and `--quick`. Fix CRITICAL and HIGH; fix MEDIUM if quick.
 
 ## 7. Cleanup
 
@@ -91,5 +91,6 @@ The feature is built and verified: suggest spawning `doc-keeper` (or `/update-do
 | 2 | `nextc-ecc:planner`, `nextc-ecc:architect` (architectural only) | fable |
 | 4 | `nextc-core:ui-ux-developer` (UI screens) | sonnet |
 | 6 | `nextc-ecc:code-reviewer`, `nextc-ecc:security-reviewer` | sonnet |
+| 6 | `nextc-ecc:critical-reviewer` (critical logic only) | fable (opus fallback) |
 | 7 | `/cleanup` | n/a |
 | 8 | `doc-keeper` after user approval | sonnet |

@@ -54,7 +54,7 @@ Present: observation, ranked table (hypothesis, confidence, key evidence with pa
 
 ## 6. Review
 
-Spawn `nextc-ecc:code-reviewer` (model sonnet) on all changed files, plus `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. Fix CRITICAL and HIGH.
+Spawn `nextc-ecc:code-reviewer` (model sonnet) on all changed files, plus `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data, and always `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable) when the fix touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema). Fix CRITICAL and HIGH.
 
 ## 7. Cleanup
 

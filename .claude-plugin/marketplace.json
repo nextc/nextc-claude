@@ -60,7 +60,7 @@
     {
       "name": "nextc-hud",
       "source": "./nextc-hud",
-      "description": "Heads-up display mod — live autopilot run monitor (/autopilot-watch) and a 'used this turn' line for skills and subagents.",
+      "description": "Heads-up display mod: an always-on session row and coach, monitors for builds, pipelines and autopilot runs, an agents pane, a critical-review check, a build card, a done chime, a # task typeahead, session cost history and a 'used this turn' line.",
       "category": "mods"
     }
   ]

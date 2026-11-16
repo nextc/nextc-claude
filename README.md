@@ -16,7 +16,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA/TestFlight) |
 | **nextc-aso** | aso-pipeline, aso-naming, aso-edge-tactics | App Store optimization from live store data, collision-checked naming, and edge-tactics auditing |
 | **nextc-claude-toolbox** | validate, skill-audit, writing-skills, rules-distill | Tools for authoring and checking plugins, skills and rules |
-| **nextc-hud** | `/hud`, `/autopilot-watch` (mod) | Optional mod: an always-on row above the prompt (context, compactions, cost, rate limits, agents) with a session coach, a live monitor for builds, pipelines and `/autopilot` runs, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
+| **nextc-hud** | `/hud`, `/autopilot-watch` (mod) | Optional mod: an always-on row above the prompt (context, compactions, cost, rate limits, agents) with a session coach, a live monitor for builds, pipelines and `/autopilot` runs, an agents pane (who is on which task, and how far along), a critical-review check (a small model judges each turn's changes and asks for the Fable reviewer when needed), a card under build commands, a done chime, a `#` task typeahead, session cost history, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
 
 ## Recommended Installation
 
@@ -45,7 +45,7 @@ cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 
 Other flags: `./setup-rules.sh --check` changes nothing and reports drift (symlinks, this checkout's version against the installed plugins, shipped settings entries missing from your settings, `jq` availability) and exits 1 when it finds any; `--skip-git-hooks` leaves this checkout's `core.hooksPath` alone; `--help` lists them. A real file or directory at a link destination is moved to `~/.claude/backups/`, never into `~/.claude/rules/`.
 
-This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, session-handoff, etc.).
+This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, critical-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, session-handoff, etc.).
 
 ### Per-Project (install when needed)
 
@@ -204,7 +204,7 @@ No store keys are needed. Optionally you can give a path or env-var name for an 
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 9 plugins)
-├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; about 28.5 KB always loaded)
+├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; about 30.7 KB always loaded)
 ├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
 ├── settings/user-settings.json       (allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)
@@ -212,7 +212,7 @@ nextc-claude/                         (marketplace root)
 ├── tests/                            (node --test 'tests/*.test.mjs'; no install, no model calls)
 ├── setup-rules.sh
 ├── nextc-core/                       (10 skills, 3 agents)
-├── nextc-ecc/                        (14 skills, 9 agents, 3 hooks)
+├── nextc-ecc/                        (14 skills, 10 agents, 3 hooks)
 ├── nextc-product/                    (2 skills, 4 agents)
 ├── nextc-project-kickoff/            (2 skills, 1 agent)
 ├── nextc-flutter/                    (8 skills, 2 agents, 1 hook)

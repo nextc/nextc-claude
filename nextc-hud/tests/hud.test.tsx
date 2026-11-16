@@ -13,12 +13,13 @@ type World = {
   reads: string[]
   writes: string[]
   toasts: string[]
+  opens: string[]
   fills: string[]
   submits: string[]
   timers: string[]
   draft: string
   commands: string[]
-  agents: { status: string }[]
+  agents: { status: string; id?: string; description?: string; type?: string; name?: string; teammateId?: string; parentId?: string }[]
   sessionId: string
   clock: MockClock
 }
@@ -27,7 +28,7 @@ type World = {
 // a prompt box that records what is put in it, and a clock that moves only when told.
 function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: boolean; isPlaced?: boolean; panes?: string[] } = {}): World {
   const w: World = {
-    files: new Map(Object.entries(files)), reads: [], writes: [], toasts: [], fills: [], submits: [], timers: [],
+    files: new Map(Object.entries(files)), reads: [], writes: [], toasts: [], opens: [], fills: [], submits: [], timers: [],
     draft: '', commands: ['config', 'review'], agents: [], sessionId: 'sess-1', clock: undefined as never,
   }
   const childrenOf = (dir: string) => {
@@ -67,7 +68,7 @@ function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: b
   on('session.id', () => ({ value: w.sessionId }))
   on('session.cwd', () => ({ value: CWD }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: { window: 200_000 }, rateLimits: [] } }))
-  on('agent.list', () => ({ value: w.agents.map((a, i) => ({ id: `a${i}`, description: 'd', type: 'Explore', status: a.status })) as never }))
+  on('agent.list', () => ({ value: w.agents.map((a, i) => ({ id: `a${i}`, description: 'd', type: 'Explore', ...a })) as never }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('command.list', () => ({ value: w.commands.map((name) => ({ name, description: '', source: name === 'config' ? 'builtin' : 'plugin' })) as never }))
   on('prompt.read', () => ({ value: { text: w.draft, cursor: w.draft.length } }))
@@ -79,7 +80,10 @@ function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: b
     w.submits.push(e.text)
     return { text: e.text }
   })
-  on('ui.open', () => ({ value: opts.isPlaced === false ? { isPlaced: false, reason: 'no room' } : { isPlaced: true } }))
+  on('ui.open', (_, e) => {
+    w.opens.push(e.id)
+    return { value: opts.isPlaced === false ? { isPlaced: false, reason: 'no room' } : { isPlaced: true } }
+  })
   on('ui.close', () => ({ value: undefined }))
   on('ui.panes', () => ({ value: (opts.panes ?? []).map((id) => ({ id, title: id, isShown: true, isFocused: false, isPlaced: true })) }))
   on('ui.toast', (_, e) => {
@@ -492,4 +496,407 @@ test('in pane mode the autopilot run is a segment of the row', async ($, on) => 
   await measure($, 46_000)
   await $.command.run(cmd('autopilot-watch', 'fake-run'))
   expect(await bandText($, 80)).toBe('ctx 23% (46k of 200k) · 0 compactions · ~$3.10 · autopilot S3 2/7 · 5h 23%')
+})
+
+// ─── agents pane ────────────────────────────────────────────────────
+
+const crewPane = ($: Engine, bodyColumns = 120) => $.ui.mount({
+  plugin: 'nextc-hud', component: 'Pane', requestId: 'hud-agents', surface: 'terminal',
+  props: { title: 'agents', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+})
+
+function crewHooks(on: On, results: Record<string, unknown> = {}) {
+  on('tool.call', (_, e) => ({ result: (results[e.tool] ?? {}) as never }))
+  on('agent.spawn', () => ({ model: 'resolved-model', agentId: 'a0' }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+}
+
+const spawnArgs = (subagentType: string) => ({
+  tool_use_id: 't', prompt: 'p', description: 'd', subagentType,
+  provider: { plugin: 'engine', tier: 'core' as const }, model: 'sonnet', parentModel: 'opus', background: true, fork: false,
+})
+
+const texts = async (pane: Awaited<ReturnType<typeof crewPane>>) => (await pane.findAll({ type: 'Text' })).map((t) => t.text)
+
+test('the agents pane opens at the second agent, shows what each is doing, and collapses when all are done', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const opens = w.opens
+  await start($)
+  w.agents = [{ status: 'running', type: 'code-reviewer', description: 'review the diff' }]
+  await $.agent.spawn(spawnArgs('code-reviewer'))
+  expect(opens).toEqual([])
+  w.agents.push({ status: 'running', type: 'Explore', description: 'find call sites' })
+  await $.agent.spawn(spawnArgs('Explore'))
+  expect(opens).toEqual(['hud-agents'])
+  await w.clock.advance(65_000)
+  await $.tool.call({ tool: 'Read', file_path: '/work/app/lib/sync.dart', agentId: 'a0' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'export TOKEN=abc123', agentId: 'a1' } as never)
+  const pane = await crewPane($)
+  const shown = await texts(pane)
+  expect(shown[0]).toBe('agents: 2 running')
+  expect(shown).toContain('code-reviewer  review the diff  running · 1m 05s · 1 tool  Read sync.dart')
+  expect(shown.join('\n')).not.toContain('abc123')
+  w.agents = w.agents.map((a) => ({ ...a, status: 'completed' }))
+  await $.turn.complete({ answer: 'sub', durationMs: 1, isAborted: false, turnId: 's', agentId: 'a0', reason: 'answer' })
+  expect(await pane.find({ key: 'expand' })).toBeDefined()
+  expect((await texts(pane))[0]).toBe('agents: 2 done')
+  await pane.press({ key: 'expand' })
+  expect(await pane.find({ key: 'collapse' })).toBeDefined()
+  await pane.unmount()
+  expect(opens).toEqual(['hud-agents'])
+})
+
+test('a team shows the shared task list and each teammate on its task', async ($, on) => {
+  const w = world(on, {})
+  const opens = w.opens
+  crewHooks(on, {
+    TaskCreate: { task: { id: '1', subject: 'Build login' } },
+    TaskUpdate: { success: true, taskId: '1', updatedFields: ['status', 'owner'] },
+  })
+  await start($)
+  w.agents = [{ status: 'running', type: 'teammate', description: 'implement', teammateId: 'dev@sprint' }]
+  await $.agent.spawn(spawnArgs('teammate'))
+  expect(opens).toEqual(['hud-agents'])
+  await $.tool.call({ tool: 'TaskCreate', subject: 'Build login', description: 'x' } as never)
+  await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'in_progress', owner: 'dev', agentId: 'a0' } as never)
+  const pane = await crewPane($)
+  const shown = await texts(pane)
+  expect(shown[1]).toBe('team sprint · tasks 0/1 done, 1 in progress')
+  expect(shown[2]).toContain('dev  Build login  running')
+  await pane.unmount()
+})
+
+test('/hud agents answers in text where nothing can draw, and off closes the pane', async ($, on) => {
+  const w = world(on, {}, { surfaces: [] })
+  crewHooks(on)
+  await start($)
+  w.agents = [{ status: 'running', type: 'Explore', description: 'find call sites' }]
+  const text = (await $.command.run(cmd('hud', 'agents'))).text ?? ''
+  expect(text).toBe('agents: 1 running\nExplore  find call sites  running')
+  expect((await $.command.run(cmd('hud', 'agents off'))).text).toContain('Agents pane closed')
+  expect((await $.command.run(cmd('hud', 'agents nonsense'))).text).toBe('Usage: /hud agents [off]')
+})
+
+test('auto_agents off leaves the pane to /hud agents', { options: { auto_agents: false } }, async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const opens = w.opens
+  await start($)
+  w.agents = [{ status: 'running' }, { status: 'running' }]
+  await $.agent.spawn(spawnArgs('Explore'))
+  expect(opens).toEqual([])
+  expect((await $.command.run(cmd('hud', 'agents'))).text).toBe('Agents pane open. agents: 2 running')
+  expect(opens).toEqual(['hud-agents'])
+})
+
+test('a tool call passes through unchanged while it is observed', async ($, on) => {
+  world(on, {})
+  crewHooks(on, { Read: { marker: 7 } })
+  await start($)
+  const ran = await $.tool.call({ tool: 'Read', file_path: '/x', agentId: 'zz' } as never)
+  expect(ran.result).toEqual({ marker: 7 } as never)
+})
+
+test('an idle team opens the pane once and never toggles it again', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  w.agents = [{ status: 'idle', type: 'teammate', description: 'verify', teammateId: 'qa@sprint' }]
+  await $.agent.spawn(spawnArgs('teammate'))
+  const pane = await crewPane($)
+  await pane.press({ key: 'collapse' })
+  for (const turnId of ['t1', 't2', 't3']) {
+    await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId, reason: 'answer' })
+    expect(await pane.find({ key: 'expand' })).toBeDefined()
+  }
+  await pane.unmount()
+  expect(w.opens).toEqual(['hud-agents'])
+})
+
+test('an agent the engine drops from its list is not counted as still working', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  w.agents = [{ status: 'running' }, { status: 'running' }]
+  await $.agent.spawn(spawnArgs('Explore'))
+  await $.tool.call({ tool: 'Read', file_path: '/x/a.ts', agentId: 'a0' } as never)
+  await $.tool.call({ tool: 'Read', file_path: '/x/b.ts', agentId: 'a1' } as never)
+  w.agents = []
+  await $.turn.complete({ answer: 'sub', durationMs: 1, isAborted: false, turnId: 's', agentId: 'a0', reason: 'answer' })
+  const pane = await crewPane($)
+  expect(await pane.find({ key: 'expand' })).toBeDefined()
+  expect((await texts(pane))[0]).toBe('agents: none')
+  await pane.unmount()
+})
+
+// ─── critical review, build card, done notice, #task, history ───────
+
+// The person sends a prompt: this is what allows the mod one follow-up message.
+const typed = ($: Engine, text = 'do the work') => $.prompt.submit({ text, origin: { kind: 'composer' } } as never)
+
+// Work the mod starts without holding an answer up (the check, the history) finishes here.
+const settle = async () => {
+  for (let i = 0; i < 400; i++) await Promise.resolve()
+}
+
+function checkModel(on: On, reply: string) {
+  const asked: { model: string; prompt: string }[] = []
+  on('model.complete', (_, e) => {
+    asked.push({ model: e.model, prompt: String(e.prompt) })
+    return { value: { isAnswered: true, text: reply, usage: { input_tokens: 1, output_tokens: 1 } } } as never
+  })
+  return asked
+}
+
+function extraHooks(on: On, w: World) {
+  const store = new Map<string, unknown>()
+  const sounds: string[] = []
+  on('store.get', (_, e) => ({ value: store.get(e.key) }))
+  on('store.set', (_, e) => {
+    store.set(e.key, JSON.parse(JSON.stringify(e.value)))
+    return { value: undefined }
+  })
+  on('audio.play', (_, e) => {
+    sounds.push((e.clip as { asset?: string }).asset ?? '?')
+    return { value: undefined }
+  })
+  on('prompt.autocomplete', () => ({ suggestions: [] }))
+  void w
+  return { store, sounds }
+}
+
+test('a critical edit shows in the row, a turn end reminds once, and a critical-reviewer pass clears it', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/widgets/card.dart`, old_string: 'a', new_string: 'b' } as never)
+  expect(await bandText($, 160)).not.toContain('critical')
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/login.dart`, old_string: 'a', new_string: 'b' } as never)
+  expect(await bandText($, 160)).toContain('1 critical file not reviewed')
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't2', reason: 'answer' })
+  await settle()
+  // The path alone marks it (no model answers in this test); the mod asks for the review once.
+  expect(w.submits.length).toBe(2)
+  expect(w.submits[1]).toContain('Critical logic changed with no critical-reviewer pass yet: `lib/auth/login.dart`.')
+  expect(w.toasts.filter((t) => t.includes('critical-reviewer'))).toEqual([])
+  w.agents = [{ status: 'running', type: 'nextc-ecc:critical-reviewer', description: 'review auth' }]
+  await $.agent.spawn(spawnArgs('nextc-ecc:critical-reviewer'))
+  expect(await bandText($, 160)).toContain('critical review running (resolved-model) · 2 files')
+  await $.turn.complete({ answer: 'verdict', durationMs: 1, isAborted: false, turnId: 's', agentId: 'a0', reason: 'answer' })
+  expect(await bandText($, 160)).toContain('critical review done (resolved-model) · 2 files')
+  expect((await $.command.run(cmd('hud', 'review'))).text).toContain('Nothing is waiting for one.')
+})
+
+test('a code-reviewer pass does not count as the critical review; the reminder can be turned off', { options: { review_reminder: false, critical_followup: 'off' } }, async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  await $.tool.call({ tool: 'Write', file_path: `${CWD}/supabase/migrations/0001.sql`, content: 'x' } as never)
+  await $.agent.spawn(spawnArgs('nextc-ecc:code-reviewer'))
+  await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 's', agentId: 'a0', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await bandText($, 160)).toContain('1 critical file not reviewed')
+  expect(w.toasts).toEqual([])
+})
+
+test('a long turn toasts and chimes once; a short or aborted one does not', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const { sounds } = extraHooks(on, w)
+  await start($)
+  await $.turn.complete({ answer: 'x', durationMs: 5_000, isAborted: false, turnId: 't1', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 300_000, isAborted: true, turnId: 't2', reason: 'answer' })
+  expect(w.toasts).toEqual([])
+  await $.turn.complete({ answer: 'x', durationMs: 130_000, isAborted: false, turnId: 't3', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 130_000, isAborted: false, turnId: 't4', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 130_000, isAborted: false, turnId: 't5', reason: 'error' } as never)
+  expect(w.toasts).toEqual(['Turn finished after 2m 10s.'])
+  expect(sounds).toEqual(['sounds/done.wav'])
+  await w.clock.advance(5_000)
+  await $.turn.complete({ answer: 'x', durationMs: 130_000, isAborted: false, turnId: 't6', reason: 'answer' })
+  expect(sounds.length).toBe(2)
+})
+
+test('done toasts and sound can be turned off', { options: { done_toasts: false, done_sound: false } }, async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const { sounds } = extraHooks(on, w)
+  await start($)
+  await $.turn.complete({ answer: 'x', durationMs: 130_000, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect(w.toasts).toEqual([])
+  expect(sounds).toEqual([])
+})
+
+test('# lists open tasks from docs/tasks.md after the engine rows', async ($, on) => {
+  const w = world(on, { [`${CWD}/docs/tasks.md`]: { text: '- [x] Done thing\n- [ ] Build login screen\n- [~] Wire auth service', mtimeMs: NOW } })
+  crewHooks(on)
+  extraHooks(on, w)
+  await start($)
+  // The test engine dispatches the event; its typings do not list it on $.prompt yet.
+  const ask = ($.prompt as unknown as { autocomplete: (i: unknown) => Promise<{ suggestions: { text: string }[] }> }).autocomplete
+  const got = await ask({ text: 'next: #', cursor: 7, token: '#', start: 6 })
+  expect(got.suggestions.map((s) => s.text)).toEqual(['Wire auth service', 'Build login screen'])
+  const none = await ask({ text: '#zz', cursor: 3, token: '#zz', start: 0 })
+  expect(none.suggestions).toEqual([])
+})
+
+test('/hud costs sums recorded sessions; a session is recorded when a turn ends', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const { store } = extraHooks(on, w)
+  await start($)
+  expect((await $.command.run(cmd('hud', 'costs'))).text).toContain('No sessions recorded')
+  await measure($, 46_000, { usd: 3.1 })
+  await $.agent.spawn(spawnArgs('Explore'))
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  // The record is stored without holding the answer up; let that finish.
+  await settle()
+  expect(store.get('sessions')).toEqual([{ id: 'sess-1', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 3.1, compactions: 0, agents: 1 }])
+  const text = (await $.command.run(cmd('hud', 'costs'))).text ?? ''
+  expect(text).toContain('app        1 session      ~$3.10  0 compactions, 1 agent')
+  // No $.fs write: the history goes through the mod's own store, not a path the mod names.
+  expect(w.writes).toEqual([])
+})
+
+test('a build command gets a card under its row; another command does not', async ($, on) => {
+  const w = world(on, BUILD_FILES)
+  crewHooks(on)
+  await start($)
+  const command = 'cd ios && bundle exec fastlane beta'
+  const row = (id: string, cmdText: string, isRunning: boolean) => $.ui.mount({
+    plugin: 'nextc-hud', component: 'ToolUse', requestId: id, surface: 'terminal',
+    props: { tool_use_id: id, tool: 'Bash', input: { command: cmdText }, isRunning, isErrored: false, isInterrupted: false },
+  } as never)
+  await $.tool.call({ tool: 'Bash', command, tool_use_id: 'tu1' } as never)
+  await w.clock.advance(1_000)
+  const built = await row('tu1', command, false)
+  const lines = (await built.findAll({ type: 'Text' })).map((x) => x.text)
+  expect(lines.some((l) => l === '  ⎿ build 1.4.0+52 · command finished in 0s · the buildlog still says in progress')).toBe(true)
+  await built.unmount()
+  const plain = await row('tu2', 'ls -la', false)
+  expect((await plain.findAll({ type: 'Text' })).some((x) => x.text.includes('⎿'))).toBe(false)
+  await plain.unmount()
+})
+
+test('an interrupted critical-reviewer leaves its files waiting', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/login.dart`, old_string: 'a', new_string: 'b' } as never)
+  w.agents = [{ status: 'running', type: 'nextc-ecc:critical-reviewer' }]
+  await $.agent.spawn(spawnArgs('nextc-ecc:critical-reviewer'))
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: true, turnId: 's', agentId: 'a0', reason: 'aborted' } as never)
+  expect(await bandText($, 160)).toContain('1 critical file not reviewed')
+})
+
+test('a build started in the background is not called finished when its command returns', async ($, on) => {
+  const w = world(on, BUILD_FILES)
+  crewHooks(on)
+  await start($)
+  const command = 'cd ios && bundle exec fastlane beta'
+  await $.tool.call({ tool: 'Bash', command, run_in_background: true, tool_use_id: 'bg1' } as never)
+  await w.clock.advance(60_000)
+  const row = await $.ui.mount({
+    plugin: 'nextc-hud', component: 'ToolUse', requestId: 'bg1', surface: 'terminal',
+    props: { tool_use_id: 'bg1', tool: 'Bash', input: { command, run_in_background: true }, isRunning: false, isErrored: false, isInterrupted: false },
+  } as never)
+  const lines = (await row.findAll({ type: 'Text' })).map((x) => x.text)
+  expect(lines.some((l) => l.startsWith('  ⎿ build 1.4.0+52 · started in the background'))).toBe(true)
+  expect(lines.some((l) => l.includes('finished'))).toBe(false)
+  await row.unmount()
+})
+
+test('the check after a turn marks critical logic in a file with an ordinary name, and asks for the review once', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const asked = checkModel(on, '{"critical": ["lib/services/order_service.dart"], "why": "It grants a purchase after payment."}')
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/services/order_service.dart`, old_string: 'a', new_string: 'grantPurchase(user)' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/README.md`, old_string: 'a', new_string: 'docs' } as never)
+  expect(await bandText($, 160)).not.toContain('critical')
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(asked.length).toBe(1)
+  expect(asked[0]!.model).toBe('haiku')
+  expect(asked[0]!.prompt).toContain('grantPurchase(user)')
+  expect(asked[0]!.prompt).not.toContain('README.md')
+  expect(await bandText($, 160)).toContain('1 critical file not reviewed')
+  expect(w.submits.length).toBe(2)
+  expect(w.submits[1]).toContain('order_service.dart`. Per the practices rule')
+  // The model's own words never reach the message Claude acts on; /hud review shows them.
+  expect(w.submits[1]).not.toContain('grants a purchase')
+  expect((await $.command.run(cmd('hud', 'review'))).text).toContain("The check's reason: It grants a purchase after payment.")
+  // Later turns nobody typed (the follow-up's own, a background reviewer's report) edit fixes:
+  // they are checked, but no second message goes out until the person sends a prompt again.
+  for (const turnId of ['t2', 't3']) {
+    await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/services/order_service.dart`, old_string: 'a', new_string: `fix ${turnId}` } as never)
+    await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId, reason: 'answer' })
+    await settle()
+  }
+  expect(asked.length).toBe(3)
+  expect(w.submits.length).toBe(2)
+  // A turn that changed no code asks no model.
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't4', reason: 'answer' })
+  await settle()
+  expect(asked.length).toBe(3)
+})
+
+test('a clean verdict asks for nothing; a review that already ran in the turn is not asked for again', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  checkModel(on, '{"critical": ["lib/services/order_service.dart"], "why": "x"}')
+  await start($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/services/order_service.dart`, old_string: 'a', new_string: 'b' } as never)
+  w.agents = [{ status: 'running', type: 'nextc-ecc:critical-reviewer' }]
+  await $.agent.spawn(spawnArgs('nextc-ecc:critical-reviewer'))
+  await $.turn.complete({ answer: 'verdict', durationMs: 1, isAborted: false, turnId: 's', agentId: 'a0', reason: 'answer' })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(w.submits).toEqual([])
+  expect(await bandText($, 160)).toContain('critical review done')
+})
+
+test('fill puts the request in the prompt box instead of sending it', { options: { critical_followup: 'fill' } }, async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  checkModel(on, '{"critical": ["lib/x.dart"], "why": ""}')
+  await start($)
+  await $.tool.call({ tool: 'Write', file_path: `${CWD}/lib/x.dart`, content: 'verifySignature()' } as never)
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(w.submits).toEqual([])
+  expect(w.fills.length).toBe(1)
+  expect(w.fills[0]).toContain('run the critical-reviewer agent')
+})
+
+test('with the check off no model is asked; where nothing can draw nothing is checked or sent', { options: { critical_check: false } }, async ($, on) => {
+  const w = world(on, {}, { surfaces: [] })
+  crewHooks(on)
+  const asked = checkModel(on, '{"critical": ["lib/auth/a.dart"], "why": ""}')
+  await start($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/a.dart`, old_string: 'a', new_string: 'b' } as never)
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(asked).toEqual([])
+  expect(w.submits).toEqual([])
+})
+
+test('with no prompt from the person there is no follow-up message, only the toast; an interrupted turn keeps its changes', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const asked = checkModel(on, '{"critical": ["lib/x.dart", "lib/x.dart"], "why": ""}')
+  await start($)
+  await $.tool.call({ tool: 'Write', file_path: `${CWD}/lib/x.dart`, content: 'verifySignature()' } as never)
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: true, turnId: 't0', reason: 'aborted' } as never)
+  await settle()
+  expect(asked).toEqual([])
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(asked.length).toBe(1)
+  expect(w.submits).toEqual([])
+  expect(w.toasts).toEqual(['1 critical file changed with no critical-reviewer pass yet: lib/x.dart.'])
 })

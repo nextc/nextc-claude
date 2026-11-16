@@ -57,7 +57,7 @@ Failures go back to the original implementing worker by `SendMessage` ([referenc
 
 ## 6. Review and cleanup
 
-Spawn `nextc-ecc:code-reviewer` (model sonnet) over all changed files, looking for cross-worker inconsistency; add `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. Fix CRITICAL/HIGH. Then `/cleanup <changed files>` (pipeline call, no prompt) and re-run the analyzer; revert cleanup changes that break it.
+Spawn `nextc-ecc:code-reviewer` (model sonnet) over all changed files, looking for cross-worker inconsistency; add `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data, and always `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable) when the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema). Fix CRITICAL/HIGH. Then `/cleanup <changed files>` (pipeline call, no prompt) and re-run the analyzer; revert cleanup changes that break it.
 
 ## 7. Shut down (mandatory)
 

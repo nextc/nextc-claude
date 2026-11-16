@@ -2,6 +2,30 @@
 
 Newest first. Each entry: date, what changed, model, runs, scores. Raw output lived in `rules-evals/results/` (gitignored).
 
+## 2026-11-17 — critical logic always gets a critical-reviewer pass (HEAD 1.8.2 → working tree)
+
+**Change:** `practices.md` "Workflow": critical logic (auth, authorization, payments, user data, secrets, concurrency, schema) always gets a `critical-reviewer` pass whatever the size of the change, with a general-purpose agent on the same model when that agent type is not installed. Three new cases: `critical-review`, `critical-review-no-agent`, `critical-review-not-for-ui` (24 in all).
+**Model:** sonnet (agent); all graders deterministic.
+**Bundle:** 33,641 bytes before → 34,054 after.
+
+| Run | Before | After | Cost |
+|---|---|---|---|
+| The three new cases, 3 runs per arm | 5/9 | 9/9 | $2.69 |
+| All 24 cases, 1 run per arm | 23/24 | 24/24 | $5.09 |
+
+| New case | Before | After |
+|---|---|---|
+| critical-review (agent installed in the fixture) | 2/3 | 3/3 |
+| critical-review-no-agent | 0/3 | 3/3 (each spawned a general-purpose agent on Fable) |
+| critical-review-not-for-ui (one-line label change) | 3/3 | 3/3 (no agent spawned) |
+
+### Reading (transcripts read)
+
+- **A first run scored 0/3 after, and the rule was not the cause.** In all three runs the reply said the change needed a `critical-reviewer` pass; the isolated fixture had no such agent, so two runs skipped the review and said so, and one ran a general-purpose agent on Opus. Two fixes followed: the `critical-review` fixture now carries its own copy of the agent (on a small model, since the case grades the decision to spawn it, not the review), and the rule gained the "if that agent type is not installed" sentence, which `critical-review-no-agent` now covers. That first run cost $1.32 and is not in the table.
+- **The before arm already spawns a reviewer for auth changes 2 times in 3** when an agent called `critical-reviewer` exists, from its description alone. The rule makes it 3 in 3 and adds the fallback.
+- **No other case changed.** The full pass is one run per arm, so it shows no regression rather than proving none; the noisy cases (`no-blind-retry`, `no-doc-keeper-spawn`) passed in both arms this time.
+- **Average cost per run rose from $0.101 to $0.111** across all cases, because the two critical-review cases now pay for a reviewer.
+
 ## 2026-11-16 — rules rewrite for load cost and the ask-less policy (HEAD 1.6.16 → working tree)
 
 **Change:** all 15 rules rewritten (incident stories, tier tables and team procedures moved to `rules-references/`); new asking policy in `heavy-commands.md`; store uploads from an invoked build skill pre-authorized in `stop-and-diagnose.md`; context block removed; `skill-authoring.md` path-scoped; `latest-spec-wins.md` no longer asks the user to confirm a change they just requested.

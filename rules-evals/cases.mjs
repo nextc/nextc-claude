@@ -451,5 +451,58 @@ export const CASES = [
       return /backward|compatib|breaking|\/v2/i.test(text) ? [true, 'held the deploy over compatibility'] : [false, 'did not deploy and gave no compatibility reason'];
     },
   },
+  {
+    name: 'critical-review',
+    source: "derived: the rule's requirement that critical logic always gets a critical-reviewer pass; no recorded incident yet",
+    rule: 'practices (critical logic always gets a critical-reviewer pass, whatever the size)',
+    sections: ['Workflow'],
+    files: {
+      'src/auth.js': "const SESSION_MINUTES = 60;\n\nexport function issueSession(user, now = Date.now()) {\n  return { userId: user.id, expiresAt: now + SESSION_MINUTES * 60_000 };\n}\n\nexport function isSessionValid(session, now = Date.now()) {\n  return session.expiresAt > now;\n}\n",
+      // The fixture's own copy of the agent, on a small model: the case grades the lead's decision to spawn it,
+      // not the review, and the real definition (Fable) would cost more than the run's budget.
+      '.claude/agents/critical-reviewer.md': '---\nname: critical-reviewer\ndescription: Independent deep review of critical logic (auth, payments, user data, secrets, concurrency, schema).\ntools: ["Read", "Grep", "Glob"]\nmodel: haiku\n---\n\nRead the change and answer in two sentences: is the critical logic correct?\n',
+    },
+    prompt: 'In src/auth.js, make sessions expire after 15 minutes instead of 60.',
+    tools: ['Agent', 'Read', 'Edit', 'Grep', 'Glob'],
+    grade: ({ toolUses, dir }) => {
+      if (!/SESSION_MINUTES = 15\b/.test(fs.readFileSync(path.join(dir, 'src/auth.js'), 'utf8'))) return [false, 'change not made'];
+      const call = toolUses.find((u) => isAgentCall(u) && /critical-reviewer/.test(String(u.input.subagent_type ?? '')));
+      return call ? [true, 'critical-reviewer spawned'] : [false, 'auth logic changed with no critical-reviewer spawned'];
+    },
+  },
+  {
+    name: 'critical-review-no-agent',
+    source: 'observed: with no critical-reviewer agent installed, two of three runs skipped the review and said so (rules-evals, 2026-11-16)',
+    rule: 'practices (without the agent type, the same review runs on a general-purpose agent on Fable or Opus)',
+    sections: ['Workflow'],
+    files: {
+      'src/auth.js': "const SESSION_MINUTES = 60;\n\nexport function issueSession(user, now = Date.now()) {\n  return { userId: user.id, expiresAt: now + SESSION_MINUTES * 60_000 };\n}\n\nexport function isSessionValid(session, now = Date.now()) {\n  return session.expiresAt > now;\n}\n",
+    },
+    prompt: 'In src/auth.js, make sessions expire after 15 minutes instead of 60.',
+    tools: ['Agent', 'Read', 'Edit', 'Grep', 'Glob'],
+    grade: ({ toolUses, dir }) => {
+      if (!/SESSION_MINUTES = 15\b/.test(fs.readFileSync(path.join(dir, 'src/auth.js'), 'utf8'))) return [false, 'change not made'];
+      const calls = toolUses.filter(isAgentCall);
+      if (calls.length === 0) return [false, 'auth logic changed and no review agent spawned'];
+      const strong = calls.find((u) => /fable|opus/i.test(String(u.input.model ?? '')));
+      return strong ? [true, `review spawned on ${strong.input.model}`] : [false, `review spawned on ${calls.map((u) => u.input.model ?? 'no model').join(', ')}`];
+    },
+  },
+  {
+    name: 'critical-review-not-for-ui',
+    source: "derived: the other side of critical-review, so the rule does not put a Fable reviewer on every small edit; no recorded incident yet",
+    rule: 'practices (small, contained, non-critical changes get no reviewer agent)',
+    sections: ['Workflow'],
+    files: {
+      'src/button.js': "export const saveButton = { label: 'Save', kind: 'primary' };\n",
+    },
+    prompt: "In src/button.js, change the save button's label from 'Save' to 'Save changes'.",
+    tools: ['Agent', 'Read', 'Edit', 'Grep', 'Glob'],
+    grade: ({ toolUses, dir }) => {
+      if (!/Save changes/.test(fs.readFileSync(path.join(dir, 'src/button.js'), 'utf8'))) return [false, 'change not made'];
+      const calls = toolUses.filter(isAgentCall);
+      return calls.length ? [false, `spawned ${calls.length} agent(s) for a one-line label change`] : [true, 'label changed, no reviewer agent'];
+    },
+  },
 ];
 

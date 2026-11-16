@@ -1,7 +1,7 @@
 {
   "name": "nextc-hud",
   "version": "1.8.2",
-  "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), and a 'used this turn' line. Observe-only.",
+  "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), an agents pane (/hud agents), a critical-review check that asks for the reviewer when a turn changed critical logic, a build card, a done chime, a # task typeahead, session cost history (/hud costs) and a 'used this turn' line. It observes only, except the critical-review check: one small model call per turn that changed code and one follow-up message, both optional.",
   "author": {
     "name": "nextc"
   },
@@ -29,6 +29,78 @@
       "type": "boolean",
       "title": "Open the run pane by itself",
       "description": "When a build, explore, ASO or kickoff run starts in this project, open its read-only pane without /hud watch. The pane collapses to one line once the run's outcome has left the row and expands again for the next run; it is never closed for you. Needs the row on.",
+      "default": true
+    },
+    "auto_agents": {
+      "type": "boolean",
+      "title": "Open the agents pane by itself",
+      "description": "When two or more agents are working, or a team is running, open the agents pane without /hud agents: who is on which task, for how long, and how far along. It collapses to one line when the last agent finishes and is never closed for you.",
+      "default": true
+    },
+    "review_reminder": {
+      "type": "boolean",
+      "title": "Critical review reminder",
+      "description": "The toast naming critical files with no critical-reviewer pass, shown when the follow-up is off, could not be sent, or was already sent once for this prompt. The row shows the count either way.",
+      "default": true
+    },
+    "critical_check": {
+      "type": "boolean",
+      "title": "Check each turn's changes for critical logic",
+      "description": "After a turn that changed code, one small model call (Haiku by default, a fraction of a cent) reads the changed code and says which files hold critical logic: auth, access rules, payments, user data, secrets, concurrency, schema. Off: only the path pattern decides. Never runs in claude -p or autopilot runs.",
+      "default": true
+    },
+    "critical_followup": {
+      "type": "string",
+      "title": "When critical changes have no review",
+      "description": "send: the mod sends one message asking Claude to run the critical-reviewer (once per prompt of yours). fill: it puts that message in the prompt box for you to send. off: a toast only.",
+      "default": "send"
+    },
+    "critical_model": {
+      "type": "string",
+      "title": "Model for the critical check",
+      "description": "The model alias or id the check uses. Empty uses haiku.",
+      "default": ""
+    },
+    "critical_paths": {
+      "type": "string",
+      "title": "Critical path pattern",
+      "description": "A regular expression (case-insensitive) matched against a file's path inside the project that marks an edit as critical whatever the check says (and alone when the check is off or fails). Empty uses the built-in list of whole words: auth, login, session, password, permission, role, rls, policy, payment, billing, purchase, subscription, entitlement, checkout, wallet, secret, crypto, migration, schema, access/refresh/api/jwt tokens, and .sql files.",
+      "default": ""
+    },
+    "build_card": {
+      "type": "boolean",
+      "title": "Build card under a build command",
+      "description": "One dim line under a fastlane, flutter build, gradlew, xcodebuild or Unity batch-mode command: the build's version and step from the buildlog, how long the command has run, and how it ended.",
+      "default": true
+    },
+    "done_toasts": {
+      "type": "boolean",
+      "title": "Done toasts",
+      "description": "A toast when a long turn ends, a build or pipeline run finishes, or a long stretch of agent work ends.",
+      "default": true
+    },
+    "done_sound": {
+      "type": "boolean",
+      "title": "Done sound",
+      "description": "A short chime with the same events as the done toasts. macOS only: other systems play nothing.",
+      "default": true
+    },
+    "done_after_seconds": {
+      "type": "number",
+      "title": "A turn is long after (seconds)",
+      "description": "A turn or a stretch of agent work that took at least this long gets the done toast and sound. From 10 to 3600; a smaller value counts as 10.",
+      "default": 60
+    },
+    "task_typeahead": {
+      "type": "boolean",
+      "title": "#task typeahead",
+      "description": "Typing # in the prompt box lists the open tasks from docs/tasks.md; taking one writes its text into the prompt.",
+      "default": true
+    },
+    "cost_history": {
+      "type": "boolean",
+      "title": "Session history for /hud costs",
+      "description": "Keep each session's project name, cost estimate, compactions and agent count in this mod's own store (a JSON file Claude Code keeps in its configuration folder), so /hud costs can show the last 7 days by project. Nothing leaves this machine.",
       "default": true
     },
     "heavy_percent": {
