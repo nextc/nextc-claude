@@ -64,6 +64,13 @@ export function runCase(c, { arm, run, bundlePath, model, work, out }) {
   const id = `${c.name}-${arm}-${run}`;
   const dir = path.join(work, id);
   setupFixture(dir, c.files, c.executable);
+  // EXTERNAL: a case with `level: 'less'` gets the line nextc-core's session-start hook adds when its
+  // ask_level option is "less" (nextc-core/scripts/ask-level.mjs). Without it the rules apply level "normal".
+  if (c.level === 'less') {
+    const leveled = path.join(work, `${id}-bundle.md`);
+    fs.writeFileSync(leveled, `${fs.readFileSync(bundlePath, 'utf8')}\n\nnextc ask level: less\nThe user set the nextc asking level to "less": follow the "less" column in the "Approvals and Heavy Commands" rule.\n`);
+    bundlePath = leveled;
+  }
   // EXTERNAL: `--setting-sources project`, run from a fixture with no CLAUDE.md, keeps ~/.claude/rules/ out of the
   // child, so the appended bundle is the only rule text it sees (checked with Claude Code 2.1.300).
   const args = [

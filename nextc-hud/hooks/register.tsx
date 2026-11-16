@@ -9,8 +9,10 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { Crew, RunSource, RunView } from '../types'
+import type { Crew, ProjectFacts, Proof, RunSource, RunView } from '../types'
 import {
+  HANDOFF_FILE,
+  HANDOFF_FORK,
   HANDOFF_PLAIN,
   applyCompactEvent,
   applyMeasure,
@@ -41,6 +43,7 @@ import {
   summaryLine,
   toolLabel,
 } from './lib/crew'
+import { clean as cleanText } from './lib/crew'
 import {
   CHECK_SYSTEM,
   activeRunIds,
@@ -58,16 +61,21 @@ import {
   followupText,
   isBuildCommand,
   isCriticalPath,
+  askLevelOf,
   isCriticalReviewer,
   isEditTool,
+  isProse,
   noteBuildEnd,
   noteBuildStart,
   noteChange,
   noteEdit,
+  parseSessions,
   parseTasks,
   parseVerdict,
+  projectPath,
   reviewItems,
   reviewNudge,
+  resolveFollowup,
   reviewText,
   runDoneText,
   runForCall,
@@ -77,16 +85,61 @@ import {
   turnDoneText,
   upsertSession,
   type Change,
+  type AskLevel,
   type Followup,
+  type FollowupOption,
   type TaskLine,
 } from './lib/extras'
+import {
+  TABS,
+  TWO_COLUMNS_FROM,
+  branchOf,
+  emptyFacts,
+  firstChangelogDate,
+  headerLines,
+  nextTask,
+  parseBuildHistory,
+  parseLedger,
+  parseTaskBoard,
+  projectBlocks,
+  projectReport,
+  summaryLine as projectSummary,
+  versionOf,
+  type Block,
+  type Line,
+  type Live,
+  type Tab,
+} from './lib/project'
+import {
+  SHELL_EDIT_NAME,
+  checksOf,
+  correctionOf,
+  emptyProof,
+  emptyTally,
+  extraChecks,
+  lessonPrompt,
+  isShellEdit,
+  noteCheck,
+  noteCodeEdit,
+  noteUnseen,
+  proofAsk,
+  proofItems,
+  proofLine,
+  proofNudge,
+  proofState,
+  proofText,
+  tallyAgent,
+  tallySkill,
+  tallyTurn,
+  usageText,
+} from './lib/proof'
 import { STOP_QUESTION, bandParts, listText, paneRows, textReport, truncate } from './lib/format'
 import { actionItems, coachItems, extraItems, layoutRows, rowText, runItems, type FittedRow } from './lib/row'
 import { alertsOf, isLiveState, isRunId, pickLiveRun, recentRuns, runDirOf, stopPathOf } from './lib/runs'
 import { autopilotSource, liveRuns, runReport, runsText } from './lib/sources'
 import { addAgent, addSkill, emptyUsed, usedLine } from './lib/used'
 import { debug, homeOf, listRuns, readRun } from './monitor'
-import { scanProjects } from './projects'
+import { gitRootOf, scanProjects } from './projects'
 
 type $ = EngineInterface
 
@@ -124,7 +177,15 @@ const crew = atom({ plugin: 'nextc-hud', key: 'crew' } as const, emptyCrew(), { 
 const review = atom({ plugin: 'nextc-hud', key: 'review' } as const, emptyReview(), { shape: 'review-1' })
 const buildCalls = atom({ plugin: 'nextc-hud', key: 'buildCalls' } as const, {}, { shape: 'buildCalls-1' })
 const turnWork = atom({ plugin: 'nextc-hud', key: 'turnWork' } as const, [], { shape: 'turnWork-1' })
-const tally = atom({ plugin: 'nextc-hud', key: 'tally' } as const, { spawned: 0 }, { shape: 'tally-1' })
+const tally = atom({ plugin: 'nextc-hud', key: 'tally' } as const, emptyTally(), { shape: 'tally-2' })
+const proof = atom({ plugin: 'nextc-hud', key: 'proof' } as const, emptyProof(), { shape: 'proof-1' })
+const facts = atom({ plugin: 'nextc-hud', key: 'facts' } as const, emptyFacts(), { shape: 'facts-1' })
+const projectUi = atom({ plugin: 'nextc-hud', key: 'projectUi' } as const, { isOpen: false, isCollapsed: false, tab: 'overview' }, { shape: 'projectUi-1' })
+const lesson = atom({ plugin: 'nextc-hud', key: 'lesson' } as const, { text: null, turnsLeft: 0 }, { shape: 'lesson-1' })
+const handoffPrep = atom({ plugin: 'nextc-hud', key: 'handoffPrep' } as const, { state: 'none', atTurn: 0 }, { shape: 'handoffPrep-2' })
+const PROJECT_PANE = 'hud-project'
+// MAGIC: a correction is offered as a lesson for this many turns, then the offer goes away.
+const LESSON_TURNS = 3
 // The cross-session history is one $.store value: the mod's own JSON store, which Claude Code
 // keeps in its configuration folder. The mod names no path for it.
 const SESSIONS_KEY = 'sessions'
@@ -141,7 +202,7 @@ const TOAST_TEXT: Record<string, (id: string) => string> = {
   ended: (id) => `Autopilot ${id} has ended.`,
 }
 
-const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off] | agents [off] | review | costs]'
+const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off] | agents [off] | project [tab|off] | review | proof | costs | usage | lesson]'
 
 // Module variables reset on a hot reload; register() sets them again and session.start
 // restarts the timers for what is still being watched.
@@ -158,12 +219,23 @@ let crewTimer: Timer | null = null
 let crewRun: Promise<unknown> = Promise.resolve()
 let isReviewReminderOn = true
 let isCheckOn = true
-let followup: Followup = 'send'
+let followup: FollowupOption = 'auto'
 let checkModel = 'haiku'
 // SECURITY: only a prompt the person sends grants one follow-up message, and sending it uses
 // the grant up. The mod's own message, a background agent's report or a reload grants none,
 // so the mod cannot keep a review-and-fix loop going by itself.
 let canFollowUp = false
+let isProofOn = true
+let proofFollowup: FollowupOption = 'auto'
+let extraCheck: RegExp | null = null
+let isProofLineOn = true
+let isLessonOn = true
+let isAutoHandoffOn = true
+let autoHandoffMax = 400_000
+let isUploadWarnOn = true
+// ORDER: set before the first await of a handoff write, so two triggers cannot both start one.
+let isWritingHandoff = false
+const factsCache = new Map<string, { mtimeMs: number; size: number; text: string }>()
 let critical = criticalPattern(undefined)
 let isBuildCardOn = true
 let isDoneToastOn = true
@@ -303,6 +375,11 @@ async function toastDue($: $) {
   // A crossing is announced once; one passed while the row was hidden is not announced later.
   await update($, coach, (cur) => markToasted(cur ?? c, due))
   const p = await read($, prefs)
+  // "/hud coach off" silences the coach for the session, and that includes its handoff pass.
+  if (due.includes('act') && isAutoHandoffOn && !p.isQuiet && (c.tokens ?? c.lastTokens ?? 0) <= autoHandoffMax) {
+    // Not awaited: the handoff is written in the background while the person keeps working.
+    void writeHandoff($).catch((err) => debug($, 'auto handoff', err))
+  }
   const isVisible = isRowOn(p) && !isBandCollapsed
   if (!isCoachToastOn || p.isQuiet || !(isVisible || isHiddenToastOn)) return
   for (const key of due) $.ui.toast(toastText(key, c))
@@ -320,7 +397,7 @@ async function liveNow($: $, now: number): Promise<RunSource[]> {
 async function isScanWanted($: $): Promise<boolean> {
   const p = await read($, prefs)
   const watching = (await read($, projects)).watchId !== null
-  return (isRowOn(p) && !isBandCollapsed) || watching
+  return (isRowOn(p) && !isBandCollapsed) || watching || (await read($, projectUi)).isOpen
 }
 
 function stopScanner() {
@@ -390,6 +467,7 @@ async function scanTick($: $) {
     const agents = await agentCounts($)
     await update($, coach, (cur) => ({ ...(cur ?? emptyCoach()), agents }))
     await refreshCrew($).catch((err) => debug($, 'scan agents', err))
+    if ((await read($, projectUi)).isOpen) await scanFacts($).catch((err) => debug($, 'scan project', err))
     const now = await $.clock.now()
     scheduleScan($, liveRuns(runs, now).length > 0 ? SCAN_LIVE_MS : SCAN_IDLE_MS)
   } catch (err) {
@@ -441,6 +519,100 @@ async function observeCritical($: $, e: { tool: string; agentId?: string; tool_u
     const isCritical = isCriticalPath(path, cwd, critical)
     await update($, review, (r) => noteEdit(r ?? emptyReview(), path, cwd, isCritical))
     await update($, turnWork, (w) => noteChange(w ?? [], path, snippetOf(input), cwd))
+    const name = projectPath(path, cwd)
+    if (isProofOn && !isProse(name)) await update($, proof, (p) => ({ ...noteCodeEdit(p ?? emptyProof(), name), isTouched: true }))
+  }
+}
+
+// A build or upload that starts while critical changes are unreviewed or code is unverified
+// gets one warning. It never blocks: the build is the person's call.
+async function warnBeforeBuild($: $) {
+  if (!(await canDraw($))) return
+  const waiting = (await read($, review)).pending.length
+  const state = proofState(await read($, proof))
+  const parts = [
+    ...(waiting > 0 ? [`${waiting} critical file${waiting === 1 ? '' : 's'} not reviewed`] : []),
+    ...(state === 'unverified' ? ['code not checked since the last edit'] : state === 'failed' ? ['a check is failing'] : []),
+  ]
+  if (parts.length > 0) $.ui.toast(`Building with ${parts.join(' and ')}. /hud review and /hud proof have the details.`)
+}
+
+// The session's cost as the engine counts it now; the coach's last reading where the engine
+// gives none.
+async function costNow($: $): Promise<number | null> {
+  try {
+    const usd = (await $.session.usage()).cost?.usd
+    if (typeof usd === 'number') return usd
+  } catch (err) {
+    debug($, 'session cost', err)
+  }
+  return (await read($, coach)).costUsd
+}
+
+// The mod's own model calls are part of the session's cost. The baseline is moved past them,
+// so they are not charged to whichever skill the next turn uses.
+async function reseedCost($: $) {
+  const usd = await costNow($)
+  if (usd !== null) await update($, tally, (t) => ({ ...(t ?? emptyTally()), lastCostUsd: usd }))
+}
+
+// A reply is a handoff only in the form asked for; a refusal or a preamble is not written.
+function handoffBody(text: string): string | null {
+  const body = text.trim().replace(/^```[a-z]*\n/i, '').replace(/\n```$/, '').trim()
+  return body.startsWith('# Handoff') && body.includes('## Next step') ? body : null
+}
+
+// The handoff, written from the conversation itself without adding a turn to it: one pass
+// over the session's own transcript (asked for no tools), saved where /session-handoff reads it.
+// SECURITY: the file is model text built from a transcript that holds tool and file output,
+// and a later session reads it. It starts with a note saying so, and the person is told to
+// read it before resuming.
+async function writeHandoff($: $): Promise<string> {
+  if (isWritingHandoff) return 'A handoff is already being written.'
+  isWritingHandoff = true
+  try {
+    const cwd = await $.session.cwd()
+    if (cwd === null || cwd === '') return 'There is no project folder to write the handoff into.'
+    const fail = async (text: string) => {
+      await update($, handoffPrep, () => ({ state: 'failed', atTurn: 0 }))
+      if (await canDraw($)) $.ui.toast(text)
+      return text
+    }
+    const reply = await $.model.fork({ prompt: HANDOFF_FORK })
+    await reseedCost($)
+    if (!reply.isAnswered) {
+      debug($, 'handoff fork', reply.reason)
+      return fail('The handoff could not be written (the model gave no answer). /hud handoff prepares it the usual way.')
+    }
+    const body = handoffBody(reply.text)
+    if (body === null) return fail('The handoff was not written: the reply was not in the handoff form. /hud handoff prepares it the usual way.')
+    const path = `${cwd}/${HANDOFF_FILE}`
+    // An earlier handoff may hold what this one does not (a pinned block, failed attempts): it is kept beside it.
+    const earlier = await readText($, path)
+    if (earlier !== null) await $.fs.write(`${cwd}/${HANDOFF_FILE.replace(/\.md$/, '.prev.md')}`, earlier.text)
+    await $.fs.write(path, `<!-- Written by nextc-hud from the conversation, unverified. Read it before you resume from it. -->\n${body}\n`)
+    const atTurn = (await read($, tally)).turns
+    await update($, handoffPrep, () => ({ state: 'done', atTurn }))
+    const text = `Handoff written to ${HANDOFF_FILE}. Read it first; for a fresh start: /clear, then /session-handoff resume.`
+    if (await canDraw($)) $.ui.toast(text)
+    return text
+  } catch (err) {
+    await update($, handoffPrep, () => ({ state: 'failed', atTurn: 0 })).catch((e) => debug($, 'handoff state', e))
+    debug($, 'writeHandoff', err)
+    return 'The handoff could not be written. /hud handoff prepares it the usual way.'
+  } finally {
+    isWritingHandoff = false
+  }
+}
+
+// The asking level the user set in nextc-core, read from the merged settings. Only that one
+// key is read, and only the level is kept.
+async function askLevel($: $): Promise<AskLevel> {
+  try {
+    return askLevelOf(await $.settings.read({ key: 'pluginConfigs' }))
+  } catch (err) {
+    debug($, 'ask level', err)
+    return 'normal'
   }
 }
 
@@ -449,7 +621,7 @@ async function observeCritical($: $, e: { tool: string; agentId?: string; tool_u
 // counts whatever the model answers, so a reply cannot talk the check out of it. When files
 // are left waiting, the mod asks for the review: it sends that request as a message of its
 // own (framed as coming from this plugin), puts it in the prompt box, or only toasts.
-async function afterTurnCheck($: $, work: readonly Change[]) {
+async function afterTurnCheck($: $, work: readonly Change[], shown: Proof) {
   // Nothing is checked or sent where nobody watches (claude -p, an autopilot run).
   if (!(await canDraw($))) return
   const code = codeChanges(work)
@@ -466,27 +638,35 @@ async function afterTurnCheck($: $, work: readonly Change[]) {
       debug($, 'critical check', err)
     } finally {
       await update($, review, (r) => ({ ...(r ?? emptyReview()), isChecking: false })).catch((err) => debug($, 'critical check end', err))
+      await reseedCost($).catch((err) => debug($, 'critical check cost', err))
     }
   }
   const state = await read($, review)
-  const nudge = reviewNudge(state)
-  if (nudge === null) return
-  await update($, review, (r) => ({ ...(r ?? emptyReview()), isNudged: true }))
-  if (followup === 'send' && canFollowUp) {
+  const level = await askLevel($)
+  const criticalAsk = { nudge: reviewNudge(state), mode: resolveFollowup(followup, level), text: followupText(state), isCritical: true }
+  const proofAskFor = { nudge: isProofOn ? proofNudge(shown) : null, mode: resolveFollowup(proofFollowup, level), text: proofAsk(shown), isCritical: false }
+  const asks = [criticalAsk, proofAskFor].filter((a): a is { nudge: string; mode: Followup; text: string; isCritical: boolean } => a.nudge !== null)
+  if (asks.length === 0) return
+  if (asks.some((a) => a.isCritical)) await update($, review, (r) => ({ ...(r ?? emptyReview()), isNudged: true }))
+  if (asks.some((a) => !a.isCritical)) await update($, proof, (p) => ({ ...(p ?? emptyProof()), isNudged: true }))
+  let left = asks
+  const toSend = asks.filter((a) => a.mode === 'send')
+  // SECURITY: one message per prompt of the person's, whatever it asks for.
+  if (toSend.length > 0 && canFollowUp) {
     // ORDER: the grant is used up before the message leaves, so two checks cannot both send.
     canFollowUp = false
     try {
-      const sent = await $.prompt.submit({ text: followupText(state) })
+      const sent = await $.prompt.submit({ text: toSend.map((a) => a.text).join('\n\n') })
       // A dropped prompt (another hook or the engine refused it) falls through to the toast.
-      if (sent.drop === undefined) return
+      if (sent.drop === undefined) left = left.filter((a) => a.mode !== 'send')
     } catch (err) {
-      debug($, 'critical follow-up', err)
+      debug($, 'follow-up', err)
     }
-  } else if (followup === 'fill') {
-    const filled = await fillPrompt($, followupText(state), '')
-    if (filled.isFilled) return
   }
-  if (isReviewReminderOn) $.ui.toast(nudge)
+  const toFill = left.filter((a) => a.mode === 'fill')
+  if (toFill.length > 0 && (await fillPrompt($, toFill.map((a) => a.text).join('\n\n'), '')).isFilled) left = left.filter((a) => a.mode !== 'fill')
+  // The critical reminder has its own switch; a proof ask left over always shows, since "off" means a toast.
+  for (const a of left) if (!a.isCritical || isReviewReminderOn) $.ui.toast(a.nudge)
 }
 
 async function recordSession($: $, sessionId: string) {
@@ -498,11 +678,11 @@ async function recordSession($: $, sessionId: string) {
   const usage = await $.session.usage()
   const startedAtMs = typeof usage.startedAt === 'number' ? usage.startedAt : now
   // A session that never ran a turn has nothing to record.
-  if (c.costUsd === null && c.tokens === null && t.spawned === 0) return
+  if (c.costUsd === null && c.tokens === null && t.spawned === 0 && t.turns === 0) return
   const project = (cwd ?? '').split(/[\\/]/).filter((p) => p !== '').pop() ?? ''
   // The get and the set are two calls: a second terminal ending a turn between them can lose
   // one record until that session's next turn writes it again.
-  const rec = { id: sessionId, project, startedAtMs, endedAtMs: now, usd: c.costUsd, compactions: c.compactions, agents: t.spawned }
+  const rec = { id: sessionId, project, startedAtMs, endedAtMs: now, usd: c.costUsd, compactions: c.compactions, agents: t.spawned, turns: t.turns, skills: t.skills, agentTypes: t.agentTypes, skillCost: t.skillCost }
   await $.store.set(SESSIONS_KEY, upsertSession(await $.store.get(SESSIONS_KEY), rec))
 }
 
@@ -519,6 +699,111 @@ async function openTasks($: $): Promise<TaskLine[]> {
   const tasks = parseTasks(await $.fs.read(path))
   tasksCache = { path, mtimeMs: stat.mtimeMs, tasks }
   return tasks
+}
+
+// ─── project pane ───────────────────────────────────────────────────
+
+// The pane's own reader: the run monitor caches a parsed value per path, so a file both read
+// (docs/buildlog.md) is read here as text, apart from that cache.
+async function readText($: $, path: string): Promise<{ text: string; mtimeMs: number } | null> {
+  try {
+    if (!(await $.fs.exists(path))) {
+      factsCache.delete(path)
+      return null
+    }
+    const st = await $.fs.stat(path)
+    // MAGIC: the same 2 MB cap the run monitor uses; a larger file is not one of these.
+    if (st.kind !== 'file' || st.size > 2_000_000) return null
+    // An unchanged file is not read again: the pane re-scans every 15 to 60 seconds while open.
+    const hit = factsCache.get(path)
+    if (hit !== undefined && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return { text: hit.text, mtimeMs: st.mtimeMs }
+    const text = await $.fs.read(path)
+    factsCache.set(path, { mtimeMs: st.mtimeMs, size: st.size, text })
+    return { text, mtimeMs: st.mtimeMs }
+  } catch (err) {
+    debug($, `read ${path}`, err)
+    return null
+  }
+}
+const readFile = async ($: $, path: string) => (await readText($, path))?.text ?? null
+
+async function storedSessions($: $) {
+  try {
+    return parseSessions(await $.store.get(SESSIONS_KEY))
+  } catch (err) {
+    debug($, 'session history', err)
+    return []
+  }
+}
+
+// Reads what the pane shows from the project's own files. Every path is the session folder
+// or its git root joined to a fixed name; a missing file is simply an empty block.
+async function scanFacts($: $): Promise<ProjectFacts> {
+  const cwd = await $.session.cwd()
+  if (cwd === null || cwd === '') return emptyFacts()
+  const root = (await gitRootOf($, cwd)) ?? cwd
+  const now = await $.clock.now()
+  const base = (p: string) => p.split(/[\\/]/).filter((x) => x !== '').pop() ?? ''
+  const tasksFile = await readText($, `${root}/docs/tasks.md`)
+  const buildlog = await readFile($, `${root}/docs/buildlog.md`)
+  const ledger = await readFile($, `${root}/docs/qc/critical-reviews.md`)
+  const head = await readFile($, `${root}/.git/HEAD`)
+  // The history keys a session by the folder it ran in, which is not always the git root.
+  const sessions = isHistoryOn ? (await storedSessions($)).filter((s) => s.project === base(cwd) || s.project === base(root)) : []
+  const next: ProjectFacts = {
+    name: cleanText(base(root), 40) ?? '',
+    version: versionOf({
+      pubspec: await readFile($, `${root}/pubspec.yaml`),
+      packageJson: await readFile($, `${root}/package.json`),
+      unitySettings: await readFile($, `${root}/ProjectSettings/ProjectSettings.asset`),
+    }),
+    branch: branchOf(head),
+    tasks: tasksFile === null ? null : parseTaskBoard(tasksFile.text),
+    tasksMtimeMs: tasksFile?.mtimeMs ?? null,
+    builds: buildlog === null ? [] : parseBuildHistory(buildlog),
+    ledger: ledger === null ? [] : parseLedger(ledger),
+    changelogDate: firstChangelogDate(await readFile($, `${root}/CHANGELOG.md`)),
+    hasProposal: (await $.fs.exists(`${root}/docs/proposal.md`)) === true,
+    hasArchitecture: (await $.fs.exists(`${root}/docs/architecture.md`)) === true,
+    sessions,
+    scannedAtMs: now,
+  }
+  // Only a change is written: a write redraws the pane, and most scans find nothing new.
+  const same = (a: ProjectFacts, b: ProjectFacts) => JSON.stringify({ ...a, scannedAtMs: 0 }) === JSON.stringify({ ...b, scannedAtMs: 0 })
+  if (!same(await read($, facts), next)) await update($, facts, () => next)
+  return next
+}
+
+async function liveOf($: $): Promise<Live> {
+  const c = await read($, crew)
+  return {
+    review: await read($, review),
+    proof: await read($, proof),
+    runs: (await read($, projects)).runs,
+    agentsRunning: c.roster.filter((a) => a.status === 'running' || a.status === 'pending' || a.status === 'waiting').length,
+  }
+}
+
+async function projectCommand($: $, arg: string): Promise<string> {
+  if (arg === 'off') {
+    await update($, projectUi, (u) => ({ ...(u ?? { isCollapsed: false, tab: 'overview' as Tab }), isOpen: false }))
+    await $.ui.close({ id: PROJECT_PANE })
+    return 'Project pane closed.'
+  }
+  if (arg !== '' && !TABS.includes(arg as Tab)) return `Usage: /hud project [${TABS.join(' | ')} | off]`
+  const now = await $.clock.now()
+  if (await canDraw($)) await scanNow($)
+  const f = await scanFacts($)
+  const live = await liveOf($)
+  if (!(await canDraw($))) return projectReport(f, live, now)
+  const opened = await $.ui.open({ id: PROJECT_PANE, title: f.name === '' ? 'project' : f.name })
+  if (!opened.isPlaced) {
+    await $.ui.close({ id: PROJECT_PANE })
+    return `No room for a pane in this window, so here is the project as text.\n${projectReport(f, live, now)}`
+  }
+  await update($, projectUi, (u) => ({ isOpen: true, isCollapsed: false, tab: arg === '' ? u?.tab ?? 'overview' : (arg as Tab) }))
+  ensureScanner($)
+  return `Project pane open. ${projectSummary(f, live)}`
 }
 
 // ─── agents pane ────────────────────────────────────────────────────
@@ -631,7 +916,29 @@ async function prepareCompact($: $): Promise<Prepared> {
   return fillPrompt($, focus, 'A /compact with focus instructions is in the prompt box. Edit it or press Enter; nothing is sent until you do.')
 }
 
+const lessonItems = (l: { text: string | null }) => (l.text === null ? [] : [{ id: 'lesson', long: 'save lesson', short: 'lesson', isWarning: false, isRequired: false, button: 'hud-lesson' }])
+
+// The correction the person just made, as a request to record it where it loads next time.
+async function prepareLesson($: $): Promise<Prepared> {
+  const l = await read($, lesson)
+  if (l.text === null) return { isFilled: false, text: 'No correction is waiting. When a prompt reads like one ("no, …", "you should …"), the row offers [ save lesson ].' }
+  const names = (await $.command.list()).map((c) => c.name)
+  const filled = await fillPrompt($, lessonPrompt(l.text, findCommand(names, 'learn-eval')), 'The lesson request is in the prompt box. Edit it or press Enter; nothing is sent until you do.')
+  if (filled.isFilled) await update($, lesson, () => ({ text: null, turnsLeft: 0 }))
+  return filled
+}
+
 async function prepareHandoff($: $): Promise<Prepared> {
+  const prep = await read($, handoffPrep)
+  if (prep.state === 'done') {
+    // Work done since the file was written is not in it: it is written again before /clear is offered.
+    if ((await read($, tally)).turns !== prep.atTurn) {
+      if (await canDraw($)) $.ui.toast('Bringing the handoff up to date first…')
+      await writeHandoff($)
+      if ((await read($, handoffPrep)).state !== 'done') return { isFilled: false, text: 'The handoff could not be brought up to date, so /clear was not offered. /hud handoff write tries again.' }
+    }
+    return fillPrompt($, '/clear', `The handoff is written (${HANDOFF_FILE}). /clear is in the prompt box; after it, run /session-handoff resume.`)
+  }
   const names = (await $.command.list()).map((c) => c.name)
   const skill = findCommand(names, 'session-handoff')
   if (skill !== null) return fillPrompt($, `/${skill} save`, `/${skill} save is in the prompt box. Press Enter to write the handoff, then /clear to start fresh.`)
@@ -653,7 +960,7 @@ async function rowsFor($: $, width: number): Promise<FittedRow[]> {
   const c = await read($, coach)
   const runs = await liveNow($, await $.clock.now())
   const level = levelOf(c, thresholds)
-  const items = [...coachItems(c, thresholds, { hasMeasure: c.lastTokens !== null }), ...actionItems(level), ...extraItems(c), ...reviewItems(await read($, review))]
+  const items = [...coachItems(c, thresholds, { hasMeasure: c.lastTokens !== null }), ...actionItems(level), ...extraItems(c), ...reviewItems(await read($, review)), ...(isProofOn ? proofItems(await read($, proof)) : []), ...lessonItems(await read($, lesson))]
   return layoutRows(items, runItems(runs), width)
 }
 
@@ -674,7 +981,14 @@ async function statusText($: $): Promise<string> {
     rows.map(rowText).join('\n'),
     `Level: ${level === 'act' ? 'act now' : level} (${why}). Heavy from ${t.heavyPercent}%${t.heavyTokens > 0 ? ` or ${t.heavyTokens.toLocaleString('en-US')} tokens` : ''}; act now from ${t.actPercent}% or ${t.actCompactions} compactions.`,
     `Row: ${shown}. Toasts: ${!isCoachToastOn ? 'off in /config' : p.isQuiet ? 'off for this session' : 'on'}.`,
+    await followupsText($),
   ].join('\n')
+}
+
+async function followupsText($: $): Promise<string> {
+  const level = await askLevel($)
+  const say = (o: FollowupOption) => `${resolveFollowup(o, level)}${o === 'auto' ? '' : ' (set in /config)'}`
+  return `Follow-ups: review ${say(followup)}, proof ${say(proofFollowup)}. Asking level: ${level} (nextc-core's ask_level).`
 }
 
 async function coachText($: $): Promise<string> {
@@ -711,7 +1025,7 @@ async function hudCommand($: $, args: string): Promise<string> {
     return 'The HUD row is hidden for this session. /hud on brings it back; always_on_row in /config turns it off for good.'
   }
   if (sub === 'compact') return (await prepareCompact($)).text
-  if (sub === 'handoff') return (await prepareHandoff($)).text
+  if (sub === 'handoff') return arg === 'write' ? writeHandoff($) : (await prepareHandoff($)).text
   if (sub === 'coach') {
     if (arg === 'off' || arg === 'on') {
       await update($, prefs, (p) => ({ ...(p ?? { isHidden: false, isShown: false }), isQuiet: arg === 'off' }))
@@ -722,6 +1036,19 @@ async function hudCommand($: $, args: string): Promise<string> {
   const now = await $.clock.now()
   if (sub === 'agents') return agentsCommand($, arg)
   if (sub === 'review') return reviewText(await read($, review))
+  if (sub === 'proof') return proofText(await read($, proof))
+  if (sub === 'usage') {
+    const installed = (await $.command.list()).filter((c) => c.source !== 'builtin').map((c) => c.name)
+    return isHistoryOn ? usageText(await storedSessions($), now, installed) : 'The session history is off (cost_history in /config).'
+  }
+  if (sub === 'lesson') {
+    if (arg === 'off') {
+      await update($, lesson, () => ({ text: null, turnsLeft: 0 }))
+      return 'The lesson offer is dismissed.'
+    }
+    return (await prepareLesson($)).text
+  }
+  if (sub === 'project') return projectCommand($, arg)
   if (sub === 'costs') return isHistoryOn ? costsText(await $.store.get(SESSIONS_KEY), now) : 'The session history is off (cost_history in /config).'
   if (sub === 'runs') return runsText(await scanNow($), now)
   if (sub === 'watch') {
@@ -770,6 +1097,15 @@ export const register: Register = (on, options) => {
   doneMs = doneAfterMs(options.done_after_seconds)
   isTaskTypeaheadOn = options.task_typeahead !== false
   isHistoryOn = options.cost_history !== false
+  isProofOn = options.proof_check !== false
+  proofFollowup = followupMode(options.proof_followup)
+  extraCheck = extraChecks(options.verify_commands)
+  isProofLineOn = options.show_proof_line !== false
+  isLessonOn = options.lesson_capture !== false
+  isAutoHandoffOn = options.auto_handoff !== false
+  // MAGIC: the handoff re-reads the whole conversation, so above this size it is left to the button.
+  autoHandoffMax = typeof options.auto_handoff_max_tokens === 'number' && options.auto_handoff_max_tokens > 0 ? options.auto_handoff_max_tokens : 400_000
+  isUploadWarnOn = options.upload_warning !== false
   thresholds = thresholdsOf(options as Record<string, unknown>)
 
   on('session.start', async ($, e, next) => {
@@ -788,12 +1124,14 @@ export const register: Register = (on, options) => {
       await $.command.register({
         name: 'hud',
         description: 'Session HUD: context, compactions, cost, live runs; prepare a /compact or a handoff',
-        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch | agents | review | costs]',
+        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch | agents | project | review | proof | costs | usage | lesson]',
         immediate: true,
       })
     } catch (err) {
       debug($, 'command.register hud', err)
     }
+    // The cost so far is the baseline the first turn is priced against (a resumed session has one).
+    await reseedCost($).catch((err) => debug($, 'session.start cost', err))
     // A reload keeps $.state but drops timers: resume refreshing a run still being watched.
     try {
       const w = await read($, watch)
@@ -864,7 +1202,11 @@ export const register: Register = (on, options) => {
         await update($, coach, () => emptyCoach())
         await update($, review, () => emptyReview())
         await update($, turnWork, () => [])
-        await update($, tally, () => ({ spawned: 0 }))
+        await update($, tally, () => emptyTally())
+        await update($, proof, () => emptyProof())
+        await update($, lesson, () => ({ text: null, turnsLeft: 0 }))
+        await update($, handoffPrep, () => ({ state: 'none', atTurn: 0 }))
+        await update($, projectUi, (u) => ({ ...(u ?? { isCollapsed: false, tab: 'overview' as Tab }), isOpen: false }))
       } catch (err) {
         debug($, 'session.end', err)
       }
@@ -898,7 +1240,14 @@ export const register: Register = (on, options) => {
 
   // A prompt the person sends (typed here, or from a connected app) allows one follow-up.
   on('prompt.submit', ($, e, next) => {
-    if (e.origin.kind === 'composer' || e.origin.kind === 'bridge') canFollowUp = true
+    if (e.origin.kind === 'composer' || e.origin.kind === 'bridge') {
+      canFollowUp = true
+      const correction = isLessonOn ? correctionOf(e.text) : null
+      if (correction !== null) {
+        // Not awaited: the prompt does not wait for the note.
+        void update($, lesson, () => ({ text: correction, turnsLeft: LESSON_TURNS })).catch((err) => debug($, 'lesson', err))
+      }
+    }
     return next(e)
   })
 
@@ -1009,6 +1358,70 @@ export const register: Register = (on, options) => {
     )
   })
 
+  on('ui.close', { id: PROJECT_PANE }, async ($, e, next) => {
+    const closed = await next(e)
+    if (e.origin.kind === 'person') await update($, projectUi, (u) => ({ ...(u ?? { isCollapsed: false, tab: 'overview' as Tab }), isOpen: false }))
+    return closed
+  }).catch(($, e, next) => next(e))
+
+  // The project pane: a header, the path from idea to store, then bordered blocks. Colour is
+  // kept for what needs attention (the warning tone); everything else is plain or dim.
+  on('ui.render', { component: 'Pane', requestId: PROJECT_PANE }, async ($, e) => {
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const f = await read($, facts)
+    const ui = await read($, projectUi)
+    const live = await liveOf($)
+    const now = await $.clock.now()
+    const width = Math.max(24, e.props.bodyColumns)
+    const setUi = (patch: { isCollapsed?: boolean; tab?: Tab }) => update($, projectUi, (u) => ({ ...(u ?? { isOpen: true, isCollapsed: false, tab: 'overview' as Tab }), ...patch }))
+    if (ui.isCollapsed) {
+      return (
+        <Box flexDirection="row">
+          <Text wrap="truncate-end" dimColor>{truncate(projectSummary(f, live), Math.max(10, width - 12))}</Text>
+          <Text> </Text>
+          <Button key="expand" label="Expand" onPress={() => setUi({ isCollapsed: false })} />
+        </Box>
+      )
+    }
+    const line = (l: Line) => (
+      <Text wrap="truncate-end" weight={l.tone === 'strong' ? 'semibold' : undefined} color={l.tone === 'warn' ? 'warning' : undefined} dimColor={l.tone === 'dim'}>{l.text}</Text>
+    )
+    const block = (b: Block, w: number) => (
+      <Box key={b.key} flexDirection="column" borderStyle="round" borderDimColor paddingX={1} width={w}>
+        <Text dimColor>{b.title}</Text>
+        {b.lines.map(line)}
+      </Box>
+    )
+    const blocks = projectBlocks(f, live, ui.tab, width, now)
+    const isTwo = width >= TWO_COLUMNS_FROM && ui.tab === 'overview'
+    const half = Math.floor((width - 1) / 2)
+    const narrow = blocks.filter((b) => !b.isWide)
+    const wide = blocks.filter((b) => b.isWide)
+    const task = nextTask(f)
+    return (
+      <Box flexDirection="column">
+        {headerLines(f, live, width).map(line)}
+        {isTwo ? (
+          <Box flexDirection="row" columnGap={1}>
+            <Box flexDirection="column">{narrow.slice(0, 1).map((b) => block(b, half))}</Box>
+            <Box flexDirection="column">{narrow.slice(1).map((b) => block(b, half))}</Box>
+          </Box>
+        ) : (
+          <Box flexDirection="column">{narrow.map((b) => block(b, width))}</Box>
+        )}
+        {wide.map((b) => block(b, width))}
+        <Box flexDirection="row" columnGap={1}>
+          {TABS.map((t, i) => (
+            <Button key={`tab-${t}`} label={t} hotkey={String(i + 1)} dimColor={t !== ui.tab} onPress={() => setUi({ tab: t })} />
+          ))}
+          {task !== null && <Button key="next-task" label="next task" onPress={() => pressAction($, () => fillPrompt($, 'Work on the next open task in docs/tasks.md: the first one in progress, else the first todo.', ''))} />}
+          <Button key="refresh" label="refresh" onPress={() => scanFacts($).then(() => undefined, (err) => debug($, 'refresh project', err))} />
+          <Button key="collapse" label="collapse" onPress={() => setUi({ isCollapsed: true })} />
+        </Box>
+      </Box>
+    )
+  })
+
   on('ui.close', { id: CREW_PANE }, async ($, e, next) => {
     const closed = await next(e)
     if (e.origin.kind === 'person') {
@@ -1059,6 +1472,8 @@ export const register: Register = (on, options) => {
         .catch((err) => debug($, 'tool.call observe', err))
     }
     const isBuild = e.tool === 'Bash' && isBuildCommand((e as unknown as { command?: unknown }).command)
+    // Not awaited: the warning never holds the build up.
+    if (isBuild && isUploadWarnOn) void warnBeforeBuild($).catch((err) => debug($, 'build warning', err))
     if (isBuild) {
       try {
         await observeCritical($, e, 'before', await $.clock.now())
@@ -1069,8 +1484,24 @@ export const register: Register = (on, options) => {
     const ran = await next(e)
     try {
       if (ran.deny === undefined && ran.isError !== true) await observeTool($, e, ran.result)
-      const isEdited = isEditTool(e.tool) && ran.deny === undefined && ran.isError !== true
+      const isOk = ran.deny === undefined && ran.isError !== true
+      const isEdited = isEditTool(e.tool) && isOk
       if (isBuild || isEdited) await observeCritical($, e, 'after', await $.clock.now())
+      if (e.tool === 'Skill' && isOk) await update($, tally, (t) => tallySkill(t ?? emptyTally(), (e as unknown as { skill?: unknown }).skill))
+      if (isProofOn && e.tool === 'Bash' && ran.deny === undefined) {
+        const bash = e as unknown as { command?: unknown; run_in_background?: unknown }
+        // A shell command that rewrites files is an edit the edit tools never see.
+        if (isOk && isShellEdit(bash.command)) await update($, proof, (p) => ({ ...noteCodeEdit(p ?? emptyProof(), SHELL_EDIT_NAME), isTouched: true }))
+        const now = await $.clock.now()
+        for (const check of checksOf(bash.command, extraCheck)) {
+          // A passing result is believed only when the command's own exit status is the check's:
+          // not piped or chained past it, and not started in the background. A failure is always
+          // believed. ASSUMPTION: a command that exits non-zero comes back as an error result
+          // (seen in a real session on Claude Code 2.1.325).
+          const isSeen = check.isTrusted && bash.run_in_background !== true
+          await update($, proof, (p) => ({ ...(isOk && !isSeen ? noteUnseen(p ?? emptyProof(), check.label) : noteCheck(p ?? emptyProof(), check.label, isOk, now)), isTouched: true }))
+        }
+      }
     } catch (err) {
       debug($, 'tool.call tasks', err)
     }
@@ -1088,7 +1519,7 @@ export const register: Register = (on, options) => {
         }
         const now = await $.clock.now()
         if (spawned.agentId !== undefined) await update($, crew, (c) => recordSpawn(c ?? emptyCrew(), spawned.agentId!, now))
-        if (e.resume === undefined) await update($, tally, (t) => ({ spawned: (t?.spawned ?? 0) + 1 }))
+        if (e.resume === undefined) await update($, tally, (t) => tallyAgent(t ?? emptyTally(), e.subagentType))
         await refreshCrew($)
       }
     } catch (err) {
@@ -1105,6 +1536,7 @@ export const register: Register = (on, options) => {
   // also where the "used this turn" line is added.
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
+    let shownProof: Proof = emptyProof()
     try {
       if ((await read($, crew)).roster.length > 0 || e.agentId !== undefined) await refreshCrew($)
       if (e.agentId !== undefined) {
@@ -1113,11 +1545,18 @@ export const register: Register = (on, options) => {
         await update($, review, (r) => endReview(r ?? emptyReview(), agentId, isAnswered))
       } else {
         // An interrupted or failed turn keeps its changes for the check after the next turn.
+        shownProof = await read($, proof)
+        // A verified turn starts the next one clean; anything else carries over.
+        await update($, proof, (p) => (proofState(p ?? emptyProof()) === 'verified' ? emptyProof() : { ...(p ?? emptyProof()), isTouched: false }))
+        const cost = await costNow($)
+        await update($, tally, (t) => tallyTurn(t ?? emptyTally(), cost))
+        await update($, lesson, (l) => (l === undefined || l.text === null || l.turnsLeft <= 1 ? { text: null, turnsLeft: 0 } : { ...l, turnsLeft: l.turnsLeft - 1 }))
         if (e.reason === 'answer' && !e.isAborted) {
           const work = await read($, turnWork)
+          const snapshot = shownProof
           await update($, turnWork, (w) => (w ?? []).filter((c) => !work.some((x) => x.path === c.path && x.snippet === c.snippet)))
           // Not awaited: the answer does not wait for the check.
-          void afterTurnCheck($, work).catch((err) => debug($, 'afterTurnCheck', err))
+          void afterTurnCheck($, work, snapshot).catch((err) => debug($, 'afterTurnCheck', err))
         }
         if (!e.isAborted && e.reason === 'answer' && e.durationMs >= doneMs) await notifyDone($, turnDoneText(e.durationMs))
         // Not awaited: the answer does not wait for the history to be stored.
@@ -1128,13 +1567,20 @@ export const register: Register = (on, options) => {
     } catch (err) {
       debug($, 'turn.complete observe', err)
     }
-    if (!isUsedLineOn || e.agentId !== undefined) return done
-    const u = await read($, used)
-    await update($, used, () => emptyUsed())
-    const line = usedLine(u)
-    if (line === null) return done
+    if (e.agentId !== undefined) return done
+    // The lines under an answer: the proof the mod saw this turn, then what the turn used.
+    const notes: string[] = []
+    const proved = isProofOn && isProofLineOn && shownProof.isTouched === true ? proofLine(shownProof) : null
+    if (proved !== null) notes.push(proved)
+    if (isUsedLineOn) {
+      const u = await read($, used)
+      await update($, used, () => emptyUsed())
+      const line = usedLine(u)
+      if (line !== null) notes.push(line)
+    }
+    if (notes.length === 0) return done
     const hasOtherNote = done.text !== e.answer && done.text !== ''
-    return { ...done, text: hasOtherNote ? `${done.text}\n${line}` : line }
+    return { ...done, text: hasOtherNote ? `${done.text}\n${notes.join('\n')}` : notes.join('\n') }
   })
 
   // The project run pane: the autopilot pane's layout, read-only, with nothing to stop. It
@@ -1205,7 +1651,7 @@ export const register: Register = (on, options) => {
             ))}
             {row.buttons.length > 0 && <Text> </Text>}
             {row.buttons.map((b) => (
-              <Button key={b.key} label={b.label} onPress={() => pressAction($, b.key === 'hud-compact' ? () => prepareCompact($) : () => prepareHandoff($))} />
+              <Button key={b.key} label={b.label} onPress={() => pressAction($, b.key === 'hud-compact' ? () => prepareCompact($) : b.key === 'hud-lesson' ? () => prepareLesson($) : () => prepareHandoff($))} />
             ))}
           </Box>,
         )
@@ -1246,13 +1692,13 @@ export const register: Register = (on, options) => {
     return rows.length === 1 ? rows[0]! : <Box flexDirection="column">{rows}</Box>
   })
 
-  if (!isUsedLineOn) return
-
-  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
-    const ran = await next(e)
-    if (ran.deny === undefined && ran.isError !== true) await update($, used, (u) => addSkill(u, e.skill))
-    return ran
-  }).catch(($, e, next) => next(e))
+  if (isUsedLineOn) {
+    on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+      const ran = await next(e)
+      if (ran.deny === undefined && ran.isError !== true) await update($, used, (u) => addSkill(u, e.skill))
+      return ran
+    }).catch(($, e, next) => next(e))
+  }
 
   // Slash-typed skills: the Skill tool never sees them, and skill.prompt is hidden from user
   // mods on managed logins, so a typed /name that hands the model a prompt is counted here.
@@ -1261,7 +1707,10 @@ export const register: Register = (on, options) => {
     if (e.command === COMMAND || e.command === HUD || ran.text !== undefined) return ran
     try {
       const info = (await $.command.list()).find((c) => c.name === e.command)
-      if (info !== undefined && info.source !== 'builtin') await update($, used, (u) => addSkill(u, `/${e.command}`))
+      if (info !== undefined && info.source !== 'builtin') {
+        if (isUsedLineOn) await update($, used, (u) => addSkill(u, `/${e.command}`))
+        await update($, tally, (t) => tallySkill(t ?? emptyTally(), e.command))
+      }
     } catch (err) {
       debug($, 'command.run observe', err)
     }

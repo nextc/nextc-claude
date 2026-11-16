@@ -77,6 +77,7 @@ when the user explicitly names it and it plainly holds non-secret config; when i
 3. iOS via fastlane: resolve the lane and run the signing preflight in `references/fastlane-env.md`. Missing signing config stops the run here.
 4. `mkdir -p build/logs` and save the approved notes to `build/logs/whatsnew.txt` (used for `FL_CHANGELOG` and the buildlog).
 5. Note `date +%s` as `start_epoch` (artifact freshness check).
+6. **Quality warning (warn, never stop):** run `flutter analyze` (a static check, seconds). Then check whether critical logic changed since the last build with no review on record: `git diff --name-only <last build tag or the buildlog's last commit>..HEAD` against the latest entry in `docs/qc/critical-reviews.md`. If the analyzer reports errors, or auth, payment, user-data, secrets or schema code changed after the last ledger entry (or there is no ledger), say so in one line each and carry on with the build. The user decides; a warning never blocks a build or an upload. Put the same lines in the final report.
 
 A dirty working tree is not a blocker. Only `pubspec.yaml` and `docs/buildlog.md` are ever staged.
 

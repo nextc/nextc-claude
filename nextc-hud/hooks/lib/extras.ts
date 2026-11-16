@@ -157,6 +157,7 @@ export function noteChange(changes: readonly Change[], path: string, snippet: st
 
 // Prose, images and lock files cannot hold logic; a turn that touched only those is not checked.
 const NOT_CODE = /\.(md|mdx|txt|rst|png|jpe?g|gif|svg|webp|ico|pdf|lock|csv|arb|wav|mp3)$|(^|\/)(CHANGELOG|LICENSE|README)[^/]*$/i
+export const isProse = (path: string): boolean => NOT_CODE.test(path)
 export const codeChanges = (changes: readonly Change[]): Change[] => changes.filter((c) => !NOT_CODE.test(c.path) && !TEST_PATH.test(c.path))
 
 export const CHECK_SYSTEM = [
@@ -198,7 +199,27 @@ export function parseVerdict(text: string, sent: readonly string[]): { files: st
 }
 
 export type Followup = 'send' | 'fill' | 'off'
-export const followupMode = (option: unknown): Followup => (option === 'fill' || option === 'off' ? option : 'send')
+export type FollowupOption = Followup | 'auto'
+export const followupMode = (option: unknown): FollowupOption => (option === 'send' || option === 'fill' || option === 'off' ? option : 'auto')
+
+export type AskLevel = 'normal' | 'less'
+
+// EXTERNAL: nextc-core's `ask_level` option, as settings.json keeps it under
+// pluginConfigs["nextc-core@<marketplace>"].options. It is the one setting for how much Claude
+// asks; `normal` is its default and what applies when nextc-core is not installed.
+export function askLevelOf(pluginConfigs: unknown): AskLevel {
+  if (typeof pluginConfigs !== 'object' || pluginConfigs === null) return 'normal'
+  for (const [name, config] of Object.entries(pluginConfigs as Record<string, unknown>)) {
+    if (!/^nextc-core(@|$)/.test(name)) continue
+    const level = (config as { options?: { ask_level?: unknown } } | null)?.options?.ask_level
+    if (level === 'less') return 'less'
+  }
+  return 'normal'
+}
+
+// `auto` follows the asking level: at `less` the mod sends its follow-up itself, at `normal`
+// it puts it in the prompt box for the person to send.
+export const resolveFollowup = (option: FollowupOption, level: AskLevel): Followup => (option !== 'auto' ? option : level === 'less' ? 'send' : 'fill')
 
 export function reviewText(review: Review): string {
   const state = review.state === 'running'

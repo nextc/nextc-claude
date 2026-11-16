@@ -79,6 +79,7 @@ Each failure aborts here, before the bump:
    done
    ```
 7. Save the approved notes to `Builds/logs/whatsnew.txt`.
+8. **Quality warning (warn, never stop):** check whether critical logic changed since the last build with no review on record: `git diff --name-only <last build tag or the buildlog's last commit>..HEAD` against the latest entry in `docs/qc/critical-reviews.md`. If auth, purchase, user-data, secrets or save-data schema code changed after the last ledger entry (or there is no ledger), say so in one line and carry on with the build. The user decides; a warning never blocks a build or an upload. Put the same line in the final report. This step is the one exception to "each failure aborts here".
 
 ## Step 4: Bump and write the in-progress entry (before any wait)
 

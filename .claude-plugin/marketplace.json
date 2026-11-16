@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization for Claude Code.",
-    "version": "1.8.2",
+    "version": "1.9.0",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
@@ -60,7 +60,7 @@
     {
       "name": "nextc-hud",
       "source": "./nextc-hud",
-      "description": "Heads-up display mod: an always-on session row and coach, monitors for builds, pipelines and autopilot runs, an agents pane, a critical-review check, a build card, a done chime, a # task typeahead, session cost history and a 'used this turn' line.",
+      "description": "Heads-up display mod: an always-on session row and coach, monitors for builds, pipelines and autopilot runs, an agents pane, a project pane, a critical-review check, a proof tracker, a build card, a done chime, a # task typeahead, session cost history and a 'used this turn' line.",
       "category": "mods"
     }
   ]

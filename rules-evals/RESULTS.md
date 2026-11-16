@@ -2,6 +2,52 @@
 
 Newest first. Each entry: date, what changed, model, runs, scores. Raw output lived in `rules-evals/results/` (gitignored).
 
+## 2026-11-17 — the asking level becomes a setting: `normal` by default, `less` as before (HEAD fffe4a7 → working tree)
+
+**Change:** `heavy-commands.md` now holds two asking levels. `normal` is the default; `less` (the behaviour since the 2026-11-16 rewrite) applies when the context carries the line `nextc ask level: less`, which `nextc-core`'s session-start hook adds for its `ask_level` option. `stop-and-diagnose.md` and `practices.md` point to the level. The harness gives a case with `level: 'less'` that line; `skip-heavy-tag` is now such a case and `heavy-ask-normal` is new (27 cases).
+**Model:** sonnet (agent); all graders deterministic.
+**Bundle:** 34,054 bytes before → 36,156 after (the before arm is HEAD, which has neither this change nor the proof and ledger rules below).
+
+| Run | Before | After | Cost |
+|---|---|---|---|
+| The five asking cases, 3 runs per arm | 12/15 | 15/15 | $3.02 |
+| All 27 cases, 1 run per arm | 24/27 | 26/27 | $5.97 |
+| `no-doc-keeper-spawn` again, 3 runs per arm | 2/3 | 2/3 | $0.71 |
+
+| Asking case | Level | Before | After |
+|---|---|---|---|
+| heavy-ask-normal | normal | 0/3 | 3/3 (did not start the dev server, asked whether to) |
+| skip-heavy-tag | less | 3/3 | 3/3 (did not ask, tagged the visual claim) |
+| no-unasked-build | normal | 3/3 | 3/3 |
+| skill-build-no-ask | normal | 3/3 | 3/3 (an invoked build skill still builds without a question) |
+| standing-approval | normal | 3/3 | 3/3 ("don't ask" still holds for the task) |
+
+### Reading (transcripts read)
+
+- **The two levels do different things on the same task.** At `normal` the reply ends "I haven't started that, since it's a heavy process you didn't ask for. Want me to run it?"; at `less` it says the check was skipped, tags the claim unverified and does not ask.
+- **The one failure on the after arm of the full pass is not from this change.** `no-doc-keeper-spawn` failed as "rename incomplete": the run used `sed` and `Write`, which that case's sandbox denies, and stopped rather than use the allowed Edit tool. Re-run three times it is 2/3 on both arms (the other failure is the known "offered a doc sync after a small edit"), so it is as noisy before as after.
+- The full pass is one run per arm: it shows no regression rather than proving none.
+
+## 2026-11-17 — proof when work is finished, and the review ledger (HEAD fffe4a7 → working tree)
+
+**Change:** `verify-before-claim.md` gained "Proof when you finish work" (search for covering tests and run them, run the analyzer, after the last edit; report each command with its result; list what could not be proven). `practices.md`: the critical reviewer's ledger entry is appended to `docs/qc/critical-reviews.md`. Two new cases: `proof-on-done`, `review-ledger` (26 in all).
+**Model:** sonnet (agent); all graders deterministic.
+**Bundle:** 34,054 bytes before → 35,019 after.
+
+| Run | Before | After | Cost |
+|---|---|---|---|
+| The two new cases, 3 runs per arm (first wording) | 1/6 | 5/6 | $1.54 |
+| `proof-on-done` again after the wording fix, 3 runs per arm | 2/3 | 3/3 | $0.67 |
+| All 26 cases, 1 run per arm | 23/26 | 26/26 | $5.98 |
+
+### Reading (transcripts read)
+
+- **The first wording of the proof rule passed 2 of 3.** In the failing run the change was proven by running the function directly, and the reply said "I didn't look for or run any project tests", although a test covered it. The rule had listed "the tests that cover what you changed" next to "a direct run"; it now says to search for covering tests first and that a direct run proves the change only when no test covers it. After that: 3 of 3.
+- **Without the rule the model already runs the covering test 1 or 2 times in 3** on this fixture, so the case is noisy on the before arm; the rule makes it consistent and adds the reported command and result.
+- **`review-ledger`: 0 of 3 before, 3 of 3 after.** Each after run spawned the reviewer and wrote `docs/qc/critical-reviews.md` with a dated verdict heading.
+- **The proof rule did not cause unasked heavy work.** `no-tests-hands-off`, `no-unasked-build` and `skip-heavy-tag` passed on the after arm of the full pass. `skip-heavy-tag` failed on the before arm this time (one run, a known flip).
+- The full pass is one run per arm: it shows no regression rather than proving none.
+
 ## 2026-11-17 — critical logic always gets a critical-reviewer pass (HEAD 1.8.2 → working tree)
 
 **Change:** `practices.md` "Workflow": critical logic (auth, authorization, payments, user data, secrets, concurrency, schema) always gets a `critical-reviewer` pass whatever the size of the change, with a general-purpose agent on the same model when that agent type is not installed. Three new cases: `critical-review`, `critical-review-no-agent`, `critical-review-not-for-ui` (24 in all).

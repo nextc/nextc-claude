@@ -11,7 +11,7 @@ When something fails or surprises you, read the evidence and find the cause befo
 
 ## Outward-facing actions
 
-- Store uploads (TestFlight, App Store, Play) started by a build skill the user invoked are pre-authorized, retries included; they need no fresh approval per attempt. Before any retry, diagnose, and first establish whether the failed upload actually reached the store: an error in post-upload polling can follow an upload that succeeded.
+- Store uploads (TestFlight, App Store, Play) started by a build skill the user invoked are pre-authorized. A retry after a failure needs no fresh approval at asking level `less` and the user's go-ahead at `normal` (`heavy-commands.md`). Before any retry, diagnose, and first establish whether the failed upload actually reached the store: an error in post-upload polling can follow an upload that succeeded.
 - Other irreversible outward actions that nobody asked for, such as deleting remote data, sending messages or publishing, need the user's go-ahead.
 
 Background: `~/.claude/nextc-claude-references/rules-background.md`.

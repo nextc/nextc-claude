@@ -1,6 +1,6 @@
 # nextc-hud
 
-A Claude Code mod with ten features. Nine only observe; the critical-review check also makes one small model call per turn that changed code and can send one message asking for the review:
+A Claude Code mod with fifteen features. Most only observe. Three do more, and each can be turned off: the critical-review check makes one small model call per turn that changed code; the proof tracker and that check can send one message asking Claude to verify or review; and the handoff writer makes one model pass and writes `.claude/handoff.md`:
 
 1. **Always-on session row**: one row above the prompt with context used, compactions, the session's cost estimate, rate-limit use, agents and any live project run. It warns once context gets heavy and offers two actions that fill the prompt box (never send it).
 2. **Project run monitor**: `/hud runs` and `/hud watch` read the state files that `/flutter-build`, `/unity-build`, `/product-explore`, `/idea-explore`, `/aso-pipeline` and the kickoff skills write in your project.
@@ -12,8 +12,13 @@ A Claude Code mod with ten features. Nine only observe; the critical-review chec
 8. **Done notice**: a toast and a short chime when a long turn ends, a build or pipeline run finishes, or a long stretch of agent work ends.
 9. **`#` task typeahead**: typing `#` in the prompt box lists the open tasks from `docs/tasks.md`.
 10. **Session history**: `/hud costs` shows the last 7 days by project (sessions, cost estimate, compactions, agents).
+11. **Proof tracker**: follows which checks ran after the last code edit. The row and a line under each answer say `checked · flutter analyze ✓`, `check failed · …` or `not checked`, built from the commands that actually ran; when code changed and nothing was checked, the mod asks Claude to verify and show the proof.
+12. **Project pane**: `/hud project` shows where the project stands: tasks by milestone, the path from idea to store, builds, quality and the week's activity, with tabs.
+13. **Usage**: `/hud usage` lists the skills and agents used in the last 30 days, the cost of the turns that used each skill, and the installed skills nobody used.
+14. **Lesson capture**: when a prompt reads like a correction, the row offers `[ save lesson ]`, which prepares a `/learn-eval` request.
+15. **Handoff at the right moment**: at "act now" the handoff file is written in the background from the conversation itself, so a fresh start is `/clear` then `/session-handoff resume`.
 
-The mod never denies, rewrites or approves anything, never makes a network request of its own, never starts a process and never starts a compaction. It calls a model and submits a prompt in one place only, the critical-review check, and both can be turned off (`critical_check`, `critical_followup`). The done chime is a file the mod ships, played by Claude Code itself. The only file it writes by path is an autopilot run's `STOP` file, and only after you confirm. The session history goes into the mod's own store, a JSON file Claude Code keeps for the mod in its configuration folder. Its two coach actions put text in the prompt box with `$.prompt.fill`; you press Enter or edit it.
+The mod never denies, rewrites or approves anything, never makes a network request of its own, never starts a process and never starts a compaction. It calls a model in two places (the critical-review check and the handoff writer) and submits a prompt in one (the single follow-up message that asks for a review or for proof); all three can be turned off (`critical_check`, `auto_handoff`, `critical_followup` and `proof_followup`). The done chime is a file the mod ships, played by Claude Code itself. It writes by path only an autopilot run's `STOP` file, after you confirm, and the handoff (`.claude/handoff.md`, with the previous one kept as `.claude/handoff.prev.md`) when the handoff writer runs. The session history goes into the mod's own store, a JSON file Claude Code keeps for the mod in its configuration folder. Its two coach actions put text in the prompt box with `$.prompt.fill`; you press Enter or edit it.
 
 ## What it shows
 
@@ -69,6 +74,11 @@ The command runs at once, even while Claude is working.
 
 | `/hud review` | The critical-review state and the files waiting for a review |
 | `/hud costs` | The last 7 days of sessions by project, from the session history |
+| `/hud usage` | The last 30 days of skill and agent use, and what was not used |
+| `/hud proof` | The checks run since the last edit and the files not checked |
+| `/hud project [tab]` | The project pane, or the same as text where nothing can draw; `off` closes it |
+| `/hud lesson` | Put the last correction in the prompt box as a `/learn-eval` request; `off` dismisses it |
+| `/hud handoff write` | Write `.claude/handoff.md` now from the conversation |
 | `/hud agents` | Open the agents pane (below), or print the same as text where nothing can draw; `/hud agents off` closes it |
 
 ### Agents pane
@@ -155,8 +165,8 @@ The `practices` rule asks for a `critical-reviewer` pass (Fable, with Opus as th
 1. The mod collects what the turn's edits wrote (by the main session and by any agent): each file's path and up to 1,200 characters of the new code, the 12 most recently edited files at most (in a larger change the earlier files are judged by path only). An interrupted turn's changes are kept for the check after the next turn. Docs, images, lock files and tests are left out.
 2. One small model call (`haiku` by default, through the session's own API client) reads those changes and names the files that hold critical logic: authentication or sessions, access rules, payments or money arithmetic, personal user data, secrets or encryption, concurrency, schema or migrations. It judges what the code does, not the file name, so `order_service.dart` granting a purchase is critical even though nothing in its name says so.
 3. Files it names that no finished `critical-reviewer` pass has covered go on the waiting list. If Claude already ran the reviewer in that turn, as the rule asks, nothing is waiting and nothing more happens.
-4. If files are waiting, the mod asks for the review (`critical_followup`):
-   - `send` (default): it sends one message, shown in the transcript as coming from this plugin, asking Claude to run the `critical-reviewer` on those files and fix what it finds. Only a prompt you send allows one such message, and sending it uses that up. Turns nobody typed (the one the message starts, a background reviewer reporting back) are still checked but never produce a second message, so the mod cannot keep a review-and-fix loop going by itself. On a login where Claude Code keeps user mods off prompt events, the mod never sees your prompts and falls back to the toast.
+4. If files are waiting, the mod asks for the review. How it asks follows `nextc-core`'s `ask_level` setting unless you set `critical_followup` yourself: at `less` it sends the message, at `normal` (or without `nextc-core`) it fills the prompt box.
+   - `send`: it sends one message, shown in the transcript as coming from this plugin, asking Claude to run the `critical-reviewer` on those files and fix what it finds. Only a prompt you send allows one such message, and sending it uses that up. Turns nobody typed (the one the message starts, a background reviewer reporting back) are still checked but never produce a second message, so the mod cannot keep a review-and-fix loop going by itself. On a login where Claude Code keeps user mods off prompt events, the mod never sees your prompts and falls back to the toast.
    - `fill`: the same text is put in the prompt box for you to send.
    - `off`: a toast names the files.
 
@@ -174,6 +184,83 @@ The `practices` rule asks for a `critical-reviewer` pass (Fable, with Opus as th
 - `/hud review` prints the state and the full list. The agents pane shows the reviewer's own progress.
 
 Limits: the model sees a part of each change, not the whole file or its callers, so it can miss critical logic that only shows in context, and it can flag something harmless. The file contents are untrusted input to that call. The mod accepts only paths it sent, and the model's one-line reason is shown by `/hud review` only and never put in the message sent to Claude, so a file cannot use the check to pass instructions on, but a file could still persuade the model to answer "not critical" for itself, which is what the path floor is for. The mod never blocks a tool call or a turn.
+
+### Proof tracker
+
+The `verify-before-claim` rule asks Claude to prove its work before calling it done and to show the proof. The tracker is the part that does not depend on what the answer says: it is built from the commands that ran.
+
+| State | Row and line under the answer |
+|---|---|
+| Code edited, no check since | `2 code files not checked` (warning); under the answer: `not checked · 2 code files changed, no check ran after the last edit` |
+| A check passed after the last edit | `checked · flutter analyze ✓ · flutter test ✓` |
+| A check failed and has not passed since | `check failed · flutter test ✗` (warning) |
+| A check ran but its result was hidden | `not checked · 1 code file changed, flutter test ran piped, chained or in the background, so the result was not seen` |
+
+"Checked" means exactly this: a check command ran after the last edit and exited successfully. It does not say the right tests ran, or that they cover the change.
+
+- **What counts as a check:** `flutter analyze` and `flutter test`, `dart analyze` and `dart test`, `tsc`, the `test`, `lint`, `typecheck`, `check` and `analyze` scripts of `npm`/`pnpm`/`yarn`/`bun`, `vitest`, `jest`, `eslint`, `biome check`, `prettier --check`, `go vet` and `go test`, `cargo check`/`test`/`clippy`, `pytest`, `ruff check`, `mypy`, `pyright`, `node --test`, `swift test`, `dotnet test`, Gradle `test`/`lint`/`check` tasks, `make test`/`lint`/`check`, and `claude plugin test`/`validate`. `verify_commands` adds a project's own, which is how a Unity project names its compile check. A build is not a check, and neither is `--help`, `--version`, a watcher, a fixer (`--fix`, `--write`) or a Gradle build that excludes its tests (`-x test`).
+- **The result must be visible.** A passing result counts only when the command's own exit status is the check's. `flutter test | tail -20` exits 0 even when a test fails, so a check that is piped, followed by `;` or `||`, or started in the background is listed as "result not seen" and the state stays "not checked". The follow-up then asks for each check as its own command. A failure is always counted.
+- **Order matters:** an edit after a check makes the proof stale, so "checked" always describes the code as it stands. Edits made by a shell command count too: an in-place `sed`, a formatter or fixer that writes, and the git commands that replace files (`checkout`, `restore`, `stash`, `merge`, `rebase`, `pull`, `reset` and the like). Docs, images and lock files are not code.
+- **The label is never the command line.** Each check has a fixed label (`flutter test`, `npm typecheck`, `gradlew test`), since arguments can hold a token. Text inside quotes is ignored, so a commit message that mentions a test command runs nothing.
+- **The follow-up:** when a turn ends with code changed and nothing checked, or with a failing check, the mod asks Claude to run the analyzer and the covering tests and to report each command with its result (`proof_followup`: `auto`, `send`, `fill` or `off`; `auto` follows `nextc-core`'s `ask_level`). It shares the one message a prompt of yours allows with the critical-review check, so both asks go out together and neither can loop.
+- **No model call.** `/hud proof` lists the checks and the files.
+
+Limits: a passing check is evidence, not a guarantee. The tracker cannot tell which files a check covered, so one passing check clears the state for everything changed; a test command that finds no tests still passes; and a file changed by a script the list above does not know is not noticed. Checks run by a split-pane teammate in its own terminal are not seen.
+
+### Project pane
+
+`/hud project` opens it; `/hud project tasks|quality|activity` opens it on a tab, and keys 1 to 4 switch tabs while the pane has the keyboard.
+
+```
+acme-app  1.4.0+52 · feature/login  ·  1 run live
+● explore ─ ● kickoff ─ ◉ tasks ─ ◉ build ─ ○ aso
+╭ tasks ─────────────────────╮ ╭ build ─────────────────────╮
+│ ██████████░░░░░░ 14/22 64% │ │ 1.4.0+52  in progress      │
+│ M2 Auth     ██████░░ 6/8   │ │ uploading? quiet 3m        │
+│ M3 Payments ██░░░░░░ 2/8   │ │ ✓ ✓ ✗ ✓ ✓ …   last 6       │
+│ ▸ doing    Wire auth       │ ╰────────────────────────────╯
+│ ! blocked  Apple sign-in   │ ╭ quality ───────────────────╮
+│   next     Password reset  │ │ 2 critical files not reviewed │
+╰────────────────────────────╯ │ checked · flutter analyze  │
+                               │ last review 2026-11-16 FIX FIRST │
+                               ╰────────────────────────────╯
+╭ this week ────────────────────────────────────────────────╮
+│ ▁▃▂█▅▁▂  7 sessions · ~$18.40 · 3 compactions             │
+│ skills  feature-dev ×4 · flutter-build ×2                 │
+╰───────────────────────────────────────────────────────────╯
+[overview] [tasks] [quality] [activity] [next task] [refresh] [collapse]
+```
+
+The drawing above is the intended layout, written by hand; the pane has not been seen on a real screen yet.
+
+| Part | Read from |
+|---|---|
+| Header | The folder name, the version (`pubspec.yaml`, `package.json` or Unity's `ProjectSettings.asset`), the branch (`.git/HEAD`), live runs and working agents |
+| Path | `explore` (a `docs/proposal.md` or explore run), `kickoff` (`docs/architecture.md` or a kickoff run), `tasks`, `build` (the buildlog), `aso`: ● done, ◉ under way, ○ not started |
+| tasks | `docs/tasks.md`: the overall bar, a bar per milestone (`##` or `###` heading), then what is in progress, blocked and next |
+| build | `docs/buildlog.md`: the latest build, the live step, and the last builds as a timeline |
+| quality | Critical files waiting for review, the proof state, the last entries of `docs/qc/critical-reviews.md`, and on the quality tab the changelog's last date and when tasks were last touched |
+| this week | The session history for this project: a cost sparkline by day, sessions, compactions, the skills and agents used most |
+
+Two columns from 96 columns of pane width, one below. `[next task]` puts a request to work on the next open task in the prompt box (the request names the file, not the task's text, since that text comes from a file); nothing is sent. The week's block matches sessions by folder name, so two projects with the same folder name share it. Colour is kept for what needs attention: blocked tasks, failed builds, unreviewed or unverified changes. The pane checks its files every minute while open (every 15 seconds while a run is live) and re-reads only the ones that changed, collapses to one line, and is closed only by you (`/hud project off` or the frame's close mark). It does not open by itself.
+
+### Usage
+
+`/hud usage` covers the last 30 days: each skill with how often it ran, in how many sessions, and the cost of the turns that used it; each agent type with how often it was spawned; and the installed skills and commands that were not used at all, which is the list to look at before retiring one. A turn that used two skills counts its cost for both, so the column is not a sum. The mod's own model calls are left out, and the first turn after the mod loads is not priced. Use is recorded from the version that added this; older sessions have costs only.
+
+### Lesson capture
+
+When a prompt you send opens like a correction ("no, …", "that's not …", "you should …", "should be …", "don't …", "I said …", "never …", "always …"), the row shows `[ save lesson ]` for three turns. A question is not taken for a correction, and a prompt that looks like it holds a credential is not kept. Pressing it (or `/hud lesson`) puts a `/learn-eval` request quoting your correction in the prompt box; you send it, and the skill records the lesson where it loads next time. `/hud lesson off` dismisses the offer. Your text stays in the session's state. On a login that keeps mods off prompt events the offer never appears.
+
+### Handoff at the right moment
+
+When context first reaches "act now" (80% by default), the mod writes `.claude/handoff.md` in the background: one model pass over the session's own transcript, asked for no tools and for the headings `/session-handoff` reads back (goal, state with evidence, decisions, tried and failed, next step). A toast says when it is written. `/hud handoff write` does the same on request.
+
+- **Fresh start:** `[ fresh start ]` then offers `/clear`; after it, `/session-handoff resume` continues from the file. If you kept working after the file was written, the button first writes it again, so the handoff is never older than your last turn.
+- **Read it before you resume.** The file is model text built from the whole conversation, including tool and file output, and the resume step acts on its "Next step". The pass is told to treat that output as data, to take the goal and next step only from what you asked, and to name secrets' locations rather than their values, and the file starts with a note saying it is unverified. That lowers the risk; it does not remove it.
+- **What is written:** only a reply in the handoff form (it must start with `# Handoff` and contain `## Next step`); a refusal or a preamble is not written. An existing `.claude/handoff.md` is kept beside the new one as `.claude/handoff.prev.md`. Add both to `.gitignore` if the project does not commit them.
+- **Cost:** the pass re-reads the whole conversation, billed like one more turn at that size on the session's model, mostly from cache when the session was active in the last few minutes. That is why it stops above `auto_handoff_max_tokens` (400,000 by default): on a 1M window at 80% it would be a large read. The button and `/hud handoff write` still work there.
+- **Quiet:** `/hud coach off` also stops the automatic pass for that session; `auto_handoff` turns it off for good.
 
 ### Build card
 
@@ -236,6 +323,8 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 
 ## Turn things off, tune the thresholds
 
+**One setting for how much is asked.** `nextc-core`'s `ask_level` (`normal` or `less`, in `/config`) decides how much Claude asks, and by default it also decides how this mod's two follow-ups behave: at `less` the mod sends them itself, at `normal` it puts them in the prompt box for you to send. The mod reads that one value from the merged settings (`pluginConfigs`) each time it has something to ask; `/hud status` shows the level it found and what each follow-up will do. Without `nextc-core` the level is `normal`.
+
 `/config` lists every option, or set them under `pluginConfigs` in `~/.claude/settings.json`:
 
 | Option | Default | What it does |
@@ -250,10 +339,18 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 | `coach_toasts` | `true` | One toast per crossing per session. `/hud coach off` silences them for one session. |
 | `toasts_when_hidden` | `false` | Also toast while the row is off, hidden or collapsed. |
 | `critical_check` | `true` | The small model call after a turn that changed code. Off: only `critical_paths` decides. |
-| `critical_followup` | `send` | What happens when critical files have no review: `send` one message asking for it, `fill` the prompt box, or `off` (toast only). |
+| `critical_followup` | `auto` | What happens when critical files have no review. `auto` follows `nextc-core`'s `ask_level` (`less`: send; `normal`, or no `nextc-core`: fill). Or fix it: `send` one message asking for it, `fill` the prompt box, or `off` (toast only). |
 | `critical_model` | `haiku` | The model the check uses. |
 | `critical_paths` | (built-in list) | A case-insensitive regular expression; a file whose path inside the project matches is critical whatever the check says. |
 | `review_reminder` | `true` | The toast naming files with no review, shown when the follow-up is off, could not be sent, or was already sent once for this prompt. |
+| `proof_check` | `true` | The proof tracker. |
+| `proof_followup` | `auto` | When code changed and nothing was checked. `auto` follows `nextc-core`'s `ask_level` the same way. Or fix it: `send` one message asking for proof, `fill` the prompt box, or `off` (toast only). |
+| `show_proof_line` | `true` | The proof line under an answer. |
+| `verify_commands` | (none) | A regular expression for the project's own check commands. |
+| `upload_warning` | `true` | One toast when a build starts with unreviewed critical files or unchecked code. It never blocks. |
+| `lesson_capture` | `true` | The `[ save lesson ]` offer after a correction. |
+| `auto_handoff` | `true` | Write `.claude/handoff.md` at "act now". |
+| `auto_handoff_max_tokens` | `400000` | Largest context for the automatic handoff. |
 | `build_card` | `true` | The line under a build command's row. |
 | `done_toasts` | `true` | Toasts for a long turn, a finished run and the last agent finishing. |
 | `done_sound` | `true` | The chime with those events (macOS only). |
@@ -273,11 +370,14 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 | Reads | `~/.claude/autopilot/<run-id>/status.json`, `result.json`, `approved.json`; in the project: `docs/buildlog.md`, `docs/explore/state.json`, `docs/explore/evidence/_index.json`, `docs/idea-explorations/<slug>/state.json` and `evidence/_index.json`, `aso/.pipeline-state.json`, `.kickoff/state.json` |
 | Checks for | `~/.claude/autopilot/<run-id>/lock`, `STOP`; `.git` in the session folder and up to 12 parents (once, to find the git root) |
 | Writes (Stop only) | `~/.claude/autopilot/<run-id>/STOP`, empty |
-| Reads (project) | `docs/tasks.md`, for the `#` typeahead |
+| Reads (project) | `docs/tasks.md` (typeahead and project pane); for the project pane also `docs/buildlog.md`, `docs/qc/critical-reviews.md`, `CHANGELOG.md`, `pubspec.yaml`, `package.json`, `ProjectSettings/ProjectSettings.asset`, `.git/HEAD`, and whether `docs/proposal.md` and `docs/architecture.md` exist |
+| Writes (handoff) | `.claude/handoff.md` in the session folder when the handoff writer runs, and `.claude/handoff.prev.md` when a handoff was already there |
 | Store | One value, `sessions`, in the mod's own `$.store` (a JSON file Claude Code keeps for the mod in its configuration folder): per session the project folder name, cost estimate, compactions and agent count. It stays on this machine |
 | Plays | `sounds/done.wav`, a file the mod ships, through Claude Code's `$.audio.play` |
 | Agents | The engine's agent roster (`$.agent.list`), and each tool call's name plus one short field of its input (file name, description, pattern, task subject, todo list). Kept in the session's state only; never written to disk or sent anywhere |
-| Prompt box | Reads the draft, fills it (`/hud compact`, `/hud handoff`, their buttons, and the review request in `fill` mode) only when the box is empty. Submits one thing only: the review request in `send` mode |
+| Prompt box | Reads the draft, fills it (`/hud compact`, `/hud handoff`, their buttons, and the review request in `fill` mode) only when the box is empty. Submits one thing only: the follow-up that asks for a review or for proof, in `send` mode, once per prompt of yours |
+| Model (handoff) | One pass over the session's own transcript at "act now" or on `/hud handoff write` (`auto_handoff`) |
+| Settings | The `pluginConfigs` key of the merged settings, to read `nextc-core`'s `ask_level`. Only that level is kept |
 | Model | One call per turn that changed code, with the paths and parts of the changed code, through the session's own API client (`critical_check`) |
 | Environment | `HOME`, or `USERPROFILE` when `HOME` is unset |
 
@@ -343,6 +443,8 @@ The mod is TypeScript (`hooks/register.tsx`) because the official tooling handle
 | `hooks/lib/coach.ts` | Thresholds, the compaction counter, toasts due, the texts the actions fill. |
 | `hooks/lib/row.ts` | The row's segments and the width-priority layout. |
 | `hooks/lib/crew.ts` | The agents pane: roster, per-agent activity, task and todo progress, and its lines. |
+| `hooks/lib/proof.ts` | The proof tracker, the correction detector and the usage tallies. |
+| `hooks/lib/project.ts` | The project pane's model: task board, build history, ledger, pipeline track, bars and sparklines, blocks. |
 | `hooks/lib/extras.ts` | The critical-review tracker, build card, done notice, `#` typeahead and session history. |
 | `sounds/done.wav` | The done chime (two short tones, generated, about 20 KB). |
 | `hooks/lib/sources.ts` | Each project file's parser and the shared run shape. |

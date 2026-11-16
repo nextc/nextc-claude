@@ -22,6 +22,8 @@ import {
   parseVerdict,
   followupText,
   followupMode,
+  resolveFollowup,
+  askLevelOf,
   snippetOf,
   runForCall,
   activeRunIds,
@@ -216,7 +218,15 @@ test('the answer is parsed defensively and cannot name a file that was not sent'
   expect(parseVerdict('not json', sent)).toBe(null)
   expect(parseVerdict('{"critical": "all"}', sent)).toBe(null)
   expect(followupMode('fill')).toBe('fill')
-  expect(followupMode('nonsense')).toBe('send')
+  expect(followupMode('nonsense')).toBe('auto')
+  expect(followupMode(undefined)).toBe('auto')
+  expect(resolveFollowup('auto', 'less')).toBe('send')
+  expect(resolveFollowup('auto', 'normal')).toBe('fill')
+  expect(resolveFollowup('off', 'less')).toBe('off')
+  expect(askLevelOf({ 'nextc-core@nextc-claude': { options: { ask_level: 'less' } } })).toBe('less')
+  expect(askLevelOf({ 'nextc-core@inline': { options: { ask_level: 'normal' } } })).toBe('normal')
+  expect(askLevelOf({ 'nextc-core-fork@x': { options: { ask_level: 'less' } }, 'nextc-hud@nextc-claude': { options: { ask_level: 'less' } } })).toBe('normal')
+  for (const bad of [undefined, null, 'less', 42, { 'nextc-core@x': null }, { 'nextc-core@x': { options: 'less' } }]) expect(askLevelOf(bad)).toBe('normal')
 })
 
 test('changes are kept per file with a bounded snippet; prose and tests are not sent', () => {

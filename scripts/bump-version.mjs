@@ -52,6 +52,10 @@ export function run({ root, target, dryRun = false, force = false }) {
   const base = manifests[0].version;
   if (!SEMVER.test(base ?? '')) throw new Error(`Marketplace version "${base}" is not x.y.z`);
   const next = bumpVersion(base, target);
+  // Installed copies only pick up a higher version, so going down or sideways is refused.
+  const parts = (v) => v.split('.').map(Number);
+  const isHigher = parts(next).reduce((cmp, n, i) => (cmp !== 0 ? cmp : n - parts(base)[i]), 0) > 0;
+  if (!isHigher && !force) throw new Error(`${next} is not higher than the current version ${base} (use --force to override)`);
   const changed = [];
   for (const m of manifests) {
     const text = readFileSync(m.file, 'utf8');

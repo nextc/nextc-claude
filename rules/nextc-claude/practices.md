@@ -14,7 +14,7 @@ Search before hand-rolling common infrastructure (auth, payments, uploads, cachi
 
 For anything beyond a trivial change:
 
-- When a request has more than one reasonable reading, or leaves the outcome to your judgment ("make it great", "clean this up"), pick the reading the request, the code and sensible defaults support. If a real product or design choice remains, put it in the one batched question (`heavy-commands.md`) instead of guessing.
+- When a request has more than one reasonable reading, or leaves the outcome to your judgment ("make it great", "clean this up"), follow the asking level in `heavy-commands.md`: at `normal` ask which reading is meant when the readings lead to different work; at `less` pick the reading the request, the code and sensible defaults support. A real product or design choice is asked at either level, never guessed.
 - If a simpler path meets the need, say so before building the larger one.
 - Make sure you are solving the actual problem, not the symptom in front of you.
 
@@ -40,6 +40,6 @@ Review your own code changes before you call the work done, at a depth that matc
 
 - **Small and contained** (one file, no auth, payments, user data, concurrency or schema): re-read the diff yourself. No reviewer agent.
 - **Anything larger**: spawn `code-reviewer` on the diff and untracked files. Give it the diff and the acceptance criteria, not your reasoning.
-- **Critical logic, always, whatever the size** (auth, authorization, payments, user data, secrets, concurrency, schema or migrations): spawn `critical-reviewer` (Fable at `high`; Opus at `xhigh` when Fable is unavailable), in parallel with `code-reviewer` and with `security-reviewer` when auth, payments, secrets or user data are involved. If that agent type is not installed, run the same review with a general-purpose agent on that model rather than skipping it. Say in your report that it ran, on which model, and its verdict.
+- **Critical logic, always, whatever the size** (auth, authorization, payments, user data, secrets, concurrency, schema or migrations): spawn `critical-reviewer` (Fable at `high`; Opus at `xhigh` when Fable is unavailable), in parallel with `code-reviewer` and with `security-reviewer` when auth, payments, secrets or user data are involved. If that agent type is not installed, run the same review with a general-purpose agent on that model rather than skipping it. Say in your report that it ran, on which model, and its verdict, and append the reviewer's ledger entry to `docs/qc/critical-reviews.md` (create it if missing).
 - Fix CRITICAL and HIGH findings after checking each against the code; push back on wrong ones (see "Receiving review feedback"). In your report say what was reviewed, what you fixed, and what you left with the reason.
 - One review pass per piece of work. Re-review only the parts a fix changed materially.

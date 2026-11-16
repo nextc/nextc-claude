@@ -1,5 +1,21 @@
 # Release Log
 
+## v1.9.0 (2026-11-17)
+
+**How much Claude asks is now a setting.** `nextc-core` has `ask_level` in `/config`: `normal` (the new default) asks before a heavy process nobody asked for, when a request can be read two ways, and before retrying a failed store upload; `less` is the behaviour of the last releases. **If you relied on that behaviour, set `ask_level` to `less` after updating.** `nextc-hud`'s follow-up messages follow the same setting. The setting is a fixed-choice option, which Claude Code supports from 2.1.271: on an older version `nextc-core` does not load, so update Claude Code first.
+
+**Critical logic always gets a deep review.** A new `critical-reviewer` agent (Fable, with Opus as the fallback) reviews changes to auth, payments, user data, secrets, concurrency and schema, whatever their size, and its verdict is appended to the project's `docs/qc/critical-reviews.md`. `nextc-hud` checks each turn's changes with a small model, judged by what the code does, and asks for the review when none ran.
+
+**Claude proves its work.** The rules now ask for the covering tests and the analyzer to run after the last edit, with each command and its result in the report. `nextc-hud` shows the proof under each answer from the commands that actually ran: `checked · flutter analyze ✓`, `check failed · …` or `not checked`. A piped or backgrounded check does not count as passing.
+
+**More in `nextc-hud`.** An agents pane (`/hud agents`: who is on which task, with team task progress), a project pane (`/hud project`: tasks by milestone, builds, quality, the week's cost), skill and agent usage (`/hud usage`), session cost history (`/hud costs`), a card under build commands, a done chime, a `#` task typeahead, an offer to save a correction as a lesson, and a handoff file written in the background when context runs high.
+
+**Build skills warn before building** when the analyzer reports errors or critical code changed with no review on record. They never refuse.
+
+**For this repo:** a project-local `/release` skill, pre-commit checks in `CLAUDE.md`, and `bump-version.mjs` now refuses a version that is not higher than the current one.
+
+Not yet seen on a real screen: the new panes, the row items, the proof line and the buttons. They are covered by 160 offline tests and by headless runs of the real engine.
+
 ## v1.8.2 (2026-11-16)
 
 **The `nextc-hud` run pane opens by itself and collapses instead of closing.** When a build, explore, ASO or kickoff run starts in the project, the read-only pane opens without `/hud watch` (new option `auto_watch`, on by default); the mod notices the run from the state files, so no skill triggers it. The pane's Close button is replaced by Collapse and Expand: collapsed, it is one line with the run's last state. It collapses by itself once a run's outcome has left the row and expands for the next run. Only the frame's close mark or `/hud watch off` closes it. Autopilot runs still use `/autopilot-watch`.

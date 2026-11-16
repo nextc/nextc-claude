@@ -51,4 +51,14 @@ Findings (most severe first):
 Not verified: <what, and what would settle it>
 ```
 
+End with a ledger entry the lead appends to `docs/qc/critical-reviews.md` as it is, so the verdict outlives the session. Keep the heading on one line in exactly this form:
+
+```
+## <YYYY-MM-DD> — <SAFE TO SHIP | FIX FIRST | NEEDS A DECISION> — <what was reviewed, a few words>
+- Files: <the critical files>
+- Model: <the model you ran on>
+- Findings: <count by severity, or "none">
+- Outcome: <left for the lead: what was fixed, what was left and why>
+```
+
 `NEEDS A DECISION` is for a trade-off only the user can make (for example, accepting a known race for simplicity). State both options in a sentence each.

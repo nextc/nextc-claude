@@ -1,7 +1,7 @@
 {
   "name": "nextc-hud",
-  "version": "1.8.2",
-  "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), an agents pane (/hud agents), a critical-review check that asks for the reviewer when a turn changed critical logic, a build card, a done chime, a # task typeahead, session cost history (/hud costs) and a 'used this turn' line. It observes only, except the critical-review check: one small model call per turn that changed code and one follow-up message, both optional.",
+  "version": "1.9.0",
+  "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), an agents pane (/hud agents), a critical-review check that asks for the reviewer when a turn changed critical logic, a proof tracker that shows whether the code was checked after the last edit, a project pane (/hud project), skill and agent usage (/hud usage), lesson capture, a handoff written at the right moment, a build card, a done chime, a # task typeahead, session cost history (/hud costs) and a 'used this turn' line. It mostly observes; three optional parts do more: one small model call per turn that changed code, one follow-up message per prompt asking for a review or for proof, and one model pass that writes the handoff file.",
   "author": {
     "name": "nextc"
   },
@@ -52,8 +52,14 @@
     "critical_followup": {
       "type": "string",
       "title": "When critical changes have no review",
-      "description": "send: the mod sends one message asking Claude to run the critical-reviewer (once per prompt of yours). fill: it puts that message in the prompt box for you to send. off: a toast only.",
-      "default": "send"
+      "description": "auto: follow nextc-core's ask_level (less: send; normal, or nextc-core not installed: fill). send: the mod sends one message asking Claude to run the critical-reviewer, once per prompt of yours. fill: it puts that message in the prompt box for you to send. off: a toast only.",
+      "options": [
+        "auto",
+        "send",
+        "fill",
+        "off"
+      ],
+      "default": "auto"
     },
     "critical_model": {
       "type": "string",
@@ -66,6 +72,60 @@
       "title": "Critical path pattern",
       "description": "A regular expression (case-insensitive) matched against a file's path inside the project that marks an edit as critical whatever the check says (and alone when the check is off or fails). Empty uses the built-in list of whole words: auth, login, session, password, permission, role, rls, policy, payment, billing, purchase, subscription, entitlement, checkout, wallet, secret, crypto, migration, schema, access/refresh/api/jwt tokens, and .sql files.",
       "default": ""
+    },
+    "proof_check": {
+      "type": "boolean",
+      "title": "Track proof of verification",
+      "description": "Follow which checks ran after the last code edit (analyzers, type checks, linters, test runs). The row shows 'not checked', 'checked' or 'check failed', and /hud proof lists the checks. No model call.",
+      "default": true
+    },
+    "proof_followup": {
+      "type": "string",
+      "title": "When code changed and nothing was checked",
+      "description": "auto: follow nextc-core's ask_level (less: send; normal, or nextc-core not installed: fill). send: the mod sends one message asking Claude to verify the work and show the commands and results; it shares the one message per prompt with the critical-review ask. fill: it puts that message in the prompt box. off: a toast only.",
+      "options": [
+        "auto",
+        "send",
+        "fill",
+        "off"
+      ],
+      "default": "auto"
+    },
+    "show_proof_line": {
+      "type": "boolean",
+      "title": "Show the proof line",
+      "description": "Under an answer that changed code or ran a check, one line built from the commands that actually ran: 'checked · flutter analyze ✓', 'check failed · …' or 'not checked · 4 code files changed'.",
+      "default": true
+    },
+    "verify_commands": {
+      "type": "string",
+      "title": "Extra check commands",
+      "description": "A regular expression matching this project's own check commands (for example a custom validate script), counted as a check besides the built-in analyzers and test runners. Empty adds none.",
+      "default": ""
+    },
+    "upload_warning": {
+      "type": "boolean",
+      "title": "Warn before a build with unreviewed or unchecked changes",
+      "description": "When a build or upload command starts while critical files are unreviewed or code has not been checked since the last edit, one toast says so. It never blocks the build.",
+      "default": true
+    },
+    "lesson_capture": {
+      "type": "boolean",
+      "title": "Offer to save a correction as a lesson",
+      "description": "When a prompt reads like a correction ('no, …', 'you should …'), the row offers [ save lesson ] for three turns; pressing it puts a /learn-eval request in the prompt box.",
+      "default": true
+    },
+    "auto_handoff": {
+      "type": "boolean",
+      "title": "Write the handoff when context reaches 'act now'",
+      "description": "At the 'act now' threshold, write .claude/handoff.md in the background from the conversation itself (one extra model pass over the session's transcript, billed like a turn that reads the whole context; the previous handoff is kept as handoff.prev.md), so a fresh start is /clear then /session-handoff resume. Read the file before resuming: it is model text built from the whole conversation.",
+      "default": true
+    },
+    "auto_handoff_max_tokens": {
+      "type": "number",
+      "title": "Largest context for the automatic handoff",
+      "description": "Above this many context tokens the handoff is not written automatically, because the pass re-reads the whole conversation; /hud handoff write does it on request.",
+      "default": 400000
     },
     "build_card": {
       "type": "boolean",

@@ -16,7 +16,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA/TestFlight) |
 | **nextc-aso** | aso-pipeline, aso-naming, aso-edge-tactics | App Store optimization from live store data, collision-checked naming, and edge-tactics auditing |
 | **nextc-claude-toolbox** | validate, skill-audit, writing-skills, rules-distill | Tools for authoring and checking plugins, skills and rules |
-| **nextc-hud** | `/hud`, `/autopilot-watch` (mod) | Optional mod: an always-on row above the prompt (context, compactions, cost, rate limits, agents) with a session coach, a live monitor for builds, pipelines and `/autopilot` runs, an agents pane (who is on which task, and how far along), a critical-review check (a small model judges each turn's changes and asks for the Fable reviewer when needed), a card under build commands, a done chime, a `#` task typeahead, session cost history, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
+| **nextc-hud** | `/hud`, `/autopilot-watch` (mod) | Optional mod: an always-on row above the prompt (context, compactions, cost, rate limits, agents) with a session coach, a live monitor for builds, pipelines and `/autopilot` runs, an agents pane (who is on which task, and how far along), a critical-review check (a small model judges each turn's changes and asks for the Fable reviewer when needed), a proof tracker (verified or not, from the checks that actually ran), a project pane, a card under build commands, a done chime, a `#` task typeahead, session cost history, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
 
 ## Recommended Installation
 
@@ -44,6 +44,13 @@ cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 - `autoMode.allow`: an exception that pre-authorizes TestFlight uploads and release builds you asked for. The shipped list starts with `"$defaults"`; it is added only when you have no `autoMode.allow` list yet. If you already own one, your list stays yours: the shipped exception text is appended if missing, but `"$defaults"` is not, so a list without it keeps replacing Claude Code's built-in exceptions exactly as it did before.
 
 Other flags: `./setup-rules.sh --check` changes nothing and reports drift (symlinks, this checkout's version against the installed plugins, shipped settings entries missing from your settings, `jq` availability) and exits 1 when it finds any; `--skip-git-hooks` leaves this checkout's `core.hooksPath` alone; `--help` lists them. A real file or directory at a link destination is moved to `~/.claude/backups/`, never into `~/.claude/rules/`.
+
+**How much Claude asks.** `nextc-core` has one setting, `ask_level`, in `/config`:
+
+- `normal` (default): Claude asks before a heavy process you did not ask for (a build, a simulator, a dev server), when a request can be read two ways, and before retrying a failed store upload.
+- `less`: it does not ask in those cases. It skips the heavy check and says what is unverified, picks the sensible reading and says which, retries a diagnosed upload, and saves real product choices for one question per task.
+
+Either way it never starts a heavy process nobody asked for, and "don't ask, just do it" in a prompt makes that one task behave as `less`. The setting needs the rules installed (`setup-rules.sh`), since the rule file is what reads it.
 
 This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, critical-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, session-handoff, etc.).
 
@@ -204,7 +211,7 @@ No store keys are needed. Optionally you can give a path or env-var name for an 
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 9 plugins)
-├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; about 30.7 KB always loaded)
+├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; about 32.8 KB always loaded)
 ├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
 ├── settings/user-settings.json       (allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)

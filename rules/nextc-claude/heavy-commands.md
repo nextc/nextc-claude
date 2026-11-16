@@ -1,19 +1,29 @@
 # Approvals and Heavy Commands
 
-Do what the user asked without adding permission questions of your own, and do not start heavy processes nobody asked for.
+Ask at the level the user has set, and do not start heavy processes nobody asked for.
 
-## When to ask the user
+## Asking level
 
-Ask only in these two cases:
+The level is `normal` unless the session's context contains the line `nextc ask level: less`, which the `nextc-core` plugin adds when its `ask_level` option (in `/config`) is `less`. Where the two differ:
 
-1. **The permission settings mark the action `ask`.** Claude Code prompts for those itself; do not add your own question on top.
-2. **A real product or design choice** that the request, the code and a sensible default cannot settle. Gather every open choice into one question, and keep working on whatever does not depend on the answer.
+| Situation | `normal` | `less` |
+|---|---|---|
+| Checking a change would need a heavy process nobody asked for, or a different kind than the one approved | Ask once and wait. If the user declines, tag the claim. | Do not ask and do not run it: tag the claim, for example "(unverified — needs a run on the simulator)". |
+| A request has more than one reasonable reading that leads to different work | Ask before building on a guess. | Pick the reading the request, the code and a sensible default support, and say which you took. |
+| A real product or design choice the request, the code and a sensible default cannot settle | Ask when it comes up, with every choice open at that point in one message. | Gather every open choice into one question for the whole task, and keep working on whatever does not depend on the answer. |
+| A failed store upload inside a build skill the user invoked, once diagnosed | Ask before the retry. | Retry without asking. |
 
-Everything else proceeds without asking:
+When other rules say "the one batched question", at level `normal` that is the question you ask when the choice comes up.
+
+## In both levels
+
+These proceed without asking:
 
 - Builds, uploads, test runs and commits that are the stated purpose of a skill the user invoked, or that the user asked for in words.
 - Routine steps: reading, searching, editing, static checks (analyzers, type checks, linters, formatters), git inspection, scripts that finish in seconds.
-- Anything under a standing approval. When the user says "don't ask", "approve all", "full auto" or similar, that holds for the rest of the session's task until they say otherwise.
+- Anything under a standing approval. When the user says "don't ask", "approve all", "full auto" or similar, the session behaves as level `less` for the rest of that task, until they say otherwise.
+
+When the permission settings mark an action `ask`, Claude Code prompts for it itself; do not add your own question on top.
 
 Check your own work rather than handing it back: when a command, file or tool can confirm something, run it instead of asking the user to check.
 
@@ -21,7 +31,7 @@ Check your own work rather than handing it back: when a command, file or tool ca
 
 Do not start a heavy process that the user did not ask for and no invoked skill requires, because it slows the machine the user is working on. Heavy means product builds (`flutter build`, `xcodebuild`, `./gradlew assemble`, `npm run build`, `cargo build`, `docker build`), running an app on a simulator, emulator or device, dev servers and watchers (`npm run dev`, `vite`, anything that runs until killed), full test suites, `docker compose up`, and local database seeds or migrations.
 
-When checking a change would need one of these, skip it and tag the claim, for example "(unverified — needs a run on the simulator)", or add it to the one batched question. Do not stop the task just to ask about it.
+When checking a change would need one of these, follow the asking level: at `normal` ask first, at `less` skip it and tag the claim. Either way, never start it unasked.
 
 A request or skill invocation covers the heavy actions that task needs, including a re-run after a diagnosed fix. It does not cover a different kind of heavy action: an approved build does not start the simulator.
 

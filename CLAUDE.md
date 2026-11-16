@@ -31,7 +31,7 @@ claude plugin install nextc-hud@nextc-claude                 # optional mod; nee
 
 ```
 .claude-plugin/marketplace.json   — Marketplace manifest (9 plugins)
-nextc-core/                       — Development workflows (10 skills, 3 agents; scripts/ = autopilot launcher)
+nextc-core/                       — Development workflows (10 skills, 3 agents, 1 hook; scripts/ = autopilot launcher, ask-level.mjs; option `ask_level`)
 nextc-product/                    — Product exploration (2 skills, 4 agents; scripts/evidence-check.mjs; evals/)
 nextc-project-kickoff/            — Project scaffolding (2 skills, 1 agent; scripts/ = state, coverage, pub/UPM checks; evals/)
 nextc-flutter/                    — Flutter build + l10n (8 skills, 2 agents, 1 hook)
@@ -39,12 +39,13 @@ nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO (3 skills, 3 agents; scripts/ = store lookup, limits, state; references/; evals/)
 nextc-ecc/                        — Core agents + quality tools (14 skills, 10 agents, 3 hooks)
 nextc-claude-toolbox/             — Utility toolkit (4 skills; scripts/validate.js)
-nextc-hud/                        — Mod: always-on session row and coach, build/pipeline/autopilot monitor, agents pane, critical-review check, build card, done notice, # typeahead, session history, "used this turn" line (1 hooks module, no skills or agents; tests run with `claude plugin test ./nextc-hud`)
-scripts/bump-version.mjs          — Sets one version across the marketplace and every plugin manifest (release step)
-rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh; about 30.7 KB always loaded, skill-authoring only when editing skills/agents)
+nextc-hud/                        — Mod: always-on session row and coach, build/pipeline/autopilot monitor, agents pane, critical-review check, proof tracker, project pane, usage, lesson capture, handoff writer, build card, done notice, # typeahead, session history, "used this turn" line (1 hooks module, no skills or agents; tests run with `claude plugin test ./nextc-hud`)
+.claude/skills/release/           — Project-local `/release` skill (this repo only; not shipped by any plugin): checks, bump, release log, commit, push, plugin update
+scripts/bump-version.mjs          — Sets one version across the marketplace and every plugin manifest (release step); refuses a version that is not higher
+rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh; about 32.8 KB always loaded, skill-authoring only when editing skills/agents)
 rules-references/                 — Long-form rule references, read on demand (kept out of ~/.claude/rules/ because every .md there loads); agents-roster.md is the validator's model/effort source
-rules-evals/                      — Before/after behavioral evals for rule changes (`node rules-evals/run.mjs`, 24 cases) and propose/probe/select rule tuning (`tune.mjs`, lessons in `LESSONS.md`); both cost model calls, ask first
-tests/                            — Tests for the repo's hook, launcher and plugin scripts (`node --test 'tests/*.test.mjs'`, no install, no model calls); kept outside the plugins so they don't ship. Covers: autopilot, the ecc hooks (block-no-verify, config-protection, pre-commit-quality), nextc-flutter's upload-guard, setup-rules, the validator, kickoff scripts, evidence-check, the ASO scripts (store lookup, limits, state, App Store Connect), bump-version
+rules-evals/                      — Before/after behavioral evals for rule changes (`node rules-evals/run.mjs`, 27 cases) and propose/probe/select rule tuning (`tune.mjs`, lessons in `LESSONS.md`); both cost model calls, ask first
+tests/                            — Tests for the repo's hook, launcher and plugin scripts (`node --test 'tests/*.test.mjs'`, no install, no model calls); kept outside the plugins so they don't ship. Covers: autopilot, the ask-level hook, the ecc hooks (block-no-verify, config-protection, pre-commit-quality), nextc-flutter's upload-guard, setup-rules, the validator, kickoff scripts, evidence-check, the ASO scripts (store lookup, limits, state, App Store Connect), bump-version
 settings/user-settings.json       — Build allow rules, ask rules (destructive git/rm, push, sudo), deny rules (secret files), auto mode exceptions; merged into ~/.claude/settings.json by setup-rules.sh
 setup-rules.sh                    — Symlinks rules and references into ~/.claude/ and merges settings/user-settings.json (allow/ask/deny, needs jq); `--check` reports drift and changes nothing; `--skip-git-hooks`; idempotent
 ```
@@ -62,7 +63,7 @@ Eval cases live in `<plugin>/evals/` and use invented products only. Cases built
 | **fastlane-ios-signing** (`setup-ios-signing.sh`, optional, not a plugin) | `nextc-project-kickoff` (`/flutter-kickoff` offers to run it after scaffolding; `--ios-signing <team>` runs it unasked), `nextc-flutter` (`/flutter-build` uses the `ios/fastlane/Fastfile` it writes) | Found via `$IOS_SIGNING_SETUP_SCRIPT`, `~/.fastlane-nextc/setup-ios-signing.sh` or `PATH`; otherwise the kickoff asks for the path or skips. Its config lives in `~/.fastlane-nextc/config/teams.json` (`$IOS_SIGNING_CONFIG`) |
 | **dart-flutter** (official, optional) | `nextc-project-kickoff` (`/flutter-kickoff` offers it) | Dart/Flutter MCP server (analyzer, tests, runtime inspection), Flutter skills, a11y agent. Install: `claude plugin marketplace add flutter/agent-plugins` then `claude plugin install dart-flutter@dart-flutter` (source: docs.flutter.dev/ai/get-started) |
 
-No plugin declares a minimum Claude Code version (`engines`).
+No plugin declares a minimum Claude Code version (`engines`) except `nextc-hud`. `nextc-core`'s `ask_level` option uses a fixed list of choices, which needs Claude Code 2.1.271 or later to load.
 
 ## Plugins
 
@@ -82,6 +83,19 @@ No plugin declares a minimum Claude Code version (`engines`).
 | autopilot | `/autopilot` | Run an approved plan unattended: `plan` mode gets one approval and prints the launch command; the user starts `scripts/autopilot-run.mjs` (or asks Claude to launch it in the background), which runs bypass-permissions in a local clone inside the OS sandbox plus a guard hook, never pushes or uploads to stores, and ends with `report.md` (every question, answer and decision). The budget covers the whole run and is required; the decider is capped at 30 calls per run; workers run in the foreground. Launcher commands: `status`, `estimate`, `sandbox-check`, `relocate`, `clean`. |
 
 Agents: `doc-keeper` (sonnet), `ui-ux-developer` (sonnet), `autopilot-decider` (fable, answers an autopilot run's questions)
+
+Option `ask_level` (in `/config`): `normal` (default) or `less`. It sets how much Claude asks, as the "Approvals and Heavy Commands" rule defines it:
+
+| Situation | `normal` | `less` |
+|---|---|---|
+| A check would need a heavy process nobody asked for | Ask once; tag the claim if declined | Do not ask, do not run it; tag the claim |
+| A request can be read two ways that lead to different work | Ask first | Pick the sensible reading and say which |
+| A real product or design choice | Ask when it comes up | One question for the whole task; keep working meanwhile |
+| A failed store upload in an invoked build skill, once diagnosed | Ask before the retry | Retry without asking |
+
+`nextc-hud` reads the same option: its two follow-up messages (asking for the critical review, asking for proof) are sent by the mod at `less` and put in the prompt box at `normal`, unless `critical_followup` or `proof_followup` is set to something other than `auto`.
+
+Hook (`hooks/hooks.json`, `scripts/ask-level.mjs`): at `SessionStart` and `SubagentStart` it adds the line `nextc ask level: less` to the context when the option is `less`, and nothing at `normal`. The rule file reads that line, so the option only has an effect where the rules are installed (`setup-rules.sh`). A standing "don't ask" in a prompt makes one task behave as `less` at either level.
 
 ### nextc-product
 
@@ -161,7 +175,7 @@ Agents: `aso-observer` (sonnet, collects store observations), `aso-specialist` (
 | opensource-pipeline | `/opensource-pipeline` | Prepare a private repo for public release in a staging copy, with a leak audit beyond secrets and an evidence checklist. |
 | safety-guard | `/safety-guard` | Explain which guards exist in this setup and add a temporary project-scoped restriction for a risky session. |
 
-Agents: `planner` (fable, writes the plan file itself), `architect` (fable, adversarial plan/design reviewer), `code-reviewer` (sonnet; stack-aware, includes the silent-failure checklist), `critical-reviewer` (fable at high, opus at xhigh as fallback; always runs when a change touches auth, payments, user data, secrets, concurrency or schema), `security-reviewer` (sonnet, read-only), `build-error-resolver` (sonnet), `a11y-architect` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
+Agents: `planner` (fable, writes the plan file itself), `architect` (fable, adversarial plan/design reviewer), `code-reviewer` (sonnet; stack-aware, includes the silent-failure checklist), `critical-reviewer` (fable at high, opus at xhigh as fallback; always runs when a change touches auth, payments, user data, secrets, concurrency or schema; its verdict is appended to the project's `docs/qc/critical-reviews.md`), `security-reviewer` (sonnet, read-only), `build-error-resolver` (sonnet), `a11y-architect` (sonnet), `opensource-forker` (sonnet), `opensource-sanitizer` (sonnet), `opensource-packager` (sonnet)
 
 Hooks (PreToolUse, all gates that print nothing on pass): `block-no-verify`, `config-protection`, `pre-commit-quality` (details in `nextc-ecc/hooks/README.md`). Five earlier hooks were removed after measurement showed they did nothing useful; destructive commands now go through `permissions.ask` rules instead. Thirteen rarely used skills are `disable-model-invocation` (user-invoked only).
 
@@ -176,21 +190,27 @@ Hooks (PreToolUse, all gates that print nothing on pass): `block-no-verify`, `co
 
 ### nextc-hud
 
-A mod (TypeScript handlers that run inside Claude Code 2.1.323+). It never denies, rewrites or approves a tool call, never starts a compaction, makes no network request of its own and starts no processes. It calls a model and submits a prompt in one place only, the critical-review check (one small model call per turn that changed code, one message asking for the review), and both can be turned off. The only file it writes by path is an autopilot run's `STOP` file; its session history goes into the mod's own store (a JSON file Claude Code keeps for it), and its done chime is a file it ships, played by Claude Code.
+A mod (TypeScript handlers that run inside Claude Code 2.1.323+). It never denies, rewrites or approves a tool call, never starts a compaction, makes no network request of its own and starts no processes. Three things go beyond observing, each optional: the critical-review check makes one small model call per turn that changed code; one follow-up message per prompt the user sends asks Claude for the review or for proof; and the handoff writer makes one model pass at "act now". It writes by path only an autopilot run's `STOP` file and the handoff (`.claude/handoff.md` and its `.prev` copy); its session history goes into the mod's own store (a JSON file Claude Code keeps for it), and its done chime is a file it ships, played by Claude Code.
 
 | Command | Purpose |
 |---------|---------|
 | always-on row | One row above the prompt in every interactive session: context used, compactions this session, session cost estimate, 5-hour and weekly rate-limit use, running and idle agents, and a summary of any live run. Turns "heavy" at 50% context or 200k tokens and "act now" at 80% or from the third compaction, with one toast per crossing. |
-| `/hud [status\|on\|off\|compact\|handoff\|coach\|runs\|watch\|agents\|review\|costs]` | Show or hide the row; `compact` and `handoff` fill a prepared `/strategic-compact` (or focused `/compact`) and `/session-handoff save` into an empty prompt box without sending; `runs` lists live project runs; `watch` opens a read-only pane for one; `agents` opens the agents pane. |
+| `/hud [status\|on\|off\|compact\|handoff\|coach\|runs\|watch\|agents\|project\|review\|proof\|costs\|usage\|lesson]` | Show or hide the row; `compact` and `handoff` fill a prepared `/strategic-compact` (or focused `/compact`) and `/session-handoff save` into an empty prompt box without sending; `runs` lists live project runs; `watch` opens a read-only pane for one; `agents` opens the agents pane. |
 | agents pane (`/hud agents`) | Every subagent and teammate: task, status, time running, tool calls, what it is doing now, and progress from its todo list or the team's shared task list. Opens by itself at the second working agent or for a team, collapses when all are done. |
-| critical-review check (`/hud review`) | After each turn that changed code, one small model call (Haiku) reads the changes and names the files with critical logic, judged by what the code does; a path pattern (`critical_paths`) is the floor a reply cannot remove. Files that no `critical-reviewer` pass has covered are shown in the row, and the mod sends one message asking Claude to run the reviewer (`critical_followup`: `send`, `fill` or `off`; only a prompt the user sends allows one message, so it cannot loop). Only a reviewer that finishes with an answer clears them. Never runs in `claude -p` or autopilot runs, and never blocks. |
+| critical-review check (`/hud review`) | After each turn that changed code, one small model call (Haiku) reads the changes and names the files with critical logic, judged by what the code does; a path pattern (`critical_paths`) is the floor a reply cannot remove. Files that no `critical-reviewer` pass has covered are shown in the row, and the mod sends one message asking Claude to run the reviewer (`critical_followup`: `auto` by default, which follows `nextc-core`'s `ask_level`: sent at `less`, put in the prompt box at `normal`; or `send`, `fill`, `off`; only a prompt the user sends allows one message, so it cannot loop). Only a reviewer that finishes with an answer clears them. Never runs in `claude -p` or autopilot runs, and never blocks. |
+| proof tracker (`/hud proof`) | Follows which checks (analyzers, type checks, linters, test runs) ran after the last code edit, with no model call. The row and a line under the answer say `checked · flutter analyze ✓`, `check failed · …` or `not checked`, built from the commands that ran (a piped, chained or backgrounded check is not counted as passing, and shell edits make a check stale); when code changed and nothing was checked the mod asks Claude to verify and report each command with its result (`proof_followup`). It shares the one follow-up message with the critical-review check. |
+| project pane (`/hud project [tab]`) | Tasks by milestone with bars, the idea-to-store path, the build timeline, quality (unreviewed, proof, the review ledger) and the week's cost sparkline and top skills, in bordered blocks with four tabs; two columns from 96 columns. Read-only; `[next task]` fills the prompt box. |
+| usage (`/hud usage`) | Last 30 days: skills and agents used, the cost of the turns that used each skill, and installed skills not used. |
+| lesson capture (`/hud lesson`) | A prompt that reads like a correction offers `[ save lesson ]` for three turns; it prepares a `/learn-eval` request in the prompt box. |
+| handoff writer (`/hud handoff write`) | At "act now" (and up to `auto_handoff_max_tokens`) writes `.claude/handoff.md` in the background from the conversation (the previous one kept as `.claude/handoff.prev.md`; only a reply in the handoff form is written; the file says it is unverified and should be read before resuming), so a fresh start is `/clear` then `/session-handoff resume`. |
+| build warning | One toast when a build or upload command starts with unreviewed critical files or unchecked code. Never blocks. |
 | build card | One dim line under a fastlane, `flutter build`, gradlew, xcodebuild or Unity batch-mode command's row: build title and step from the buildlog, elapsed time, outcome. A background build reads "started in the background" until the buildlog has an outcome. |
 | done notice | A toast and a short chime (macOS) when a turn of 60 s or more ends, a project run gets an outcome, or a stretch of agent work of 60 s or more ends. |
 | `#` typeahead | Typing `#` in the prompt box lists open tasks from `docs/tasks.md`. |
 | session history (`/hud costs`) | Last 7 days by project: sessions, the engine's cost estimate, compactions, agents. Kept in the mod's store, newest 400 sessions. |
 | `/autopilot-watch [run-id\|list\|off]` | Follow a running `/autopilot` run in a pane (or a row, or plain text where nothing can draw): step progress, live worker, decider calls against the cap, estimated cost against the budget, ledger age, last error. Flags a stale run. A Stop button, with a confirm step, creates the run's `STOP` file. |
 
-The project run monitor reads state the skills already write in the project folder: `docs/buildlog.md` and build logs (`/flutter-build`, `/unity-build`), `docs/explore/state.json` and idea-explore run folders, `aso/.pipeline-state.json`, and `.kickoff/state.json`. It also adds a "used this turn" line under an answer naming the skills and subagents that turn used (display only, no tokens). Options in `/config`: `always_on_row`, `auto_watch` (the run pane opens by itself when a project run starts, then collapses to one line instead of closing), `auto_agents` (the same for the agents pane), the four coach thresholds, `coach_toasts`, `toasts_when_hidden`, `show_used_line`, `autopilot_toasts`, `critical_check`, `critical_followup`, `critical_model`, `critical_paths`, `review_reminder`, `build_card`, `done_toasts`, `done_sound`, `done_after_seconds`, `task_typeahead`, `cost_history`. 138 tests run offline with `claude plugin test ./nextc-hud`.
+The project run monitor reads state the skills already write in the project folder: `docs/buildlog.md` and build logs (`/flutter-build`, `/unity-build`), `docs/explore/state.json` and idea-explore run folders, `aso/.pipeline-state.json`, and `.kickoff/state.json`. It also adds a "used this turn" line under an answer naming the skills and subagents that turn used (display only, no tokens). Options in `/config`: `always_on_row`, `auto_watch` (the run pane opens by itself when a project run starts, then collapses to one line instead of closing), `auto_agents` (the same for the agents pane), the four coach thresholds, `coach_toasts`, `toasts_when_hidden`, `show_used_line`, `autopilot_toasts`, `critical_check`, `critical_followup`, `critical_model`, `critical_paths`, `review_reminder`, `build_card`, `done_toasts`, `done_sound`, `done_after_seconds`, `task_typeahead`, `cost_history`, `proof_check`, `proof_followup`, `show_proof_line`, `verify_commands`, `upload_warning`, `lesson_capture`, `auto_handoff`, `auto_handoff_max_tokens`. 160 tests run offline with `claude plugin test ./nextc-hud`.
 
 ## Pipeline
 
@@ -216,14 +236,28 @@ The project run monitor reads state the skills already write in the project fold
 
 ## Rules (15)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring, heavy-commands (titled "Approvals and Heavy Commands")
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring, heavy-commands (titled "Approvals and Heavy Commands"; it holds the two asking levels that `nextc-core`'s `ask_level` option selects)
 
-Fourteen rules load every session; `skill-authoring` is path-scoped (it loads only when files matching `**/SKILL.md`, `**/skills/**` or `**/agents/*.md` are involved). The always-loaded total is about 30.7 KB (`wc -c rules/nextc-claude/*.md` minus `skill-authoring.md`: 30,735 bytes on 2026-11-17). Incident stories, tier tables and long procedures live in `rules-references/` and are read on demand, so a rule edit that grows the loaded set should move detail there. There is no per-reply context block; do not add one.
+Fourteen rules load every session; `skill-authoring` is path-scoped (it loads only when files matching `**/SKILL.md`, `**/skills/**` or `**/agents/*.md` are involved). The always-loaded total is about 32.8 KB (`wc -c rules/nextc-claude/*.md` minus `skill-authoring.md`: 32,837 bytes on 2026-11-17). Incident stories, tier tables and long procedures live in `rules-references/` and are read on demand, so a rule edit that grows the loaded set should move detail there. There is no per-reply context block; do not add one.
 
 ## Changelog
 
 - Suggest updating `CHANGELOG.md` only at completion points (a feature built and verified, a milestone done, a fix confirmed), per `project-docs.md` — not after every response that changes files
 - Before every commit, verify `CHANGELOG.md` is up to date — update it if not
+
+## Before every commit
+
+This repo has no CI, so these checks are the gate. Run them after the last edit and before a commit is called ready; a failure blocks the commit. Report each command with its result.
+
+| Changed | Run |
+|---|---|
+| Anything | `node --test 'tests/*.test.mjs'` and `node nextc-claude-toolbox/scripts/validate.js` |
+| A plugin (`nextc-*/`) | `claude plugin validate ./<plugin>` for each plugin touched |
+| `nextc-hud/` | `claude plugin test ./nextc-hud` (it also type-checks the mod through `claude plugin validate ./nextc-hud`) |
+| `.claude-plugin/marketplace.json` or a `plugin.json` | `claude plugin validate .` |
+| `rules/nextc-claude/` | The rule evals for the changed rule's cases (`node rules-evals/run.mjs --cases <names>`). They cost model calls: say what the run will cost and that it is running. A full pass needs the user's go-ahead. |
+
+All of these are fast and offline except the rule evals. The known warnings (`nextc-claude-toolbox` name reads as Anthropic's, `metadata.repository` unknown field) are accepted.
 
 Update rules:
 
@@ -236,9 +270,9 @@ See `nextc-core/agents/doc-keeper.md` for the full `CHANGELOG.md` completeness r
 
 ## Release / Version Bump
 
-When the user asks to "release", "bump version", or "cut a release":
+When the user asks to "release", "bump version", or "cut a release", use the project skill `/release` (`.claude/skills/release/SKILL.md`), which carries out these steps:
 
-1. **Bump version** with `node scripts/bump-version.mjs patch --dry-run` (check the file list), then without `--dry-run`. It sets one version in `.claude-plugin/marketplace.json` `metadata.version` and every `nextc-*/.claude-plugin/plugin.json`, and refuses when they are out of sync unless `--force`.
+1. **Bump version** with `node scripts/bump-version.mjs patch --dry-run` (check the file list), then without `--dry-run`. It sets one version in `.claude-plugin/marketplace.json` `metadata.version` and every `nextc-*/.claude-plugin/plugin.json`, and refuses when they are out of sync, or when the target is not higher than the current version, unless `--force`.
    - **Default to patch bumps** (e.g. `1.4.1 → 1.4.2`) for ALL changes — including features and refactors. Minor/major bumps are release-level signals the user calls explicitly ("bump to 1.5.0", "minor bump"): `node scripts/bump-version.mjs minor` or an explicit `x.y.z`. Don't choose minor/major based on your own scope assessment.
 2. **Update `RELEASELOG.md`** (create if missing) with a release entry:
    ```

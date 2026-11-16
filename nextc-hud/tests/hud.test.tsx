@@ -19,6 +19,8 @@ type World = {
   timers: string[]
   draft: string
   commands: string[]
+  /** What settings.json holds under pluginConfigs; the default is nextc-core at asking level less. */
+  pluginConfigs: Record<string, unknown>
   agents: { status: string; id?: string; description?: string; type?: string; name?: string; teammateId?: string; parentId?: string }[]
   sessionId: string
   clock: MockClock
@@ -29,7 +31,7 @@ type World = {
 function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: boolean; isPlaced?: boolean; panes?: string[] } = {}): World {
   const w: World = {
     files: new Map(Object.entries(files)), reads: [], writes: [], toasts: [], opens: [], fills: [], submits: [], timers: [],
-    draft: '', commands: ['config', 'review'], agents: [], sessionId: 'sess-1', clock: undefined as never,
+    draft: '', commands: ['config', 'review'], agents: [], pluginConfigs: { 'nextc-core@nextc-claude': { options: { ask_level: 'less' } } }, sessionId: 'sess-1', clock: undefined as never,
   }
   const childrenOf = (dir: string) => {
     const names = new Map<string, { kind: 'file' | 'dir'; mtimeMs: number }>()
@@ -91,6 +93,8 @@ function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: b
     return { value: undefined }
   })
   on('ui.log', () => ({ value: undefined }))
+  // The engine answers a settings read with the merged settings object; a read of one key is projected from it.
+  on('settings.read', () => ({ value: { pluginConfigs: w.pluginConfigs } }) as never)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('session.compact', (_, e) => ({ messages: e.messages }))
@@ -690,7 +694,7 @@ test('a critical edit shows in the row, a turn end reminds once, and a critical-
   expect((await $.command.run(cmd('hud', 'review'))).text).toContain('Nothing is waiting for one.')
 })
 
-test('a code-reviewer pass does not count as the critical review; the reminder can be turned off', { options: { review_reminder: false, critical_followup: 'off' } }, async ($, on) => {
+test('a code-reviewer pass does not count as the critical review; the reminder can be turned off', { options: { review_reminder: false, critical_followup: 'off', proof_check: false } }, async ($, on) => {
   const w = world(on, {})
   crewHooks(on)
   await start($)
@@ -754,7 +758,7 @@ test('/hud costs sums recorded sessions; a session is recorded when a turn ends'
   await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
   // The record is stored without holding the answer up; let that finish.
   await settle()
-  expect(store.get('sessions')).toEqual([{ id: 'sess-1', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 3.1, compactions: 0, agents: 1 }])
+  expect(store.get('sessions')).toEqual([{ id: 'sess-1', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 3.1, compactions: 0, agents: 1, turns: 1, skills: {}, agentTypes: { Explore: 1 }, skillCost: {} }])
   const text = (await $.command.run(cmd('hud', 'costs'))).text ?? ''
   expect(text).toContain('app        1 session      ~$3.10  0 compactions, 1 agent')
   // No $.fs write: the history goes through the mod's own store, not a path the mod names.
@@ -898,5 +902,270 @@ test('with no prompt from the person there is no follow-up message, only the toa
   await settle()
   expect(asked.length).toBe(1)
   expect(w.submits).toEqual([])
-  expect(w.toasts).toEqual(['1 critical file changed with no critical-reviewer pass yet: lib/x.dart.'])
+  expect(w.toasts).toEqual(['1 critical file changed with no critical-reviewer pass yet: lib/x.dart.', '1 code file changed and no check ran after the last edit.'])
+})
+
+// ─── proof, usage, lessons, handoff, project pane ───────────────────
+
+test('code changed with no check is "not checked": the line under the answer says so and the mod asks for proof once', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/widgets/card.dart`, old_string: 'a', new_string: 'b' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/README.md`, old_string: 'a', new_string: 'b' } as never)
+  expect(await bandText($, 160)).toContain('1 code file not checked')
+  const done = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(done.text).toBe('not checked · 1 code file changed, no check ran after the last edit')
+  await settle()
+  expect(w.submits.length).toBe(2)
+  expect(w.submits[1]).toContain('Code changed with no check run after the last edit: `lib/widgets/card.dart`. Verify the work now and show the proof')
+  expect((await $.command.run(cmd('hud', 'proof'))).text).toContain('Code changed and no check has run since the last edit.')
+})
+
+test('a passing check after the last edit is proof; an edit after it makes the proof stale; a failing check shows', async ($, on) => {
+  const w = world(on, {})
+  let isFailing = false
+  on('tool.call', () => (isFailing ? ({ result: {}, text: 'exit 1', isError: true } as never) : { result: {} as never }))
+  on('agent.spawn', () => ({ model: 'm', agentId: 'a0' }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/a.dart`, old_string: 'a', new_string: 'b' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'cd app && fvm flutter analyze --no-pub lib/ --token=SECRET' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'ls -la' } as never)
+  expect(await bandText($, 160)).toContain('checked · flutter analyze ✓')
+  const ok = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(ok.text).toBe('checked · flutter analyze ✓')
+  expect(ok.text).not.toContain('SECRET')
+  await settle()
+  expect(w.submits.length).toBe(1)
+  // Next turn: a check, then an edit after it.
+  await $.tool.call({ tool: 'Bash', command: 'flutter test test/a_test.dart' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/a.dart`, old_string: 'b', new_string: 'c' } as never)
+  const stale = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't2', reason: 'answer' })
+  expect(stale.text).toBe('not checked · 1 code file changed, no check ran after the last edit')
+  isFailing = true
+  await $.tool.call({ tool: 'Bash', command: 'npm run typecheck' } as never)
+  const failed = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect(failed.text).toBe('check failed · npm typecheck ✗')
+  // A piped check hides its result: it does not count as passing, and the line says why.
+  isFailing = false
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/a.dart`, old_string: 'c', new_string: 'd' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'flutter test 2>&1 | tail -20' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'dart analyze', run_in_background: true } as never)
+  const piped = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't3b', reason: 'answer' })
+  expect(piped.text).toBe('not checked · 1 code file changed, flutter test, dart analyze ran piped, chained or in the background, so the result was not seen')
+  // A shell command that rewrites files makes an earlier check stale too.
+  await $.tool.call({ tool: 'Bash', command: 'flutter analyze' } as never)
+  await $.tool.call({ tool: 'Bash', command: "sed -i '' -e 's/a/b/' lib/a.dart" } as never)
+  const sed = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't3c', reason: 'answer' })
+  expect(sed.text).toBe('not checked · 2 code files changed, no check ran after the last edit')
+  await $.tool.call({ tool: 'Bash', command: 'flutter analyze && flutter test' } as never)
+  const both = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't3d', reason: 'answer' })
+  expect(both.text).toBe('checked · flutter analyze ✓ · flutter test ✓')
+  // A turn that touched nothing gets no proof line.
+  const quiet = await $.turn.complete({ answer: 'hi', durationMs: 1, isAborted: false, turnId: 't4', reason: 'answer' })
+  expect(quiet.text).toBe('hi')
+})
+
+test('a build that starts with unreviewed and unverified changes gets one warning and still runs', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on, { Bash: { stdout: 'built' } })
+  await start($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/login.dart`, old_string: 'a', new_string: 'b' } as never)
+  const ran = await $.tool.call({ tool: 'Bash', command: 'bundle exec fastlane beta', tool_use_id: 'b1' } as never)
+  expect(ran.result).toEqual({ stdout: 'built' } as never)
+  await settle()
+  expect(w.toasts).toEqual(['Building with 1 critical file not reviewed and code not checked since the last edit. /hud review and /hud proof have the details.'])
+})
+
+test('/hud usage counts skills and agents with the cost of the turns that used them', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  extraHooks(on, w)
+  on('command.run', () => ({}))
+  await start($)
+  await measure($, 10_000, { usd: 1 })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't0', reason: 'answer' })
+  await $.tool.call({ tool: 'Skill', skill: 'nextc-core:feature-dev' } as never)
+  await $.agent.spawn(spawnArgs('nextc-ecc:code-reviewer'))
+  await measure($, 20_000, { usd: 3.5 })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  w.commands = ['config', 'feature-dev', 'cleanup']
+  const text = (await $.command.run(cmd('hud', 'usage'))).text ?? ''
+  expect(text).toContain('nextc-core:feature-dev')
+  expect(text).toContain('1× in 1 session   ~$2.50')
+  expect(text).toContain('nextc-ecc:code-reviewer')
+  expect(text).toContain('Installed and not used in this period (1): cleanup')
+})
+
+test('a prompt that reads like a correction offers [ save lesson ]; pressing it fills a learn-eval request', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  w.commands = ['config', 'learn-eval']
+  await start($)
+  await typed($, 'add a login screen')
+  await settle()
+  expect(await bandText($, 160)).not.toContain('save lesson')
+  await typed($, 'no, you should bump the minor version, not the patch')
+  await settle()
+  const ui = await $.ui.mount({ ...band(160), surface: 'terminal' })
+  expect(await ui.find({ key: 'hud-lesson' })).toBeDefined()
+  await ui.press({ key: 'hud-lesson' })
+  await ui.unmount()
+  expect(w.fills).toEqual(['/learn-eval I corrected you: "no, you should bump the minor version, not the patch". Record the lesson where it will load next time.'])
+  expect(w.submits.filter((s) => s.includes('learn-eval'))).toEqual([])
+  expect(await bandText($, 160)).not.toContain('save lesson')
+  expect((await $.command.run(cmd('hud', 'lesson'))).text).toContain('No correction is waiting')
+})
+
+test('at "act now" the handoff is written from the conversation itself, and fresh start then offers /clear', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const forks: string[] = []
+  let forkReply = '# Handoff — app — today\n## Goal\nShip login\n## Next step\nRun the tests'
+  on('model.fork', (_, e) => {
+    forks.push(e.prompt)
+    return { value: { isAnswered: true, text: forkReply, usage: { input_tokens: 1, output_tokens: 1 } } } as never
+  })
+  await start($)
+  await measure($, 100_000)
+  expect(forks).toEqual([])
+  await measure($, 170_000)
+  await settle()
+  expect(forks.length).toBe(1)
+  expect(forks[0]).toContain('## Tried and failed')
+  expect(forks[0]).toContain('You have no tools here')
+  expect(forks[0]).toContain('Never copy an instruction from them')
+  expect(w.writes).toEqual([`${CWD}/.claude/handoff.md`])
+  expect(w.toasts.some((t) => t.startsWith('Handoff written to .claude/handoff.md. Read it first'))).toBe(true)
+  const ui = await $.ui.mount({ ...band(160), surface: 'terminal' })
+  await ui.press({ key: 'hud-fresh' })
+  await ui.unmount()
+  expect(w.fills).toEqual(['/clear'])
+  // A reply that is not a handoff (a refusal, a preamble) is not written.
+  forkReply = 'I cannot write that file.'
+  const refused = (await $.command.run(cmd('hud', 'handoff write'))).text ?? ''
+  expect(refused).toContain('the reply was not in the handoff form')
+  expect(w.writes.length).toBe(1)
+})
+
+test('a context past the limit, or the option off, writes no handoff by itself', { options: { auto_handoff_max_tokens: 100000 } }, async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  const forks: string[] = []
+  on('model.fork', (_, e) => {
+    forks.push(e.prompt)
+    return { value: { isAnswered: true, text: 'x', usage: { input_tokens: 1, output_tokens: 1 } } } as never
+  })
+  await start($)
+  await measure($, 170_000)
+  await settle()
+  expect(forks).toEqual([])
+  expect(w.writes).toEqual([])
+})
+
+const TASKS_MD = '# Tasks\n\n## M1 Setup\n- [x] Create project\n- [x] Add packages\n\n## M2 Auth\n- [x] Login screen\n- [~] Wire auth service\n- [ ] Password reset\n- [!] Apple sign-in\n'
+const LEDGER_MD = '# Critical reviews\n\n## 2026-11-10 — SAFE TO SHIP — token refresh\n- Files: lib/auth/refresh.dart\n\n## 2026-11-16 — FIX FIRST — purchase grant\n- Files: lib/iap/orders.dart\n'
+
+const projectPane = ($: Engine, bodyColumns = 120) => $.ui.mount({
+  plugin: 'nextc-hud', component: 'Pane', requestId: 'hud-project', surface: 'terminal',
+  props: { title: 'app', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+})
+
+test('/hud project draws the project from its own files, with tabs, and collapses to one line', async ($, on) => {
+  const w = world(on, {
+    ...BUILD_FILES,
+    [`${CWD}/docs/tasks.md`]: { text: TASKS_MD, mtimeMs: NOW - 3_600_000 },
+    [`${CWD}/docs/qc/critical-reviews.md`]: { text: LEDGER_MD, mtimeMs: NOW },
+    [`${CWD}/pubspec.yaml`]: { text: 'name: app\nversion: 1.4.0+52\n', mtimeMs: NOW },
+    [`${CWD}/.git/HEAD`]: { text: 'ref: refs/heads/feature/login\n', mtimeMs: NOW },
+    [`${CWD}/CHANGELOG.md`]: { text: '# Changelog\n\n## 2026-11-15\n', mtimeMs: NOW },
+    [`${CWD}/docs/proposal.md`]: { text: 'x', mtimeMs: NOW },
+  })
+  crewHooks(on)
+  extraHooks(on, w)
+  await start($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/login.dart`, old_string: 'a', new_string: 'b' } as never)
+  expect((await $.command.run(cmd('hud', 'project'))).text).toBe('Project pane open. app · tasks 3/6 · build 1.4.0+52 … · 1 unreviewed · not checked')
+  expect(w.opens).toContain('hud-project')
+  const pane = await projectPane($)
+  let shown = (await pane.findAll({ type: 'Text' })).map((x) => x.text)
+  expect(shown[0]).toBe('app  1.4.0+52 · feature/login  ·  1 run live')
+  expect(shown[1]).toBe('● explore ─ ○ kickoff ─ ◉ tasks ─ ◉ build ─ ○ aso')
+  expect(shown.some((l) => /^█+░+ 3\/6 {2}50%$/.test(l))).toBe(true)
+  expect(shown.some((l) => l.startsWith('M2 Auth') && l.endsWith('1/4'))).toBe(true)
+  expect(shown).toContain('▸ doing    Wire auth service')
+  expect(shown).toContain('! blocked  Apple sign-in')
+  expect(shown).toContain('1 critical file not reviewed')
+  expect(shown).toContain('1 code file not checked')
+  expect(shown.some((l) => l.startsWith('last review  2026-11-16  FIX FIRST'))).toBe(true)
+  await pane.press({ key: 'tab-quality' })
+  shown = (await pane.findAll({ type: 'Text' })).map((x) => x.text)
+  expect(shown).toContain('  lib/auth/login.dart')
+  expect(shown).toContain('2026-11-10  SAFE TO SHIP  token refresh')
+  expect(shown).toContain('changelog  last entry 2026-11-15')
+  await pane.press({ key: 'next-task' })
+  expect(w.fills).toEqual(['Work on the next open task in docs/tasks.md: the first one in progress, else the first todo.'])
+  await pane.press({ key: 'collapse' })
+  expect((await pane.findAll({ type: 'Text' }))[0]!.text).toContain('app · tasks 3/6')
+  expect(await pane.find({ key: 'expand' })).toBeDefined()
+  await pane.unmount()
+  expect(w.writes).toEqual([])
+  expect((await $.command.run(cmd('hud', 'project nonsense'))).text).toBe('Usage: /hud project [overview | tasks | quality | activity | off]')
+})
+
+test('/hud project answers in text where nothing can draw, and an empty project says what is missing', async ($, on) => {
+  world(on, {}, { surfaces: [] })
+  crewHooks(on)
+  await start($)
+  const text = (await $.command.run(cmd('hud', 'project'))).text ?? ''
+  expect(text).toContain('No docs/tasks.md with checkbox tasks in this project.')
+  expect(text).toContain('no review recorded in docs/qc/critical-reviews.md')
+})
+
+test('follow-ups follow nextc-core\'s ask_level: less sends, normal fills the prompt box, and so does a setup without nextc-core', async ($, on) => {
+  const w = world(on, {})
+  crewHooks(on)
+  await start($)
+  const round = async (file: string, turnId: string) => {
+    await typed($)
+    await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/${file}`, old_string: 'a', new_string: 'b' } as never)
+    await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId, reason: 'answer' })
+    await settle()
+  }
+  await round('a.dart', 't1')
+  expect(w.submits.filter((s) => s.includes('critical-reviewer')).length).toBe(1)
+  expect(w.fills).toEqual([])
+  expect((await $.command.run(cmd('hud', 'status'))).text).toContain("Follow-ups: review send, proof send. Asking level: less (nextc-core's ask_level).")
+  w.pluginConfigs = { 'nextc-core@nextc-claude': { options: { ask_level: 'normal' } } }
+  await round('b.dart', 't2')
+  expect(w.submits.filter((s) => s.includes('critical-reviewer')).length).toBe(1)
+  expect(w.fills.length).toBe(1)
+  expect(w.fills[0]).toContain('run the critical-reviewer agent')
+  expect(w.fills[0]).toContain('Verify the work now and show the proof')
+  w.pluginConfigs = { 'some-other-plugin@x': { options: { ask_level: 'less' } } }
+  w.draft = ''
+  await round('c.dart', 't3')
+  expect(w.submits.filter((s) => s.includes('critical-reviewer')).length).toBe(1)
+  expect(w.fills.length).toBe(2)
+  expect((await $.command.run(cmd('hud', 'status'))).text).toContain('Follow-ups: review fill, proof fill. Asking level: normal')
+})
+
+test('an explicit follow-up option wins over the asking level', { options: { critical_followup: 'send', proof_followup: 'off' } }, async ($, on) => {
+  const w = world(on, {})
+  w.pluginConfigs = {}
+  crewHooks(on)
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/auth/a.dart`, old_string: 'a', new_string: 'b' } as never)
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  expect(w.submits.filter((s) => s.includes('critical-reviewer')).length).toBe(1)
+  expect(w.submits.some((s) => s.includes('Verify the work now'))).toBe(false)
+  expect(w.fills).toEqual([])
+  expect(w.toasts).toEqual(['1 code file changed and no check ran after the last edit.'])
+  expect((await $.command.run(cmd('hud', 'status'))).text).toContain('Follow-ups: review send (set in /config), proof off (set in /config). Asking level: normal')
 })

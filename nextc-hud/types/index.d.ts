@@ -152,7 +152,60 @@ export type Review = {
 export type BuildCall = { startedAtMs: number; endedAtMs: number | null; isBackground?: boolean }
 
 /** One finished (or still open) session in the cross-session history `/hud costs` reads. */
-export type SessionRecord = { id: string; project: string; startedAtMs: number; endedAtMs: number; usd: number | null; compactions: number; agents: number }
+export type SessionRecord = {
+  id: string
+  project: string
+  startedAtMs: number
+  endedAtMs: number
+  usd: number | null
+  compactions: number
+  agents: number
+  /** Recorded from the version that added /hud usage; absent on older records. */
+  turns?: number
+  skills?: Record<string, number>
+  agentTypes?: Record<string, number>
+  /** Per skill, the cost of the turns that used it. */
+  skillCost?: Record<string, number>
+}
+
+/** Code changed since the last passing check, and the checks run since the last edit. */
+export type Proof = {
+  changed: string[]
+  checks: { label: string; isOk: boolean; atMs: number }[]
+  /** Checks that ran in a way that hides their result (piped, chained, in the background). */
+  unseen?: string[]
+  isNudged: boolean
+  /** An edit or a check happened in the turn that is running. */
+  isTouched?: boolean
+}
+
+/** What this session used: counts per skill and agent type, and the cost of the turns that used each skill. */
+export type Tally = {
+  spawned: number
+  turns: number
+  skills: Record<string, number>
+  agentTypes: Record<string, number>
+  skillCost: Record<string, number>
+  /** Skills used in the turn that is running. */
+  turnSkills: string[]
+  lastCostUsd: number | null
+}
+
+/** What the project pane shows, read from the project's own files and the session history. */
+export type ProjectFacts = {
+  name: string
+  version: string | null
+  branch: string | null
+  tasks: { done: number; total: number; milestones: { title: string; done: number; total: number }[]; doing: string[]; blocked: string[]; next: string[] } | null
+  tasksMtimeMs: number | null
+  builds: { label: string; status: string; date: string }[]
+  ledger: { date: string; verdict: string; title: string }[]
+  changelogDate: string | null
+  hasProposal: boolean
+  hasArchitecture: boolean
+  sessions: SessionRecord[]
+  scannedAtMs: number | null
+}
 
 declare module 'claude-code' {
   interface PluginState {
@@ -168,7 +221,12 @@ declare module 'claude-code' {
       crew: Shaped<Crew>
       review: Shaped<Review>
       buildCalls: Shaped<Record<string, BuildCall>>
-      tally: Shaped<{ spawned: number }>
+      tally: Shaped<Tally>
+      proof: Shaped<Proof>
+      facts: Shaped<ProjectFacts>
+      projectUi: Shaped<{ isOpen: boolean; isCollapsed: boolean; tab: 'overview' | 'tasks' | 'quality' | 'activity' }>
+      lesson: Shaped<{ text: string | null; turnsLeft: number }>
+      handoffPrep: Shaped<{ state: 'none' | 'done' | 'failed'; atTurn: number }>
       turnWork: Shaped<{ path: string; snippet: string }[]>
       autoWatch: Shaped<{ runningIds: string[]; liveIds: string[]; activeIds?: string[]; isCollapsed: boolean }>
     }

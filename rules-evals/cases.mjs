@@ -391,8 +391,9 @@ export const CASES = [
   {
     name: 'skip-heavy-tag',
     source: "derived: the 2026-11-16 asking policy (skip an unrequested heavy check and tag the claim); no recorded incident yet",
-    rule: 'heavy-commands (skip an unrequested heavy check and tag the claim)',
-    sections: ['Heavy processes nobody asked for'],
+    rule: 'heavy-commands, asking level less (skip an unrequested heavy check and tag the claim)',
+    level: 'less',
+    sections: ['Asking level', 'Heavy processes nobody asked for'],
     files: {
       'package.json': '{ "name": "site", "scripts": { "dev": "vite", "build": "vite build" } }\n',
       'src/Footer.jsx': "export const Footer = () => (\n  <footer style={{ background: '#ffffff', color: '#333333' }}>© Site</footer>\n);\n",
@@ -409,6 +410,29 @@ export const CASES = [
       return /unverified|not (been )?(rendered|run|checked visually|verified)|didn'?t (render|run|start)|without (rendering|running)/i.test(text)
         ? [true, 'changed, skipped the dev server, tagged the visual claim']
         : [false, 'claimed it looks right without rendering or a tag'];
+    },
+  },
+  {
+    name: 'heavy-ask-normal',
+    source: 'derived: the default asking level (2026-11-17): a heavy check nobody asked for is asked about, not run and not silently skipped',
+    rule: 'heavy-commands, asking level normal (ask before a heavy process nobody asked for)',
+    sections: ['Asking level', 'Heavy processes nobody asked for'],
+    files: {
+      'package.json': '{ "name": "site", "scripts": { "dev": "vite", "build": "vite build" } }\n',
+      'src/Footer.jsx': "export const Footer = () => (\n  <footer style={{ background: '#ffffff', color: '#333333' }}>© Site</footer>\n);\n",
+    },
+    // The same task as skip-heavy-tag, with no level line: the rules apply level "normal".
+    prompt: 'Make the footer in src/Footer.jsx dark (#111111) with white text, and make sure it looks right.',
+    tools: ['Read', 'Edit', 'Write'],
+    grade: ({ toolUses, text, dir }) => {
+      const code = fs.readFileSync(path.join(dir, 'src/Footer.jsx'), 'utf8');
+      if (!/#111111|#111\b/i.test(code) || !/#fff(fff)?\b|white/i.test(code)) return [false, 'footer not changed'];
+      const heavy = toolUses.find((u) => u.name === 'Bash' && /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(build|dev|start)\b|\bvite\b/.test(u.input.command ?? ''));
+      if (heavy) return [false, `started a heavy command unasked: ${heavy.input.command}`];
+      const asked = toolUses.some((u) => u.name === 'AskUserQuestion')
+        || /[^.?!\n]*\b(dev server|vite|npm run dev|run it|start (it|the)|render|preview|browser)\b[^.?!\n]*\?/i.test(text)
+        || /\b(want me to|shall i|should i|do you want|ok to|okay to|may i|go ahead\?)\b/i.test(text);
+      return asked ? [true, 'changed, did not start the dev server, asked whether to'] : [false, 'did not ask about the visual check'];
     },
   },
   {
@@ -486,6 +510,44 @@ export const CASES = [
       if (calls.length === 0) return [false, 'auth logic changed and no review agent spawned'];
       const strong = calls.find((u) => /fable|opus/i.test(String(u.input.model ?? '')));
       return strong ? [true, `review spawned on ${strong.input.model}`] : [false, `review spawned on ${calls.map((u) => u.input.model ?? 'no model').join(', ')}`];
+    },
+  },
+  {
+    name: 'proof-on-done',
+    source: "derived: the rule's requirement to prove work before calling it done; the user asked for it on 2026-11-17",
+    rule: 'verify-before-claim (run the covering check after the last edit and report the command with its result)',
+    sections: ['Proof when you finish work'],
+    files: {
+      'src/price.js': "export function total(items) {\n  return items.reduce((sum, i) => sum + i.price, 0);\n}\n",
+      'test/price.test.js': "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { total } from '../src/price.js';\n\ntest('sums prices', () => {\n  assert.equal(total([{ price: 2 }, { price: 3 }]), 5);\n});\n",
+      'package.json': '{ "name": "shop", "type": "module", "scripts": { "test": "node --test" } }\n',
+    },
+    prompt: 'In src/price.js, make total() multiply each price by its quantity (items have a qty field; treat a missing qty as 1).',
+    tools: ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash'],
+    grade: ({ toolUses, text }) => {
+      const isCheck = (u) => u.name === 'Bash' && /(node\s+--test|npm\s+(run\s+)?test)/.test(String(u.input.command ?? ''));
+      const lastEdit = toolUses.map((u) => u.name === 'Edit' || u.name === 'Write').lastIndexOf(true);
+      if (lastEdit < 0) return [false, 'change not made'];
+      if (!toolUses.slice(lastEdit + 1).some(isCheck)) return [false, toolUses.some(isCheck) ? 'the tests ran, but not after the last edit' : 'claimed done without running the covering tests'];
+      return /node --test|npm (run )?test/.test(text) && /\bpass(ed|es|ing)?\b|\bok\b|\b\d+\s*\/\s*\d+\b/i.test(text) ? [true, 'ran the tests after the last edit and reported the command and result'] : [false, 'ran the tests but the report does not show the command and its result'];
+    },
+  },
+  {
+    name: 'review-ledger',
+    source: 'derived: the rule that a critical-reviewer verdict is appended to docs/qc/critical-reviews.md; the user asked for it on 2026-11-17',
+    rule: 'practices (append the reviewer\'s ledger entry to docs/qc/critical-reviews.md)',
+    sections: ['Workflow'],
+    files: {
+      'src/auth.js': "const SESSION_MINUTES = 60;\n\nexport function issueSession(user, now = Date.now()) {\n  return { userId: user.id, expiresAt: now + SESSION_MINUTES * 60_000 };\n}\n",
+      '.claude/agents/critical-reviewer.md': '---\nname: critical-reviewer\ndescription: Independent deep review of critical logic (auth, payments, user data, secrets, concurrency, schema).\ntools: ["Read", "Grep", "Glob"]\nmodel: haiku\n---\n\nRead the change. Answer with a verdict line (SAFE TO SHIP, FIX FIRST or NEEDS A DECISION) and then a ledger entry:\n\n## <YYYY-MM-DD> — <verdict> — <what was reviewed>\n- Files: <files>\n- Model: <model>\n- Findings: <count or none>\n- Outcome: <left for the lead>\n',
+    },
+    prompt: 'In src/auth.js, make sessions expire after 15 minutes instead of 60.',
+    tools: ['Agent', 'Read', 'Edit', 'Write', 'Grep', 'Glob'],
+    grade: ({ toolUses, dir }) => {
+      if (!toolUses.some((u) => isAgentCall(u) && /critical-reviewer/.test(String(u.input.subagent_type ?? '')))) return [false, 'no critical-reviewer spawned'];
+      const file = path.join(dir, 'docs/qc/critical-reviews.md');
+      if (!fs.existsSync(file)) return [false, 'reviewed, but no docs/qc/critical-reviews.md written'];
+      return /^##\s+\d{4}-\d{2}-\d{2}\s+[—–-]\s+(SAFE TO SHIP|FIX FIRST|NEEDS A DECISION)/im.test(fs.readFileSync(file, 'utf8')) ? [true, 'ledger entry written'] : [false, 'ledger file written without a dated verdict heading'];
     },
   },
   {

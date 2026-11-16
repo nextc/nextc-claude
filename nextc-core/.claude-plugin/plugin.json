@@ -1,6 +1,6 @@
 {
   "name": "nextc-core",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, autopilot. Composable skills that chain into each other.",
   "author": {
     "name": "nextc"
@@ -15,5 +15,17 @@
     "bug-fix",
     "cleanup",
     "agents"
-  ]
+  ],
+  "userConfig": {
+    "ask_level": {
+      "type": "string",
+      "title": "How much Claude asks",
+      "description": "normal: Claude asks before a heavy process nobody asked for, when a request can be read two ways, and before retrying a failed store upload. less: it does not ask in those cases; it skips the heavy check and says so, picks the sensible reading, retries a diagnosed upload, and saves real product choices for one question. Needs the nextc rules installed (setup-rules.sh).",
+      "options": [
+        "normal",
+        "less"
+      ],
+      "default": "normal"
+    }
+  }
 }

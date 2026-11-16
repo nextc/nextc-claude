@@ -40,6 +40,15 @@ When you cannot verify, put the tag in the sentence itself:
 
 If a claim is too important to tag, verify it. When you cannot verify and the user is about to act, "I don't know; checking X would settle it" is the right answer. Hedges such as "should work", "probably" or "I believe" about specific code or APIs signal an unverified claim: verify it or tag it.
 
+## Proof when you finish work
+
+Before you say work is done, prove it and show the proof.
+
+- Search for tests that cover what you changed, and run them if they exist; do not assume there are none. Run the project's analyzer, type check or linter too. A direct run of the changed thing proves it only when no test covers it. These need no approval. Product builds, simulators and full suites still follow `heavy-commands.md`.
+- Run them after your last edit; a check that ran before a later edit proves nothing about the code as it stands.
+- Put the proof in your report: each command with its result ("`flutter analyze`: no issues", "`flutter test test/auth_test.dart`: 12 passed"). A failing check is reported as failing, with the output.
+- List what you could not prove and what would settle it, using the tags above. "Done" with neither proof nor a tag is not done.
+
 ## Corrections
 
 When the user corrects a factual claim, re-check the other claims that came from the same memory or inference, and fix any saved memory that contributed.

@@ -64,6 +64,15 @@ test('refuses when versions are out of sync, unless forced', () => {
   assert.match(read(root, 'nextc-ecc', '.claude-plugin', 'plugin.json'), /"version": "1\.2\.4"/);
 });
 
+test('refuses a version that is not higher than the current one, unless forced', () => {
+  const root = fixture();
+  assert.throws(() => run({ root, target: '1.2.3' }), /not higher than the current version 1\.2\.3/);
+  assert.throws(() => run({ root, target: '1.1.9' }), /not higher/);
+  assert.match(read(root, 'nextc-core', '.claude-plugin', 'plugin.json'), /"version": "1\.2\.3"/);
+  assert.equal(run({ root, target: '1.2.10' }).to, '1.2.10');
+  assert.equal(run({ root, target: '1.0.0', force: true }).to, '1.0.0');
+});
+
 test('the command line prints the files changed and exits non-zero on an unknown target', () => {
   const root = fixture();
   const ok = spawnSync('node', [SCRIPT, '2.0.0', '--dry-run', '--root', root], { encoding: 'utf8' });
