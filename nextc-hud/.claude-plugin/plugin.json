@@ -1,7 +1,7 @@
 {
   "name": "nextc-hud",
-  "version": "1.7.0",
-  "description": "Heads-up display mod — a live autopilot run monitor (/autopilot-watch) and a 'used this turn' line naming the skills and subagents each answer used. Observe-only.",
+  "version": "1.8.0",
+  "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), and a 'used this turn' line. Observe-only.",
   "author": {
     "name": "nextc"
   },
@@ -10,13 +10,57 @@
     "mod",
     "autopilot",
     "monitor",
-    "hud"
+    "hud",
+    "context",
+    "compaction"
   ],
   "engines": {
     "claude-code": ">=2.1.323"
   },
   "types": "./types/index.d.ts",
   "userConfig": {
+    "always_on_row": {
+      "type": "boolean",
+      "title": "Always-on session row",
+      "description": "One row above the prompt: context used, compactions, cost estimate, rate limits, agents and live project runs. /hud off hides it for one session.",
+      "default": true
+    },
+    "heavy_percent": {
+      "type": "number",
+      "title": "Heavy at context %",
+      "description": "The row turns to 'heavy' (warning colour, two actions) once context passes this share of the window. From 1 to 100; a value outside is clamped.",
+      "default": 50
+    },
+    "act_percent": {
+      "type": "number",
+      "title": "Act now at context %",
+      "description": "The row says 'act now' once context passes this share of the window. From 1 to 100; a value outside is clamped.",
+      "default": 80
+    },
+    "heavy_tokens": {
+      "type": "number",
+      "title": "Heavy at tokens",
+      "description": "Also 'heavy' once context passes this many tokens, whatever the window (useful on a 1M window). 0 turns this off.",
+      "default": 200000
+    },
+    "act_compactions": {
+      "type": "number",
+      "title": "Act now after compactions",
+      "description": "The row says 'act now' from this many compactions in one session.",
+      "default": 3
+    },
+    "coach_toasts": {
+      "type": "boolean",
+      "title": "Coach toasts",
+      "description": "One toast per threshold crossing per session (heavy, act now, repeated compactions). /hud coach off silences them for one session.",
+      "default": true
+    },
+    "toasts_when_hidden": {
+      "type": "boolean",
+      "title": "Coach toasts while the row is hidden",
+      "description": "Also toast when the row is off, hidden or collapsed. Off: a hidden row stays quiet.",
+      "default": false
+    },
     "show_used_line": {
       "type": "boolean",
       "title": "Show the 'used this turn' line",

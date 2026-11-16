@@ -39,6 +39,65 @@ export type Used = {
   agents: UsedAgent[]
 }
 
+/** The session coach's level: below the first threshold, past it, or near the limit. */
+export type CoachLevel = 'normal' | 'heavy' | 'act'
+
+/** What the session coach has measured, counted and announced this session. */
+export type Coach = {
+  /** The session these figures belong to; a different id resets them. */
+  sessionId: string | null
+  /** Input tokens of the last response, or null until one reported it. */
+  tokens: number | null
+  window: number | null
+  percent: number | null
+  /** The engine's cost estimate in US dollars, or null where no ledger exists. */
+  costUsd: number | null
+  rateLimits: { kind: string; percent: number }[]
+  compactions: number
+  /** The last token count seen, kept across a measure that had none (just compacted). */
+  lastTokens: number | null
+  /** True once a session.compact event reached this mod: token drops are then not counted. */
+  hasCompactEvent: boolean
+  /** A compaction was counted from the event since the last token reading. */
+  isCountedSinceMeasure: boolean
+  agents: { running: number; idle: number }
+  /** Toast keys already raised this session ('heavy', 'act', 'compactions'). */
+  toasted: string[]
+}
+
+/**
+ * The row's switches for this session: /hud off hides it, /hud on shows it even where
+ * always_on_row is off, /hud coach off silences its toasts.
+ */
+export type HudPrefs = { isHidden: boolean; isShown: boolean; isQuiet: boolean }
+
+export type SourceKind = 'build' | 'explore' | 'idea' | 'aso' | 'kickoff' | 'autopilot'
+
+export type SourceState = 'running' | 'stale' | 'failed' | 'finished'
+
+export type SourceFact = { label: string; value: string; isWarning: boolean }
+
+/** One project run (a build, an explore, an ASO pipeline, a kickoff) as every view draws it. */
+export type RunSource = {
+  /** Stable for the run: kind plus the file it was read from. */
+  id: string
+  kind: SourceKind
+  title: string
+  state: SourceState
+  progress: { done: number; total: number } | null
+  step: string | null
+  /** The newest write the run made, epoch ms. */
+  updatedAtMs: number | null
+  facts: SourceFact[]
+  warnings: string[]
+  /** The one segment the coach row shows for it, and its form for a narrow row. */
+  segment: string
+  short: string
+}
+
+/** The project runs the last scan found, and which one /hud watch shows in a pane. */
+export type Projects = { runs: RunSource[]; scannedAtMs: number | null; watchId: string | null }
+
 declare module 'claude-code' {
   interface PluginState {
     'nextc-hud': {
@@ -47,6 +106,9 @@ declare module 'claude-code' {
       confirmStop: boolean
       used: Shaped<Used>
       alerted: Shaped<Record<string, string[]>>
+      coach: Shaped<Coach>
+      prefs: Shaped<HudPrefs>
+      projects: Shaped<Projects>
     }
   }
 }

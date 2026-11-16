@@ -39,7 +39,7 @@ nextc-unity/                      — Unity build (1 skill, 1 agent)
 nextc-aso/                        — ASO (3 skills, 3 agents; scripts/ = store lookup, limits, state; references/; evals/)
 nextc-ecc/                        — Core agents + quality tools (14 skills, 9 agents, 3 hooks)
 nextc-claude-toolbox/             — Utility toolkit (4 skills; scripts/validate.js)
-nextc-hud/                        — Mod: autopilot monitor + "used this turn" line (1 hooks module, no skills or agents; tests run with `claude plugin test ./nextc-hud`)
+nextc-hud/                        — Mod: always-on session row and coach, build/pipeline/autopilot monitor, "used this turn" line (1 hooks module, no skills or agents; tests run with `claude plugin test ./nextc-hud`)
 scripts/bump-version.mjs          — Sets one version across the marketplace and every plugin manifest (release step)
 rules/nextc-claude/               — Shared rules (15 rules, symlinked via setup-rules.sh; about 28.5 KB always loaded, skill-authoring only when editing skills/agents)
 rules-references/                 — Long-form rule references, read on demand (kept out of ~/.claude/rules/ because every .md there loads); agents-roster.md is the validator's model/effort source
@@ -176,13 +176,15 @@ Hooks (PreToolUse, all gates that print nothing on pass): `block-no-verify`, `co
 
 ### nextc-hud
 
-A mod (TypeScript handlers that run inside Claude Code 2.1.323+). It observes only: it never denies, rewrites or approves a tool call, makes no network or model calls, and starts no processes.
+A mod (TypeScript handlers that run inside Claude Code 2.1.323+). It observes only: it never denies, rewrites or approves a tool call, never submits a prompt or starts a compaction, makes no network or model calls, and starts no processes. The only file it writes is an autopilot run's `STOP` file.
 
 | Command | Purpose |
 |---------|---------|
-| `/autopilot-watch [run-id\|list\|off]` | Follow a running `/autopilot` run in a pane beside the chat (or one row above the prompt, or plain text where nothing can draw): step progress, live worker, decider calls against the cap, estimated cost against the budget, ledger age, last error. Flags a stale run. A Stop button, with a confirm step, creates the run's `STOP` file — the only file the mod writes. |
+| always-on row | One row above the prompt in every interactive session: context used, compactions this session, session cost estimate, 5-hour and weekly rate-limit use, running and idle agents, and a summary of any live run. Turns "heavy" at 50% context or 200k tokens and "act now" at 80% or from the third compaction, with one toast per crossing. |
+| `/hud [status\|on\|off\|compact\|handoff\|coach\|runs\|watch]` | Show or hide the row; `compact` and `handoff` fill a prepared `/strategic-compact` (or focused `/compact`) and `/session-handoff save` into an empty prompt box without sending; `runs` lists live project runs; `watch` opens a read-only pane for one. |
+| `/autopilot-watch [run-id\|list\|off]` | Follow a running `/autopilot` run in a pane (or a row, or plain text where nothing can draw): step progress, live worker, decider calls against the cap, estimated cost against the budget, ledger age, last error. Flags a stale run. A Stop button, with a confirm step, creates the run's `STOP` file. |
 
-It also adds a "used this turn" line under an answer naming the skills and subagents that turn actually used (display only, no tokens). Options in `/config`: `show_used_line`, `autopilot_toasts`.
+The project run monitor reads state the skills already write in the project folder: `docs/buildlog.md` and build logs (`/flutter-build`, `/unity-build`), `docs/explore/state.json` and idea-explore run folders, `aso/.pipeline-state.json`, and `.kickoff/state.json`. It also adds a "used this turn" line under an answer naming the skills and subagents that turn used (display only, no tokens). Options in `/config`: `always_on_row`, the four coach thresholds, `coach_toasts`, `toasts_when_hidden`, `show_used_line`, `autopilot_toasts`. 84 tests run offline with `claude plugin test ./nextc-hud`.
 
 ## Pipeline
 

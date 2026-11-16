@@ -5,6 +5,14 @@ All notable changes to nextc-claude are documented here, grouped by date.
 ## 2026-11-16
 
 ### Added
+- **Released 1.8.0** with the `nextc-hud` additions below; all 9 plugins and the marketplace moved from 1.7.0 to 1.8.0.
+- **`nextc-hud`: always-on session row, session coach and a project run monitor** (1.8.0).
+  - A row above the prompt is now always visible in interactive sessions: context used (with tokens when the window is wide), compactions this session, the session cost estimate, 5-hour and weekly rate-limit use, and running or idle agents. It never wraps; at 80 columns it still shows context, compactions and cost. Reason: 34 of 77 interactive sessions passed 200k tokens and there were 178 compactions in seven weeks.
+  - The session coach turns the row to "heavy" at 50% context or 200k tokens and to "act now" at 80% or from the third compaction, with one toast per crossing per session. All four thresholds are options in `/config`.
+  - A new immediate `/hud` command (`status`, `on`, `off`, `compact`, `handoff`, `coach`, `runs`, `watch`). The compact and fresh-start actions fill `/strategic-compact` (or a focused `/compact`) and `/session-handoff save` into an empty prompt box. They never send a prompt and never replace a draft.
+  - Compactions are counted from the `session.compact` event, or from a sharp drop in context tokens where that event is not visible to the mod, and never twice.
+  - The project run monitor reads what the skills already write: `/flutter-build` and `/unity-build` buildlogs and log times, `/product-explore` and `/idea-explore` state and evidence index, the ASO pipeline state and kickoff state. One live run shows as a segment in the row; `/hud watch` opens a read-only pane. A quiet run says "quiet Nm" before it is marked stale.
+  - Still observe-only: no process, network or model calls, no prompt submitted, and the autopilot `STOP` file remains the only file it writes. `$.prompt.fill` is the one new capability. In `claude -p` and cloud sessions it starts no timers and reads no files. 84 tests (was 31).
 - **`/autopilot`: relaunch recovery, standing defaults, live status and launcher commands** (`nextc-core/skills/autopilot`, `nextc-core/scripts/autopilot-*.mjs`).
   - When a launch ends mid-step, the launcher writes an `R` ledger entry and the next launch continues from the earlier worker's uncommitted edits. It no longer starts a second worker blind (four duplicate workers were spawned this way in past runs).
   - Plan mode asks a few standing defaults once (error shapes, user-facing copy, defaults and limits, order of checks, config and logging, tests for uncovered code). In past runs 25 of 63 decider questions arose only because the plan was silent on these.

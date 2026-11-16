@@ -16,7 +16,7 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA/TestFlight) |
 | **nextc-aso** | aso-pipeline, aso-naming, aso-edge-tactics | App Store optimization from live store data, collision-checked naming, and edge-tactics auditing |
 | **nextc-claude-toolbox** | validate, skill-audit, writing-skills, rules-distill | Tools for authoring and checking plugins, skills and rules |
-| **nextc-hud** | `/autopilot-watch` (mod) | Optional mod: a live monitor for `/autopilot` runs with a Stop button, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
+| **nextc-hud** | `/hud`, `/autopilot-watch` (mod) | Optional mod: an always-on row above the prompt (context, compactions, cost, rate limits, agents) with a session coach, a live monitor for builds, pipelines and `/autopilot` runs, and a "used this turn" line under each answer. Needs Claude Code 2.1.323+; `claude plugin install nextc-hud@nextc-claude` |
 
 ## Recommended Installation
 

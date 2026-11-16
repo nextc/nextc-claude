@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.8.0 (2026-11-16)
+
+**`nextc-hud` is now an always-on HUD.** A row above the prompt is visible in every interactive session and shows context used, compactions this session, the session cost estimate, rate-limit use, and running or idle agents. It fits any width without wrapping.
+
+**Session coach.** The row turns "heavy" at 50% context or 200k tokens and "act now" at 80% or from the third compaction, with one toast per crossing. Two buttons (also `/hud compact` and `/hud handoff`) fill a prepared `/strategic-compact` or `/session-handoff save` into an empty prompt box. They never send a prompt. Thresholds are options in `/config`.
+
+**Build and pipeline monitor.** The row and a read-only pane (`/hud runs`, `/hud watch`) follow `/flutter-build`, `/unity-build`, `/product-explore`, `/idea-explore`, `/aso-pipeline` and the kickoffs from the state those skills already write. A quiet run says "quiet Nm" before it is marked stale.
+
+**Unchanged:** the mod only observes. It makes no process, network or model calls, never submits a prompt, and the autopilot `STOP` file is the only file it writes. The row, the warning states, the buttons, the autopilot monitor and the "used this turn" line were all checked on screen in a terminal session. Turn the row off with `/hud off` or the `always_on_row` option.
+
 ## v1.7.0 (2026-11-16)
 
 _Published for a few minutes as 1.6.17; renumbered as a minor release because of its scope. There is no separate 1.6.17._
