@@ -70,7 +70,8 @@ function main(argv) {
   const flag = (name) => argv.includes(name);
   const rootIdx = argv.indexOf('--root');
   const root = resolve(rootIdx >= 0 ? argv[rootIdx + 1] : join(dirname(fileURLToPath(import.meta.url)), '..'));
-  const target = args.find((a) => a !== argv[rootIdx + 1]);
+  const rootValue = rootIdx >= 0 ? argv[rootIdx + 1] : undefined;
+  const target = args.find((a) => a !== rootValue);
   if (!target) {
     console.error('Usage: node scripts/bump-version.mjs patch|minor|major|<x.y.z> [--dry-run] [--force]');
     process.exit(2);

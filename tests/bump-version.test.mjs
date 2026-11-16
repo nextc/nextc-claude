@@ -1,7 +1,7 @@
 // scripts/bump-version.mjs against a temp copy of the manifest layout, never the real repo.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -72,4 +72,16 @@ test('the command line prints the files changed and exits non-zero on an unknown
   assert.match(ok.stdout, /nextc-core\/\.claude-plugin\/plugin\.json/);
   const bad = spawnSync('node', [SCRIPT, 'huge', '--root', root], { encoding: 'utf8' });
   assert.equal(bad.status, 1);
+});
+
+test('the CLI works without --root (root defaults to the script\'s parent folder)', () => {
+  // WORKAROUND: macOS tmpdir is a symlink; the script only runs main() when its real path matches argv[1].
+  const root = realpathSync(fixture());
+  mkdirSync(join(root, 'scripts'));
+  const copy = join(root, 'scripts', 'bump-version.mjs');
+  writeFileSync(copy, readFileSync(SCRIPT, 'utf8'));
+  const out = spawnSync('node', [copy, 'patch', '--dry-run'], { encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /would bump 1\.2\.3 -> 1\.2\.4/);
+  assert.match(read(root, 'nextc-core', '.claude-plugin', 'plugin.json'), /"version": "1\.2\.3"/);
 });

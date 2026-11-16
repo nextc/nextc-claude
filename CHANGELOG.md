@@ -49,6 +49,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **Synthetic eval cases.** `nextc-product/evals/` now holds three cases with invented products (`pe-pantry-full`, `pe-fast-garden`, `ie-pantry-licensing`) and `nextc-aso/evals/` four (TrailBloom, Lumo Notes and Nestly are invented; the live subjects are public apps such as Day One, Habitica, Finch and Fabulous). Each README gives the exact run command.
 
 ### Changed
+- **Released 1.6.17.** All 9 plugins and the marketplace moved from 1.6.16 to 1.6.17 so installed copies pick up everything in this section. `RELEASELOG.md` has the summary.
 - **`nextc-ecc` skills revised to add something Claude Code alone does not** (14 skills, was 21).
   - `strategic-compact` is now the "keep this session cheap and coherent" skill: it chooses between continuing, `/compact` with focus text, a fresh session with a handoff, `/fork`, `/btw` or `/rewind` from observable signals, writes what compaction would lose to a pinned block, and lists what survives compaction. Reason: 34 of 77 interactive sessions passed 200k tokens and there were 178 compactions in seven weeks.
   - `save-session` and `resume-session` merged into `session-handoff`: one per-project `.claude/handoff.md` (goal, evidenced state, decisions, failed attempts, exact next step); `resume` checks it against git first. The global `~/.claude/session-data` store is gone.
@@ -89,6 +90,9 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **`CLAUDE.md`** — the nextc-aso "Specs" block is now "References" and states that `specs/` is gitignored working material that nothing shipped may read.
 
 ### Fixed
+- **`scripts/bump-version.mjs` ignored its target when run without `--root`** and printed the usage text. A missing `--root` no longer swallows the first argument; a test now runs the CLI that way.
+- **Leftover organisation name** in `nextc-project-kickoff/scripts/identity.mjs` and its test replaced with a neutral example.
+- **Fake tokens in `tests/aso-asc.test.mjs`** moved into named constants so the commit secret scan does not flag test fixtures.
 - **`RELEASELOG.md`:** an old entry's example names (a product, an organisation id and a bundle id) were replaced with invented ones.
 - **Plugin eval instructions grant the shell whole** (`nextc-project-kickoff/evals/README.md`, `nextc-product/evals/README.md`). An eval run denies anything not granted; with a narrow grant such as `Bash(node *)` the run's first shell command (reading the skill's reference files) was denied, the run stopped using the shell, and the check scripts never ran. Measured on one kickoff case: 0.43 with the narrow grant, 1.00 with `Bash`. The three kickoff cases also list `Write`, `Edit`, `Bash` and `WebFetch` now.
 - **Eval graders that produced false failures.** The product cases' "script ran" graders required the literal form `evidence-check.mjs check`, which misses a quoted path or a shell variable (the script had run: its generated spot-check file was present); they now accept those forms. The kickoff "no non-existent package" grader matches dependency names only instead of any mention in the state file.

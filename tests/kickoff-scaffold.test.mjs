@@ -12,7 +12,7 @@ const tmp = () => mkdtempSync(join(tmpdir(), 'scaf-'));
 const put = (dir, rel, c) => { mkdirSync(dirname(join(dir, rel)), { recursive: true }); writeFileSync(join(dir, rel), c); };
 
 test('identity: one app id for Android and iOS, no underscores, org normalised', () => {
-  assert.deepEqual(deriveIdentity({ name: 'My Cool App', org: 'mgvlabs' }), { product_name: 'My Cool App', slug: 'my_cool_app', org: 'com.mgvlabs', app_id: 'com.mgvlabs.mycoolapp' });
+  assert.deepEqual(deriveIdentity({ name: 'My Cool App', org: 'acme' }), { product_name: 'My Cool App', slug: 'my_cool_app', org: 'com.acme', app_id: 'com.acme.mycoolapp' });
   assert.equal(deriveIdentity({ name: 'Nestly', org: 'com.nestly', kind: 'unity' }).slug, 'Nestly');
   assert.equal(deriveIdentity({ name: '2048 Plus', org: 'a' }).slug, 'app_2048_plus');
   assert.equal(deriveIdentity({ name: 'Test', org: 'a' }).slug, 'test_app');

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Derives the identifiers a kickoff needs from a product name and organization, so no skill invents them.
-// Usage: node identity.mjs --name "My Cool App" --org mgvlabs [--kind flutter|unity]
+// Usage: node identity.mjs --name "My Cool App" --org acme [--kind flutter|unity]
 import { parseArgs, isMain } from './lib/util.mjs';
 
 const RESERVED_DART = new Set(['flutter', 'test', 'dart', 'async', 'core', 'math', 'io', 'ui', 'class', 'new', 'null', 'true', 'false', 'var', 'void', 'in', 'is', 'as']);
 
 export function normalizeOrg(org) {
   const raw = String(org || '').trim().toLowerCase();
-  if (!raw) throw new Error('organization is required (for example "mgvlabs" or "com.mgvlabs")');
+  if (!raw) throw new Error('organization is required (for example "acme" or "com.acme")');
   const full = raw.includes('.') ? raw : `com.${raw}`;
   const segs = full.split('.');
   if (segs.some((s) => !/^[a-z][a-z0-9]*$/.test(s))) {
