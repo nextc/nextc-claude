@@ -1,6 +1,6 @@
 {
   "name": "nextc-hud",
-  "version": "1.6.17",
+  "version": "1.7.0",
   "description": "Heads-up display mod — a live autopilot run monitor (/autopilot-watch) and a 'used this turn' line naming the skills and subagents each answer used. Observe-only.",
   "author": {
     "name": "nextc"

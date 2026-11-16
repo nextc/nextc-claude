@@ -1,6 +1,8 @@
 # Release Log
 
-## v1.6.17 (2026-11-16)
+## v1.7.0 (2026-11-16)
+
+_Published for a few minutes as 1.6.17; renumbered as a minor release because of its scope. There is no separate 1.6.17._
 
 **A renovation of the whole project, driven by what real sessions showed.** Seven weeks of session history showed the main frustration was being asked too much (43 "stop asking" messages against 20 corrections), the main cost was long sessions, and the most-used tools (`/flutter-build`, `/autopilot`) had repeatable faults.
 

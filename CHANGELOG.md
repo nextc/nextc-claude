@@ -49,7 +49,7 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **Synthetic eval cases.** `nextc-product/evals/` now holds three cases with invented products (`pe-pantry-full`, `pe-fast-garden`, `ie-pantry-licensing`) and `nextc-aso/evals/` four (TrailBloom, Lumo Notes and Nestly are invented; the live subjects are public apps such as Day One, Habitica, Finch and Fabulous). Each README gives the exact run command.
 
 ### Changed
-- **Released 1.6.17.** All 9 plugins and the marketplace moved from 1.6.16 to 1.6.17 so installed copies pick up everything in this section. `RELEASELOG.md` has the summary.
+- **Released 1.7.0.** All 9 plugins and the marketplace moved from 1.6.16 to 1.7.0 so installed copies pick up everything in this section. It was first tagged 1.6.17 and renumbered minutes later as a minor release, given its scope. `RELEASELOG.md` has the summary.
 - **`nextc-ecc` skills revised to add something Claude Code alone does not** (14 skills, was 21).
   - `strategic-compact` is now the "keep this session cheap and coherent" skill: it chooses between continuing, `/compact` with focus text, a fresh session with a handoff, `/fork`, `/btw` or `/rewind` from observable signals, writes what compaction would lose to a pinned block, and lists what survives compaction. Reason: 34 of 77 interactive sessions passed 200k tokens and there were 178 compactions in seven weeks.
   - `save-session` and `resume-session` merged into `session-handoff`: one per-project `.claude/handoff.md` (goal, evidenced state, decisions, failed attempts, exact next step); `resume` checks it against git first. The global `~/.claude/session-data` store is gone.
