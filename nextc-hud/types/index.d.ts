@@ -109,6 +109,7 @@ declare module 'claude-code' {
       coach: Shaped<Coach>
       prefs: Shaped<HudPrefs>
       projects: Shaped<Projects>
+      autoWatch: Shaped<{ runningIds: string[]; liveIds: string[]; isCollapsed: boolean }>
     }
   }
 }

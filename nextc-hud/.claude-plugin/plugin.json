@@ -1,6 +1,6 @@
 {
   "name": "nextc-hud",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), and a 'used this turn' line. Observe-only.",
   "author": {
     "name": "nextc"
@@ -23,6 +23,12 @@
       "type": "boolean",
       "title": "Always-on session row",
       "description": "One row above the prompt: context used, compactions, cost estimate, rate limits, agents and live project runs. /hud off hides it for one session.",
+      "default": true
+    },
+    "auto_watch": {
+      "type": "boolean",
+      "title": "Open the run pane by itself",
+      "description": "When a build, explore, ASO or kickoff run starts in this project, open its read-only pane without /hud watch. The pane collapses to one line once the run's outcome has left the row and expands again for the next run; it is never closed for you. Needs the row on.",
       "default": true
     },
     "heavy_percent": {

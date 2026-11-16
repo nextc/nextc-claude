@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.8.2 (2026-11-16)
+
+**The `nextc-hud` run pane opens by itself and collapses instead of closing.** When a build, explore, ASO or kickoff run starts in the project, the read-only pane opens without `/hud watch` (new option `auto_watch`, on by default); the mod notices the run from the state files, so no skill triggers it. The pane's Close button is replaced by Collapse and Expand: collapsed, it is one line with the run's last state. It collapses by itself once a run's outcome has left the row and expands for the next run. Only the frame's close mark or `/hud watch off` closes it. Autopilot runs still use `/autopilot-watch`.
+
 ## v1.8.1 (2026-11-16)
 
 **`/hud watch` now says why no pane opened.** With no build, explore, ASO or kickoff run in the project it answers "Nothing to watch, so no pane was opened", lists where it looked and points to `/autopilot-watch` for autopilot runs. When the window has no room for a pane it says so before the text report. The watched run is recorded before the pane opens, so the pane's first draw shows the run rather than a placeholder.

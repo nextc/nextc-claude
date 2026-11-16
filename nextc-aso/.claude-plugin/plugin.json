@@ -1,6 +1,6 @@
 {
   "name": "nextc-aso",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "App Store Optimization from live store data: listing audits, observed keyword competition, limit-checked metadata proposals, app naming with dated collision checks, and a playbook gap audit.",
   "author": {
     "name": "nextc"

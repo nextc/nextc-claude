@@ -359,7 +359,11 @@ test('/hud runs lists what the scan sees; /hud watch opens a read-only pane', as
   })
   expect((await pane.find({ type: 'Text', text: /^evidence/ }))?.text).toContain('42 records')
   expect(await pane.find({ key: 'stop' })).toBeUndefined()
-  await pane.press({ key: 'close' })
+  expect(await pane.find({ key: 'close' })).toBeUndefined()
+  await pane.press({ key: 'collapse' })
+  expect(await pane.find({ type: 'Text', text: /^evidence/ })).toBeUndefined()
+  await pane.press({ key: 'expand' })
+  expect((await pane.find({ type: 'Text', text: /^evidence/ }))?.text).toContain('42 records')
   await pane.unmount()
   expect(w.writes).toEqual([])
   expect((await $.command.run(cmd('hud', 'watch nonsense'))).text).toContain('is not a run kind')
@@ -371,6 +375,55 @@ test('/hud watch with no project run says why no pane opened', async ($, on) => 
   const text = (await $.command.run(cmd('hud', 'watch'))).text ?? ''
   expect(text).toContain('Nothing to watch, so no pane was opened.')
   expect(text).toContain('/autopilot-watch')
+})
+
+const runPane = ($: Engine) => $.ui.mount({
+  plugin: 'nextc-hud', component: 'Pane', requestId: 'hud-run', surface: 'terminal',
+  props: { title: 'run', isFocused: false, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+})
+
+test('a run that starts opens its pane by itself; a collapsed pane stays collapsed for that run', async ($, on) => {
+  const w = world(on, {})
+  await start($)
+  await bandText($, 160)
+  await w.clock.advance(1_000)
+  for (const [path, file] of Object.entries(BUILD_FILES)) w.files.set(path, file as never)
+  await w.clock.advance(60_000)
+  const pane = await runPane($)
+  expect(await pane.find({ type: 'Text', text: /^state/ })).toBeDefined()
+  await pane.press({ key: 'collapse' })
+  await w.clock.advance(30_000)
+  expect(await pane.find({ key: 'expand' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /^state/ })).toBeUndefined()
+  await pane.unmount()
+})
+
+test('the pane collapses, not closes, once the outcome has left the row; the next run expands it', async ($, on) => {
+  const w = world(on, BUILD_FILES)
+  await start($)
+  await bandText($, 160)
+  await w.clock.advance(1_000)
+  const pane = await runPane($)
+  expect(await pane.find({ type: 'Text', text: /^state/ })).toBeDefined()
+  w.files.set(`${CWD}/docs/buildlog.md`, { text: BUILDLOG.replace('in progress', 'success'), mtimeMs: NOW + 2_000 })
+  await w.clock.advance(5 * 60_000)
+  expect(await pane.find({ key: 'expand' })).toBeDefined()
+  expect((await pane.find({ type: 'Text', text: /finished/ }))).toBeDefined()
+  const later = NOW + 6 * 60_000
+  w.files.set(`${CWD}/docs/buildlog.md`, { text: BUILDLOG, mtimeMs: later })
+  await w.clock.advance(2 * 60_000)
+  expect(await pane.find({ key: 'collapse' })).toBeDefined()
+  await pane.unmount()
+})
+
+test('auto_watch off leaves the pane to /hud watch', { options: { auto_watch: false } }, async ($, on) => {
+  const w = world(on, BUILD_FILES)
+  await start($)
+  await bandText($, 160)
+  await w.clock.advance(20_000)
+  const pane = await runPane($)
+  expect((await pane.find({ type: 'Text', text: /No project run is being watched/ }))).toBeDefined()
+  await pane.unmount()
 })
 
 test('two live runs share one segment in the row', async ($, on) => {

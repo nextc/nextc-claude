@@ -56,6 +56,11 @@ const coach = atom({ plugin: 'nextc-hud', key: 'coach' } as const, emptyCoach(),
 const prefs = atom({ plugin: 'nextc-hud', key: 'prefs' } as const, { isHidden: false, isShown: false, isQuiet: false }, { shape: 'prefs-1' })
 const projects = atom({ plugin: 'nextc-hud', key: 'projects' } as const, { runs: [], scannedAtMs: null, watchId: null }, { shape: 'projects-1' })
 
+// Ids of the runs that were running and live at the last scan, and whether the run pane is collapsed.
+const autoWatch = atom({ plugin: 'nextc-hud', key: 'autoWatch' } as const, { runningIds: [], liveIds: [], isCollapsed: false }, { shape: 'autoWatch-1' })
+const AUTO_EMPTY = { runningIds: [], liveIds: [], isCollapsed: false }
+const setCollapsed = ($: $, isCollapsed: boolean) => update($, autoWatch, (cur) => ({ ...(cur ?? AUTO_EMPTY), isCollapsed }))
+
 const TOAST_TEXT: Record<string, (id: string) => string> = {
   stale: (id) => `Autopilot ${id}: no status update for over 2 minutes; the run may be stuck.`,
   decider: (id) => `Autopilot ${id}: 80% of decider calls used.`,
@@ -74,6 +79,7 @@ let thresholds: Thresholds = thresholdsOf({})
 let isRowConfigOn = true
 let isCoachToastOn = true
 let isHiddenToastOn = false
+let isAutoWatchOn = true
 let scanTimer: Timer | null = null
 
 function stopTicker() {
@@ -248,10 +254,44 @@ async function scanNow($: $): Promise<RunSource[]> {
   return runs
 }
 
+// Opens (or expands) the run pane when a project run starts, once per start, and collapses it
+// to one line once that run's outcome has left the row. The pane is never closed from here:
+// only the person closes it (the frame's close mark or /hud watch off).
+async function autoWatchTick($: $, runs: readonly RunSource[], now: number) {
+  const live = liveRuns(runs, now)
+  const running = live.filter((r) => r.state === 'running')
+  const before = await read($, autoWatch)
+  const pr = await read($, projects)
+  let isCollapsed = before.isCollapsed
+  let watchId = pr.watchId
+  const isLive = (id: string) => live.some((r) => r.id === id)
+  if (watchId !== null && before.liveIds.includes(watchId) && !isLive(watchId)) isCollapsed = true
+  const started = running.filter((r) => !before.runningIds.includes(r.id))
+  // A run already on screen and still going is not replaced; the same run starting again is.
+  const isWatchedRunning = watchId !== null && running.some((r) => r.id === watchId) && !started.some((r) => r.id === watchId)
+  if (isAutoWatchOn && started.length > 0 && !isWatchedRunning && (await read($, watch)) === null) {
+    const run = [...started].sort((a, b) => (b.updatedAtMs ?? 0) - (a.updatedAtMs ?? 0))[0]!
+    const wasOpen = watchId !== null
+    // ORDER: the pane's first render reads watchId, so it is set before the pane opens.
+    await update($, projects, (cur) => ({ ...(cur ?? { runs: [], scannedAtMs: null }), watchId: run.id }))
+    const opened = await $.ui.open({ id: RUN_PANE, title: run.title })
+    if (opened.isPlaced) {
+      watchId = run.id
+      isCollapsed = false
+    } else if (!wasOpen) {
+      // No room: the row already carries the run, so the pane is dropped without a word.
+      await update($, projects, (cur) => ({ ...(cur ?? { runs: [], scannedAtMs: null }), watchId: null }))
+      await $.ui.close({ id: RUN_PANE })
+    }
+  }
+  await update($, autoWatch, () => ({ runningIds: running.map((r) => r.id), liveIds: live.map((r) => r.id), isCollapsed }))
+}
+
 async function scanTick($: $) {
   try {
     if (!(await canDraw($)) || !(await isScanWanted($))) return stopScanner()
     const runs = await scanNow($)
+    await autoWatchTick($, runs, await $.clock.now())
     const agents = await agentCounts($)
     await update($, coach, (cur) => ({ ...(cur ?? emptyCoach()), agents }))
     const now = await $.clock.now()
@@ -395,6 +435,7 @@ async function hudCommand($: $, args: string): Promise<string> {
       await $.ui.close({ id: RUN_PANE })
       return `No room for a pane in this window, so here is the run as text.\n${runReport(run, now)}`
     }
+    await setCollapsed($, false)
     ensureScanner($)
     return `Watching ${run.title} in a pane.`
   }
@@ -407,6 +448,7 @@ export const register: Register = (on, options) => {
   isRowConfigOn = options.always_on_row !== false
   isCoachToastOn = options.coach_toasts !== false
   isHiddenToastOn = options.toasts_when_hidden === true
+  isAutoWatchOn = options.auto_watch !== false
   thresholds = thresholdsOf(options as Record<string, unknown>)
 
   on('session.start', async ($, e, next) => {
@@ -595,14 +637,16 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // The project run pane: the autopilot pane's layout, read-only, with nothing to stop.
+  // The project run pane: the autopilot pane's layout, read-only, with nothing to stop. It
+  // collapses to one line instead of closing, so a run's last state stays on screen.
   on('ui.render', { component: 'Pane', requestId: RUN_PANE }, async ($, e) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const pr = await read($, projects)
+    const { isCollapsed } = await read($, autoWatch)
     const width = Math.max(20, e.props.bodyColumns)
     const run = pr.runs.find((r) => r.id === pr.watchId)
-    const close = () => update($, projects, (cur) => ({ ...(cur ?? { runs: [], scannedAtMs: null }), watchId: null })).then(() => $.ui.close({ id: RUN_PANE }))
     if (run === undefined) {
+      const close = () => update($, projects, (cur) => ({ ...(cur ?? { runs: [], scannedAtMs: null }), watchId: null })).then(() => $.ui.close({ id: RUN_PANE }))
       return (
         <Box flexDirection="column">
           <Text dimColor>No project run is being watched. /hud runs lists what there is.</Text>
@@ -610,8 +654,18 @@ export const register: Register = (on, options) => {
         </Box>
       )
     }
-    const labelWidth = Math.max(5, ...run.facts.map((f) => f.label.length))
     const isWarning = run.state === 'stale' || run.state === 'failed'
+    if (isCollapsed) {
+      const line = [run.title, run.state, ...(run.step === null ? [] : [run.step])].join(' · ')
+      return (
+        <Box flexDirection="row">
+          <Text wrap="truncate-end" color={isWarning ? 'warning' : undefined} dimColor={!isWarning}>{truncate(line, Math.max(10, width - 12))}</Text>
+          <Text> </Text>
+          <Button key="expand" label="Expand" onPress={() => setCollapsed($, false)} />
+        </Box>
+      )
+    }
+    const labelWidth = Math.max(5, ...run.facts.map((f) => f.label.length))
     return (
       <Box flexDirection="column">
         <Text weight="semibold">{truncate(run.title, width)}</Text>
@@ -622,7 +676,7 @@ export const register: Register = (on, options) => {
           <Text color={f.isWarning ? 'warning' : undefined}>{truncate(`${f.label.padEnd(labelWidth)}  ${f.value}`, width)}</Text>
         ))}
         <Box flexDirection="row">
-          <Button key="close" label="Close" onPress={close} />
+          <Button key="collapse" label="Collapse" onPress={() => setCollapsed($, true)} />
         </Box>
       </Box>
     )

@@ -1,6 +1,6 @@
 {
   "name": "nextc-ecc",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Core agents (planner, architect, code-reviewer, security-reviewer and more) plus skills for keeping long sessions cheap, session handoff, verification, release audits, and safety guards. Migrated from Everything Claude Code.",
   "author": {
     "name": "nextc"

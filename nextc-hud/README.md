@@ -59,7 +59,7 @@ The command runs at once, even while Claude is working.
 | `/hud handoff` | Fill the prompt box with a handoff request (above) |
 | `/hud coach` | The status plus one line of advice; `/hud coach off` / `on` silences or restores the toasts for this session |
 | `/hud runs` | List the project runs found, with their state |
-| `/hud watch [build\|explore\|idea\|aso\|kickoff]` | Open a read-only pane for one run (the live one, else the most recent); `/hud watch off` closes it |
+| `/hud watch [build\|explore\|idea\|aso\|kickoff]` | Open a read-only pane for one run (the live one, else the most recent); `/hud watch off` closes it. The pane has Collapse and Expand instead of Close: collapsed, it is one line with the run's last state. It also opens by itself when a run starts (see `auto_watch`) |
 
 ### Project run monitor
 
@@ -147,6 +147,7 @@ It doesn't depend on `nextc-core`, `nextc-ecc` or any other plugin. Without them
 | Option | Default | What it does |
 |---|---|---|
 | `always_on_row` | `true` | The session row. Off: no row (and no project scan) unless `/hud on` in a session. |
+| `auto_watch` | `true` | Open the run pane by itself when a project run starts. Once the run's outcome has left the row the pane collapses to one line; the next run expands it. It is never closed for you: only the frame's close mark or `/hud watch off` closes it. Works while the row is on; autopilot runs still need `/autopilot-watch`. |
 | `heavy_percent` | `50` | Context % that makes the row "heavy". |
 | `act_percent` | `80` | Context % that makes it "act now". |
 | `heavy_tokens` | `200000` | Also "heavy" from this many tokens on any window (a 1M window reaches 200k at 20%). `0` turns it off. |
