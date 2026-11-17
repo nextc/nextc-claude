@@ -23,6 +23,8 @@ type World = {
   pluginConfigs: Record<string, unknown>
   /** What /model shows for the session. */
   model: string
+  /** The size the engine reports after a compaction; it reports none when this is unset. */
+  compactTokensAfter?: number
   agents: { status: string; id?: string; description?: string; type?: string; name?: string; teammateId?: string; parentId?: string }[]
   sessionId: string
   clock: MockClock
@@ -100,7 +102,7 @@ function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: b
   on('settings.read', () => ({ value: { pluginConfigs: w.pluginConfigs } }) as never)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
-  on('session.compact', (_, e) => ({ messages: e.messages }))
+  on('session.compact', (_, e) => ({ messages: e.messages, ...(w.compactTokensAfter === undefined ? {} : { tokensAfter: w.compactTokensAfter }) }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   return w
 }
@@ -216,6 +218,41 @@ test('a compaction counts once, by the event and the drop that follows', async (
   await measure($, undefined)
   await measure($, 30_000)
   expect(await bandText($, 80)).toContain('1 compaction')
+})
+
+test('a compaction with no reply after it (while idle) clears the old reading, its level and its actions', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await measure($, 206_000, { window: 1_000_000 })
+  const before = await bandText($, 120)
+  expect(before).toContain('ctx 21% heavy (206k of 1M)')
+  const hasCompactButton = async () => {
+    const ui = await $.ui.mount({ ...band(120), surface: 'terminal' })
+    const found = (await ui.find({ key: 'hud-compact' }).catch(() => undefined)) !== undefined
+    await ui.unmount()
+    return found
+  }
+  expect(await hasCompactButton()).toBe(true)
+  // The engine says how large the conversation is afterwards: the row shows that at once.
+  w.compactTokensAfter = 12_000
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  const after = await bandText($, 120)
+  expect(after).toContain('ctx 1% (12k of 1M)')
+  expect(after).toContain('1 compaction')
+  expect(after).not.toContain('heavy')
+  expect(await hasCompactButton()).toBe(false)
+  // When it gives no size, the figure is blank until the next reply instead of staying stale.
+  await measure($, 206_000, { window: 1_000_000 })
+  w.compactTokensAfter = undefined
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  const blank = await bandText($, 120)
+  expect(blank).toContain('ctx –')
+  expect(blank).toContain('2 compactions')
+  expect(blank).not.toContain('206k')
+  expect(blank).not.toContain('heavy')
+  // The next reply's reading is not counted as a third compaction.
+  await measure($, 15_000, { window: 1_000_000 })
+  expect(await bandText($, 120)).toContain('2 compactions')
 })
 
 test('without the event (managed logins), the token drop counts it', async ($, on) => {

@@ -97,8 +97,14 @@ export function applyMeasure(coach: Coach, m: Measurement): Coach {
   }
 }
 
-export function applyCompactEvent(coach: Coach): Coach {
-  return { ...coach, compactions: coach.compactions + 1, hasCompactEvent: true, isCountedSinceMeasure: true }
+// A compaction replaces the transcript, so the last reading no longer describes the session.
+// The engine's own count after the compaction is shown when it gives one; otherwise the figure
+// is blank until the next reply. A compaction while the session is idle is followed by no
+// reply, so without this the row kept the old figure, its level and its actions.
+export function applyCompactEvent(coach: Coach, tokensAfter?: number): Coach {
+  const tokens = typeof tokensAfter === 'number' && Number.isFinite(tokensAfter) && tokensAfter >= 0 ? Math.round(tokensAfter) : null
+  const percent = tokens !== null && coach.window !== null && coach.window > 0 ? Math.round((tokens / coach.window) * 100) : null
+  return { ...coach, tokens, percent, compactions: coach.compactions + 1, hasCompactEvent: true, isCountedSinceMeasure: true }
 }
 
 export function contextLevel(coach: Coach, t: Thresholds): CoachLevel {

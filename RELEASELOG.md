@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.10.1 (2026-11-17)
+
+**The HUD row is right after an idle compaction.** Claude Code can now compact a session while it is idle. `nextc-hud` counted that compaction but kept showing the old context figure, its "heavy" label and the `[ compact ]` button until the next reply. The row now shows the size of the compacted conversation at once, or `ctx –` when Claude Code does not report one.
+
 ## v1.10.0 (2026-11-17)
 
 **The rules install themselves.** Nobody links rules by hand any more. `nextc-core` ships the rules and, on a fresh session start, copies them into `~/.claude/rules/nextc-claude` (references into `~/.claude/nextc-claude-references`) and refreshes them when the plugin updates. In the session that installs or updates them Claude is asked to read them first, so they apply right away; from the next session they load by themselves. A rule file you edited is never overwritten, and `install_rules` in `/config` turns it off. **If you linked the rules by hand before, you can delete those links after updating**; people working on this repo can keep `setup-rules.sh` for live edits.

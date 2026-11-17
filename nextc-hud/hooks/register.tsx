@@ -1190,7 +1190,7 @@ export const register: Register = (on, options) => {
     const compacted = await next(e)
     try {
       if (e.trigger !== 'precompute' && e.agentId === undefined && compacted.skip === undefined && (await canDraw($))) {
-        await update($, coach, (cur) => applyCompactEvent(cur ?? emptyCoach()))
+        await update($, coach, (cur) => applyCompactEvent(cur ?? emptyCoach(), compacted.tokensAfter))
         await toastDue($)
       }
     } catch (err) {

@@ -30,7 +30,7 @@ ctx 23% (46k of 200k) · 0 compactions · ~$3.10 est · 5h 23% · wk 41% · 1 ag
 
 | Segment | Meaning | Source |
 |---|---|---|
-| `ctx 23% (46k of 200k)` | Context used: the last response's input tokens against the model's window. `ctx –` before the first reply and right after a compaction, until the next reply reports again. | `session.measure` / `$.session.usage()`, the status line's figures |
+| `ctx 23% (46k of 200k)` | Context used: the last response's input tokens against the model's window. `ctx –` before the first reply. Right after a compaction the figure is the size the engine reports for the compacted conversation, or `ctx –` when it reports none, until the next reply; this also holds for a compaction that happens while the session is idle, which no reply follows. | `session.measure` / `$.session.usage()`, the status line's figures |
 | `0 compactions` | Compactions in this session. Counted from the `session.compact` event, or, where that event is hidden (Team and Enterprise logins hide it from user-installed mods), from a sharp fall in context tokens between two replies (at least 40% and 20k tokens). The two are never added together. | `session.compact`, `session.measure` |
 | `~$3.10 est` | The session's cost. Claude Code computes it locally at list price, and its docs call it an estimate, hence `~` and `est`. On a Pro, Max or Ultra subscription it is not what you are billed. | `session.measure` `cost` |
 | `5h 23%`, `wk 41%` | Rate-limit windows used (5-hour, weekly). Shown only when the engine has a reading: none on an API key, none before the first reply. Marked from 90%. | `session.measure` `rateLimits` |

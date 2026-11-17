@@ -73,6 +73,16 @@ describe('compaction count', () => {
     expect(c.compactions).toBe(1)
   })
 
+  test('the event replaces the reading: the size after the compaction when given, else none', () => {
+    const before = applyMeasure(emptyCoach(), measure(160_000))
+    const sized = applyCompactEvent(before, 12_345.6)
+    expect([sized.tokens, sized.percent, sized.compactions]).toEqual([12_346, Math.round((12_346 / before.window!) * 100), 1])
+    for (const bad of [undefined, Number.NaN, -5]) {
+      const blank = applyCompactEvent(before, bad)
+      expect([blank.tokens, blank.percent, blank.compactions]).toEqual([null, null, 1])
+    }
+  })
+
   test('once the event is seen, drops alone never count (a /rewind is not a compaction)', () => {
     let c = applyCompactEvent(applyMeasure(emptyCoach(), measure(160_000)))
     c = applyMeasure(c, measure(25_000))

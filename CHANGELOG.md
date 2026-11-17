@@ -33,6 +33,10 @@ All notable changes to nextc-claude are documented here, grouped by date.
 - **`nextc-hud` no longer only observes outside the critical check.** Besides that check's model call, the follow-up message now also asks for proof, and the handoff writer adds a model pass and a file. Each has its own off switch, and none runs in `claude -p` or autopilot runs.
 - **The "used this turn" hooks are always registered**, with the turn line itself still behind `show_used_line`, so skill use is counted for `/hud usage` when the line is off.
 
+### Fixed
+- **`nextc-hud`: the row no longer shows a stale context figure after a compaction with no reply after it.** Claude Code can now compact a session while it is idle ("Compacted while idle, before the prompt cache expired"). The mod counted that compaction but kept the old reading, so the row still said for example `ctx 21% heavy (206k of 1M)` and still offered `[ compact ]`. A compaction now replaces the reading with the size the engine reports for the compacted conversation, or blanks it to `ctx –` when it reports none, so the level and the actions follow (`hooks/lib/coach.ts` `applyCompactEvent`; two tests).
+
+
 ## 2026-11-16
 
 ### Added
