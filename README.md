@@ -10,9 +10,9 @@ Claude Code marketplace — workflow pipelines, product exploration, project sca
 |--------|--------|-------------|
 | **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, blueprint, finishing-branch, interface-polish, autopilot | Development workflow pipelines that chain into each other |
 | **nextc-ecc** | strategic-compact, session-handoff, search-first, verification-loop, council, adversarial-review, production-audit, +7 more | Core agents (planner, architect, code-reviewer, security-reviewer and more), quality tools and three guard hooks, migrated from Everything Claude Code |
-| **nextc-product** | product-explore, idea-explore | Idea to a sourced decision memo (recommendation, cheapest test, kill criteria), plus a lens-based explorer that shares its evidence |
+| **nextc-product** | product-explore, idea-explore, product-review | Idea to a sourced decision memo (recommendation, cheapest test, kill criteria), a lens-based explorer that shares its evidence, and a review of the shipped product against that memo's thresholds and kill criteria with real numbers |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to a scaffolded Flutter or Unity project with product-specific architecture and task docs |
-| **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills) | Flutter build/TestFlight pipeline (with an upload guard hook) and localization |
+| **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills), flutter-visual-proof | Flutter build/TestFlight pipeline (with an upload guard hook), localization, and screens rendered to images without a simulator so a UI change can be looked at |
 | **nextc-unity** | unity-build | Unity 6.x build pipeline (macOS, APK/IPA/TestFlight) |
 | **nextc-aso** | aso-pipeline, aso-naming, aso-edge-tactics | App Store optimization from live store data, collision-checked naming, and edge-tactics auditing |
 | **nextc-claude-toolbox** | validate, skill-audit, writing-skills, rules-distill | Tools for authoring and checking plugins, skills and rules |
@@ -32,12 +32,18 @@ claude plugin marketplace add nextc/nextc-claude
 claude plugin install nextc-core@nextc-claude
 claude plugin install nextc-ecc@nextc-claude
 
-# Symlink rules (not covered by plugin system)
+```
+
+That is all a teammate needs. `nextc-core` installs the shared rules itself: at the start of a session it copies them into `~/.claude/rules/nextc-claude` (and their references into `~/.claude/nextc-claude-references`) and refreshes them when the plugin updates. Claude Code loads them by itself from the next session; in the session that installs or updates them, Claude is asked to read them first, so they apply there too (subagents started in that one session excepted). It never overwrites a rule file you edited, and `install_rules` in `/config` turns it off.
+
+Optional, for the shipped permission settings or for working on this repo:
+
+```bash
 git clone <repo-url> ~/code/nextc/nextc-claude
 cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 ```
 
-`setup-rules.sh` symlinks the rules and rule references into `~/.claude/` and merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). The merge only appends what is missing and never removes or reorders your entries:
+`setup-rules.sh` links the rules and rule references from your checkout into `~/.claude/` (so your edits are live, and the plugin's installer leaves them alone) and merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). The merge only appends what is missing and never removes or reorders your entries:
 - `permissions.allow`: narrow rules for release builds and the TestFlight fastlane lanes.
 - `permissions.ask`: recursive deletes, `git reset --hard`, `git clean`, `git checkout --`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push` and `sudo` prompt you instead of running.
 - `permissions.deny`: reading `.env*` (except `.env.example` / `.env.sample`), `*.p12`, `*.pem`, `*.keystore`, `*.jks`, `AuthKey_*.p8` and `service-account*.json`.
@@ -50,7 +56,7 @@ Other flags: `./setup-rules.sh --check` changes nothing and reports drift (symli
 - `normal` (default): Claude asks before a heavy process you did not ask for (a build, a simulator, a dev server), when a request can be read two ways, and before retrying a failed store upload.
 - `less`: it does not ask in those cases. It skips the heavy check and says what is unverified, picks the sensible reading and says which, retries a diagnosed upload, and saves real product choices for one question per task.
 
-Either way it never starts a heavy process nobody asked for, and "don't ask, just do it" in a prompt makes that one task behave as `less`. The setting needs the rules installed (`setup-rules.sh`), since the rule file is what reads it.
+Either way it never starts a heavy process nobody asked for, and "don't ask, just do it" in a prompt makes that one task behave as `less`. The rule file is what reads the setting, and `nextc-core` installs it.
 
 This gives you `/feature-dev`, `/bug-fix`, `/cleanup`, `/clarify`, `/team-feature-dev`, plus all nextc-ecc agents (planner, architect, code-reviewer, critical-reviewer, security-reviewer) and quality skills (verification-loop, safety-guard, session-handoff, etc.).
 
@@ -120,7 +126,7 @@ claude plugin install nextc-ecc@nextc-claude
 claude plugin install nextc-project-kickoff@nextc-claude --scope local
 ```
 
-Re-run the setup script after pulling (it is idempotent); it also refreshes the shipped settings entries:
+The rules update with `nextc-core`. If you use the setup script (a checkout, or the shipped settings), re-run it after pulling; it is idempotent:
 
 ```bash
 cd ~/code/nextc/nextc-claude && git pull && ./setup-rules.sh
@@ -135,8 +141,8 @@ claude plugin uninstall nextc-core@nextc-claude
 # Remove the marketplace entirely
 claude plugin marketplace remove nextc-claude
 
-# Remove symlinked rules and their references
-rm ~/.claude/rules/nextc-claude ~/.claude/nextc-claude-references
+# Remove the rules and their references (uninstalling the plugin leaves them in place)
+rm -r ~/.claude/rules/nextc-claude ~/.claude/nextc-claude-references
 ```
 
 ---
@@ -211,8 +217,8 @@ No store keys are needed. Optionally you can give a path or env-var name for an 
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 9 plugins)
-├── rules/nextc-claude/               (15 rules, symlinked via setup-rules.sh; about 32.8 KB always loaded)
-├── rules-references/                 (long-form rule references, symlinked to ~/.claude/nextc-claude-references; read on demand)
+├── nextc-core/rules/nextc-claude/    (15 rules, installed by nextc-core at session start; about 32.8 KB always loaded; rules/ at the root links here)
+├── nextc-core/rules-references/      (long-form rule references, installed to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
 ├── settings/user-settings.json       (allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)
 ├── scripts/bump-version.mjs          (sets one version across the marketplace and all plugin manifests)
@@ -220,9 +226,9 @@ nextc-claude/                         (marketplace root)
 ├── setup-rules.sh
 ├── nextc-core/                       (10 skills, 3 agents)
 ├── nextc-ecc/                        (14 skills, 10 agents, 3 hooks)
-├── nextc-product/                    (2 skills, 4 agents)
+├── nextc-product/                    (3 skills, 4 agents)
 ├── nextc-project-kickoff/            (2 skills, 1 agent)
-├── nextc-flutter/                    (8 skills, 2 agents, 1 hook)
+├── nextc-flutter/                    (9 skills, 2 agents, 1 hook)
 ├── nextc-unity/                      (1 skill, 1 agent)
 ├── nextc-aso/                        (3 skills, 3 agents)
 ├── nextc-claude-toolbox/             (4 skills)
@@ -241,7 +247,7 @@ Three things reach a developer's machine, by three routes:
 
 | What | How it gets there | How it stays in sync |
 |------|-------------------|----------------------|
-| **Rules** and rule references | `./setup-rules.sh` symlinks them from your checkout into `~/.claude/` | Live immediately, including uncommitted edits in the checkout. `git pull` is enough; there is no copy to refresh. |
+| **Rules** and rule references | `nextc-core` copies them into `~/.claude/` at session start | Versioned with the plugin: an update reaches you when `nextc-core` updates; Claude reads the changed rules in that session and Claude Code loads them by itself from the next one. People working on this repo can link a checkout instead with `./setup-rules.sh` for live edits. |
 | **Plugins** (skills, agents, hooks) | The marketplace (`claude plugin install ...`) | Versioned: an update reaches you when the plugin version changes, after `claude plugin marketplace update nextc-claude` and a reinstall. |
 | **Settings** (permission rules, auto mode exception) | `./setup-rules.sh` merges `settings/user-settings.json` into `~/.claude/settings.json` | Re-run `./setup-rules.sh` after pulling; it only appends. `./setup-rules.sh --check` reports drift without changing anything. |
 

@@ -166,7 +166,17 @@ export type SessionRecord = {
   agentTypes?: Record<string, number>
   /** Per skill, the cost of the turns that used it. */
   skillCost?: Record<string, number>
+  /** Recorded from the version that added /hud advise. Main-loop turns and cost per model. */
+  models?: Record<string, ModelUse>
+  /** Per skill, per model: the turns that used the skill and their cost. */
+  skillModels?: Record<string, Record<string, ModelUse>>
+  /** Per agent type, per model the agent was resolved to: how often it was spawned. */
+  agentModels?: Record<string, Record<string, number>>
+  /** Per agent type: spawns that passed no model and ran on the session's own model. */
+  inherited?: Record<string, number>
 }
+
+export type ModelUse = { turns: number; usd: number }
 
 /** Code changed since the last passing check, and the checks run since the last edit. */
 export type Proof = {
@@ -186,6 +196,10 @@ export type Tally = {
   skills: Record<string, number>
   agentTypes: Record<string, number>
   skillCost: Record<string, number>
+  models: Record<string, ModelUse>
+  skillModels: Record<string, Record<string, ModelUse>>
+  agentModels: Record<string, Record<string, number>>
+  inherited: Record<string, number>
   /** Skills used in the turn that is running. */
   turnSkills: string[]
   lastCostUsd: number | null

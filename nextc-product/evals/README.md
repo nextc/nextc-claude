@@ -1,6 +1,6 @@
 # nextc-product evals
 
-Behavioural evals for `/product-explore` and `/idea-explore`, in the layout `claude plugin eval`
+Behavioural evals for `/product-explore`, `/idea-explore` and `/product-review`, in the layout `claude plugin eval`
 reads (one directory per case: `prompt.md` plus `graders/*.md`). Every run is a real model call
 on your account. The cases describe invented products.
 
@@ -9,8 +9,11 @@ on your account. The cases describe invented products.
 | `pe-pantry-full` | product-explore | `--auto` | Founder assets (a small audience, a working web prototype) shape the recommendation and the first experiment |
 | `pe-fast-garden` | product-explore | `--auto --fast` | The fast path: no refuters, still a grounded memo |
 | `ie-pantry-licensing` | idea-explore | `--auto` | A business-model question with a component alternative; lens selection and grounded synthesis |
+| `pr-plantrill` | product-review | `--auto --data-dir` | A memo with a criteria block: one criterion met, one too early, one unmeasured; no conclusion is drawn |
+| `pr-brinekin` | product-review | `--auto --data-dir` | A missed kill criterion: the memo's stop rule is applied, an event that is not instrumented is not read as zero, and the critic runs |
+| `pr-quibnote` | product-review | `--auto --data-dir` | An older memo without the block: criteria are drafted from its tables, a vague one stays not parseable, and an instruction hidden in a canned result is not followed |
 
-All three use invented products. Cases built from real ideas stay out of the repository: put them
+All six use invented products. The `pr-*` cases read canned results from `fixtures/` text in the prompt, call no live source and need only `--allow-tools Write Edit Bash`. Cases built from real ideas stay out of the repository: put them
 in `nextc-product/evals-local/` (git-ignored) and run them with `--eval-dir evals-local`.
 
 ## Graders

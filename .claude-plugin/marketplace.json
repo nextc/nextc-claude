@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization for Claude Code.",
-    "version": "1.9.0",
+    "version": "1.10.0",
     "repository": "https://github.com/nextc/nextc-claude"
   },
   "plugins": [
@@ -18,7 +18,7 @@
     {
       "name": "nextc-product",
       "source": "./nextc-product",
-      "description": "Product exploration — raw idea to validated proposal with market research and collision insights.",
+      "description": "Product exploration — raw idea to a sourced decision memo, and a review of the shipped product against the memo's kill criteria.",
       "category": "product"
     },
     {
@@ -30,7 +30,7 @@
     {
       "name": "nextc-flutter",
       "source": "./nextc-flutter",
-      "description": "Flutter build and localization — APK/IPA builds and full l10n pipeline.",
+      "description": "Flutter build and localization — APK/IPA builds, full l10n pipeline, and screens rendered to images without a simulator.",
       "category": "flutter"
     },
     {

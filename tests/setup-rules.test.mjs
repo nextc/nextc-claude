@@ -41,8 +41,8 @@ test('an unknown option exits 2', () => {
 test('empty home: links both folders and merges every shipped entry', { skip: !HAS_JQ && 'jq not installed' }, () => {
   const r = setup();
   assert.equal(r.status, 0, r.stderr);
-  assert.equal(fs.readlinkSync(claude('rules', 'nextc-claude')), path.join(ROOT, 'rules/nextc-claude'));
-  assert.equal(fs.readlinkSync(claude('nextc-claude-references')), path.join(ROOT, 'rules-references'));
+  assert.equal(fs.readlinkSync(claude('rules', 'nextc-claude')), path.join(ROOT, 'nextc-core/rules/nextc-claude'));
+  assert.equal(fs.readlinkSync(claude('nextc-claude-references')), path.join(ROOT, 'nextc-core/rules-references'));
   const s = readSettings();
   assert.deepEqual(s.permissions.allow, SHIPPED.permissions.allow);
   assert.deepEqual(s.permissions.ask, SHIPPED.permissions.ask);
@@ -101,7 +101,7 @@ test('a symlink pointing at another checkout is re-pointed', () => {
   fs.mkdirSync(claude('rules'), { recursive: true });
   fs.symlinkSync('/elsewhere', claude('rules', 'nextc-claude'));
   assert.equal(setup().status, 0);
-  assert.equal(fs.readlinkSync(claude('rules', 'nextc-claude')), path.join(ROOT, 'rules/nextc-claude'));
+  assert.equal(fs.readlinkSync(claude('rules', 'nextc-claude')), path.join(ROOT, 'nextc-core/rules/nextc-claude'));
 });
 
 test('--check on an empty home reports drift, exits 1 and changes nothing', () => {

@@ -36,9 +36,16 @@ Write these, in order. Skip one only when the intake makes it irrelevant, and sa
    - a **denominator**: the expected sample or traffic and where it comes from. Prefer the
      founder's own assets ("15 photos from the 3 artists in F1"). A denominator the founder
      cannot reach is a defect.
-   - what we do if it passes and if it fails.
+   - what we do if it passes and if it fails,
+   - for the memo's `criteria` block: the `metric`, the numerator and denominator events the product must emit, the
+     `comparison` and numeric `threshold`, the `window` (observe day, cohort days), `planned_n`, the `source` it can be
+     measured from (`bigquery`, `store_public`, `manual`, ...), `evaluate_after` (the first date the window can close)
+     and `if_missed` / `if_met` as one of build, continue, pivot, stop, revisit. A qualitative test uses `metric: qualitative`
+     with `source: manual` and a count threshold. A count needs `planned_n` or `evaluate_after`, and a single value (a rating,
+     revenue) needs `min_n` or `evaluate_after`, so that one early reading cannot settle the test.
 6. **J6 Kill criteria.** Every founder kill condition, mapped to the experiment that tests it,
-   with a numeric threshold. Add at most two more if the evidence shows a kill risk the founder missed.
+   with a numeric threshold written as the condition that keeps the idea alive, plus the same extra fields as J5
+   (`kind: kill`, `if_missed` as pivot, stop or revisit). Add at most two more if the evidence shows a kill risk the founder missed.
 7. **J7 Name and positioning.** Only if `name_status` is `open` or `working`, or positioning is
    part of the decision. Name candidates are judgment; a collision with an existing product is
    evidence and must cite the prior-art record. Suggest `/aso-naming --from-proposal` for a full pass.

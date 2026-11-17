@@ -1,7 +1,7 @@
 {
   "name": "nextc-product",
-  "version": "1.9.0",
-  "description": "Product exploration: an idea or problem to a short, sourced decision memo, built on checked evidence records, the founder's own data, and analysis lenses chosen to fit the question.",
+  "version": "1.10.0",
+  "description": "Product exploration: an idea or problem to a short, sourced decision memo, built on checked evidence records, the founder's own data, and analysis lenses chosen to fit the question; then a review of the shipped product against the memo's thresholds and kill criteria.",
   "author": {
     "name": "nextc"
   },

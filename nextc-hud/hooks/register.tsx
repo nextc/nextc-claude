@@ -131,6 +131,8 @@ import {
   tallyAgent,
   tallySkill,
   tallyTurn,
+  adviceText,
+  parseRoster,
   usageText,
 } from './lib/proof'
 import { STOP_QUESTION, bandParts, listText, paneRows, textReport, truncate } from './lib/format'
@@ -177,7 +179,7 @@ const crew = atom({ plugin: 'nextc-hud', key: 'crew' } as const, emptyCrew(), { 
 const review = atom({ plugin: 'nextc-hud', key: 'review' } as const, emptyReview(), { shape: 'review-1' })
 const buildCalls = atom({ plugin: 'nextc-hud', key: 'buildCalls' } as const, {}, { shape: 'buildCalls-1' })
 const turnWork = atom({ plugin: 'nextc-hud', key: 'turnWork' } as const, [], { shape: 'turnWork-1' })
-const tally = atom({ plugin: 'nextc-hud', key: 'tally' } as const, emptyTally(), { shape: 'tally-2' })
+const tally = atom({ plugin: 'nextc-hud', key: 'tally' } as const, emptyTally(), { shape: 'tally-3' })
 const proof = atom({ plugin: 'nextc-hud', key: 'proof' } as const, emptyProof(), { shape: 'proof-1' })
 const facts = atom({ plugin: 'nextc-hud', key: 'facts' } as const, emptyFacts(), { shape: 'facts-1' })
 const projectUi = atom({ plugin: 'nextc-hud', key: 'projectUi' } as const, { isOpen: false, isCollapsed: false, tab: 'overview' }, { shape: 'projectUi-1' })
@@ -202,7 +204,7 @@ const TOAST_TEXT: Record<string, (id: string) => string> = {
   ended: (id) => `Autopilot ${id} has ended.`,
 }
 
-const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off] | agents [off] | project [tab|off] | review | proof | costs | usage | lesson]'
+const HUD_USAGE = '/hud [status | on | off | compact | handoff | coach [on|off] | runs | watch [kind|off] | agents [off] | project [tab|off] | review | proof | costs | usage | advise | lesson]'
 
 // Module variables reset on a hot reload; register() sets them again and session.start
 // restarts the timers for what is still being watched.
@@ -682,7 +684,7 @@ async function recordSession($: $, sessionId: string) {
   const project = (cwd ?? '').split(/[\\/]/).filter((p) => p !== '').pop() ?? ''
   // The get and the set are two calls: a second terminal ending a turn between them can lose
   // one record until that session's next turn writes it again.
-  const rec = { id: sessionId, project, startedAtMs, endedAtMs: now, usd: c.costUsd, compactions: c.compactions, agents: t.spawned, turns: t.turns, skills: t.skills, agentTypes: t.agentTypes, skillCost: t.skillCost }
+  const rec = { id: sessionId, project, startedAtMs, endedAtMs: now, usd: c.costUsd, compactions: c.compactions, agents: t.spawned, turns: t.turns, skills: t.skills, agentTypes: t.agentTypes, skillCost: t.skillCost, models: t.models, skillModels: t.skillModels, agentModels: t.agentModels, inherited: t.inherited }
   await $.store.set(SESSIONS_KEY, upsertSession(await $.store.get(SESSIONS_KEY), rec))
 }
 
@@ -1041,6 +1043,13 @@ async function hudCommand($: $, args: string): Promise<string> {
     const installed = (await $.command.list()).filter((c) => c.source !== 'builtin').map((c) => c.name)
     return isHistoryOn ? usageText(await storedSessions($), now, installed) : 'The session history is off (cost_history in /config).'
   }
+  if (sub === 'advise') {
+    if (!isHistoryOn) return 'The session history is off (cost_history in /config).'
+    // EXTERNAL: the roster nextc-core installs with the rules; without it the roster check is skipped.
+    const home = await homeOf($)
+    const roster = home === null ? null : await readFile($, `${home}/.claude/nextc-claude-references/agents-roster.md`)
+    return adviceText(await storedSessions($), now, parseRoster(roster))
+  }
   if (sub === 'lesson') {
     if (arg === 'off') {
       await update($, lesson, () => ({ text: null, turnsLeft: 0 }))
@@ -1124,7 +1133,7 @@ export const register: Register = (on, options) => {
       await $.command.register({
         name: 'hud',
         description: 'Session HUD: context, compactions, cost, live runs; prepare a /compact or a handoff',
-        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch | agents | project | review | proof | costs | usage | lesson]',
+        argumentHint: '[status | on | off | compact | handoff | coach | runs | watch | agents | project | review | proof | costs | usage | advise | lesson]',
         immediate: true,
       })
     } catch (err) {
@@ -1519,7 +1528,11 @@ export const register: Register = (on, options) => {
         }
         const now = await $.clock.now()
         if (spawned.agentId !== undefined) await update($, crew, (c) => recordSpawn(c ?? emptyCrew(), spawned.agentId!, now))
-        if (e.resume === undefined) await update($, tally, (t) => tallyAgent(t ?? emptyTally(), e.subagentType))
+        if (e.resume === undefined) {
+          // No model in the call and the session's own model as the result: the agent inherited it.
+          const isInherited = e.model === undefined && spawned.model === e.parentModel
+          await update($, tally, (t) => tallyAgent(t ?? emptyTally(), e.subagentType, spawned.model, isInherited))
+        }
         await refreshCrew($)
       }
     } catch (err) {
@@ -1549,7 +1562,11 @@ export const register: Register = (on, options) => {
         // A verified turn starts the next one clean; anything else carries over.
         await update($, proof, (p) => (proofState(p ?? emptyProof()) === 'verified' ? emptyProof() : { ...(p ?? emptyProof()), isTouched: false }))
         const cost = await costNow($)
-        await update($, tally, (t) => tallyTurn(t ?? emptyTally(), cost))
+        const model = await $.session.model().catch((err) => {
+          debug($, 'session model', err)
+          return undefined
+        })
+        await update($, tally, (t) => tallyTurn(t ?? emptyTally(), cost, model))
         await update($, lesson, (l) => (l === undefined || l.text === null || l.turnsLeft <= 1 ? { text: null, turnsLeft: 0 } : { ...l, turnsLeft: l.turnsLeft - 1 }))
         if (e.reason === 'answer' && !e.isAborted) {
           const work = await read($, turnWork)

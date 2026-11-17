@@ -38,6 +38,10 @@ import {
   tallySkill,
   tallyTurn,
   usageText,
+  adviceText,
+  parseRoster,
+  tierOf,
+  modelName,
 } from '../hooks/lib/proof'
 
 const NOW = Date.parse('2026-11-17T10:00:00Z')
@@ -46,6 +50,11 @@ test('check commands are recognised by tool and subcommand; the label never carr
   const cases: [string, string | null][] = [
     ['flutter analyze', 'flutter analyze'],
     ['cd app && fvm flutter test test/a_test.dart --token=abc', 'flutter test'],
+    // A /flutter-visual-proof render exits 0 whatever the screen looks like: not a check.
+    ['flutter test tool/visual/screens_test.dart --dart-define=VP_SCREENS=home', null],
+    ['flutter test --reporter compact ./tool/visual/screens_test.dart', null],
+    ['flutter test /Users/x/app/tool/visual/screens_test.dart', null],
+    ['flutter analyze && flutter test tool/visual/screens_test.dart', 'flutter analyze'],
     ['dart analyze lib', 'dart analyze'],
     ['npx tsc --noEmit', 'tsc'],
     ['npm run typecheck', 'npm typecheck'],
@@ -213,4 +222,42 @@ test('a hostile tasks file with a very long line is parsed in bounded time', () 
   const board = parseTaskBoard(`## a${' '.repeat(200_000)}b\n- [ ] one\n`)
   expect(board!.total).toBe(1)
   expect(board!.milestones[0]!.title.length <= 40).toBe(true)
+})
+
+test('model families, roster parsing and odd model ids', () => {
+  expect(['claude-fable-5-2', 'claude-mythos-5-2', 'claude-opus-5-5', 'sonnet', 'claude-haiku-5-5', 'gpt-x'].map(tierOf)).toEqual(['fable', 'fable', 'opus', 'sonnet', 'haiku', 'other'])
+  expect(parseRoster('| `planner` | fable | xhigh |\n| `autopilot-decider` | fable | high (fallback: opus at xhigh) |\n| `doc-keeper` | sonnet | high |\n| Context | Model | Effort |\n')).toEqual({ planner: 'fable', 'autopilot-decider': 'fable', 'doc-keeper': 'sonnet' })
+  expect(parseRoster(null)).toEqual({})
+  expect(modelName('claude-opus-5-5[1m]')).toBe('claude-opus-5-5[1m]')
+  expect(modelName('bad model\u001b[31m')).toBe('unknown')
+  expect(modelName(undefined)).toBe('unknown')
+})
+
+test('advice needs enough behind a finding, and says when nothing stands out', () => {
+  let t = tallyTurn(emptyTally(), 0, 'claude-sonnet-5-5')
+  t = tallyAgent(t, 'Explore', 'claude-sonnet-5-5', true)
+  t = tallyAgent(t, 'nextc-ecc:code-reviewer', 'claude-sonnet-5-5', false)
+  t = tallySkill(t, 'cleanup')
+  t = tallyTurn(t, 0.4, 'claude-sonnet-5-5')
+  const rec = { id: 's', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 0.4, compactions: 0, agents: 2, models: t.models, skillModels: t.skillModels, agentModels: t.agentModels, inherited: t.inherited }
+  const text = adviceText([rec], NOW, { 'code-reviewer': 'sonnet' })
+  expect(text).toContain('claude-sonnet-5-5  ~$0.40 (100% of cost, 100% of turns)')
+  expect(text).toContain('Nothing stands out')
+  expect(text).not.toContain('was not found')
+  // Without a roster the text says the roster check did not run.
+  expect(adviceText([rec], NOW)).toContain('agents-roster.md) was not found')
+  // A rostered agent whose call names no model is fine; so is inheriting a cheap session model.
+  let pinned = tallyTurn(emptyTally(), 0, 'claude-fable-5-2')
+  for (let i = 0; i < 4; i++) pinned = tallyAgent(pinned, 'nextc-ecc:planner', 'claude-fable-5-2', true)
+  for (let i = 0; i < 4; i++) pinned = tallyAgent(pinned, 'Explore', 'claude-fable-5-2', true)
+  pinned = tallyTurn(pinned, 0.2, 'claude-fable-5-2')
+  const pinnedText = adviceText([{ ...rec, models: pinned.models, skillModels: pinned.skillModels, agentModels: pinned.agentModels, inherited: pinned.inherited }], NOW, { planner: 'fable' })
+  expect(pinnedText).toContain('Explore was spawned 4×')
+  expect(pinnedText).not.toContain('planner was spawned')
+  let cheap = tallyTurn(emptyTally(), 0, 'claude-sonnet-5-5')
+  for (let i = 0; i < 4; i++) cheap = tallyAgent(cheap, 'Explore', 'claude-sonnet-5-5', true)
+  cheap = tallyTurn(cheap, 0.2, 'claude-sonnet-5-5')
+  expect(adviceText([{ ...rec, models: cheap.models, skillModels: cheap.skillModels, agentModels: cheap.agentModels, inherited: cheap.inherited }], NOW, { planner: 'fable' })).toContain('Nothing stands out')
+  expect(adviceText([{ ...rec, models: undefined }], NOW)).toContain('No model use recorded')
+  expect(adviceText([{ ...rec, endedAtMs: NOW - 40 * 86_400_000 }], NOW)).toContain('No model use recorded')
 })

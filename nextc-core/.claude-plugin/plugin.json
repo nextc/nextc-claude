@@ -1,6 +1,6 @@
 {
   "name": "nextc-core",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Development workflow pipelines — clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, autopilot. Composable skills that chain into each other.",
   "author": {
     "name": "nextc"
@@ -20,12 +20,18 @@
     "ask_level": {
       "type": "string",
       "title": "How much Claude asks",
-      "description": "normal: Claude asks before a heavy process nobody asked for, when a request can be read two ways, and before retrying a failed store upload. less: it does not ask in those cases; it skips the heavy check and says so, picks the sensible reading, retries a diagnosed upload, and saves real product choices for one question. Needs the nextc rules installed (setup-rules.sh).",
+      "description": "normal: Claude asks before a heavy process nobody asked for, when a request can be read two ways, and before retrying a failed store upload. less: it does not ask in those cases; it skips the heavy check and says so, picks the sensible reading, retries a diagnosed upload, and saves real product choices for one question. Needs the nextc rules, which this plugin installs (see install_rules).",
       "options": [
         "normal",
         "less"
       ],
       "default": "normal"
+    },
+    "install_rules": {
+      "type": "boolean",
+      "title": "Install the nextc rules",
+      "description": "At session start, copy the rules this plugin ships into ~/.claude/rules/nextc-claude (and their references into ~/.claude/nextc-claude-references) and refresh them when the plugin updates. In the session that writes them Claude is asked to read them first; from the next session they load by themselves. A file you edited is left alone (delete it to get the shipped one back), and so is a folder linked to a checkout. The references always go under ~/.claude, also when CLAUDE_CONFIG_DIR moves the rules. Off: install them yourself with setup-rules.sh.",
+      "default": true
     }
   }
 }

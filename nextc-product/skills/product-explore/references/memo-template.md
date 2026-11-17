@@ -44,6 +44,27 @@ The one mechanism (J2), what the evidence shows about it, and the cheapest test 
 | Kill condition | Experiment | Threshold |
 |----------------|-----------|-----------|
 
+## Review criteria
+
+One line of prose at most, then the block `/product-review` reads (omit this section for DO NOT BUILD). The block is JSON, one criterion
+per line, copied from judgment J5 and J6. It holds the same thresholds as the two tables above and adds nothing new.
+
+```criteria
+{"id":"E1","kind":"experiment","ties_to":["A1"],"statement":"...","metric":"retention","retention_form":"exact_day","numerator":{"event":"..."},"denominator":{"event":"first_open"},"comparison":">=","threshold":0.2,"unit":"ratio","window":{"observe_day":14},"planned_n":40,"min_n":null,"source":"bigquery","evaluate_after":"YYYY-MM-DD","if_missed":"stop","if_met":"build"}
+{"id":"K1","kind":"kill","ties_to":["K1"],"statement":"...","metric":"count","comparison":">=","threshold":50,"unit":"count","planned_n":100,"min_n":null,"source":"manual","evaluate_after":"YYYY-MM-DD","if_missed":"pivot"}
+```
+
+Guidance for the writer, not memo text. Fields (checked by `/product-review`'s `review-check.mjs parse`): `id` E# (the Experiments `#`) or K# (the intake kill id);
+`kind` experiment | kill; `metric` retention | activation | funnel | conversion | revenue | rating | installs | crash_rate |
+signups | dau_wau | qualitative | count; `comparison` >= > <= <; `threshold` a number (a ratio is 0 to 1); `unit` ratio | count | usd | value;
+`source` bigquery | store_public | asc_reviews | play_reviews | manual | asc_sales | asc_analytics | play_export | play_vitals;
+`if_missed` and `if_met` build | continue | pivot | stop | revisit; `numerator.event` and `denominator.event` are the analytics event
+names the product must emit. For a kill criterion, `comparison` and `threshold` state the condition that keeps the idea alive
+("at least 20% still logging"), so `missed` means the kill fired, and its `if_missed` is pivot, stop or revisit. Say when a test is
+over, so one early reading cannot settle it: a count (`unit: count`) needs `planned_n` or `evaluate_after`, and a single value
+(`unit: value` or `usd`, such as a rating or revenue) needs `min_n` or `evaluate_after`. The fenced block is exempt from the word budget and the
+number-marking check, so thresholds here need no marker; the tables keep theirs.
+
 ## Scope if we build
 
 At most five items to build first and the main things left out, one line each. (Omit for DO NOT BUILD.)

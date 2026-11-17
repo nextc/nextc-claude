@@ -2,7 +2,7 @@
 // since the last one, the "proof" line under an answer, and the message asking for a check.
 // It also holds the correction detector for lesson capture and the usage tallies, which are
 // small and belong to no other file.
-import type { Proof, SessionRecord, Tally } from '../../types'
+import type { ModelUse, Proof, SessionRecord, Tally } from '../../types'
 import { clean } from './crew'
 
 // ─── proof ──────────────────────────────────────────────────────────
@@ -38,6 +38,9 @@ const CHECKS: [RegExp, (m: RegExpExecArray) => string][] = [
 // A segment that asks for help, a version, a watcher or a rewrite is not a check run, and a
 // Gradle build that excludes its tests did not run them.
 const NOT_A_RUN = /(^|[ \t])(--help|--version|--watch|--fix|--write|-x[ \t]+\w*(test|check|lint)\w*)(?=[ \t=]|$)/
+// EXTERNAL: /flutter-visual-proof's render harness (nextc-flutter) lives in tool/visual/ and exits 0
+// whatever the layout looks like, so running it proves nothing and is not counted as a check.
+const VISUAL_RENDER = /^flutter[ \t]+test[ \t]+(?:\S+[ \t]+)*?\S*tool\/visual\//
 const WRAPPERS = /^(?:(?:\w+=\S*|fvm|time|env|npx|bunx|command|bundle[ \t]+exec)[ \t]+)+/
 
 export type Check = { label: string; isTrusted: boolean }
@@ -56,7 +59,7 @@ export function checksOf(command: unknown, extra: RegExp | null = null): Check[]
   const out: Check[] = []
   for (let i = 0; i < parts.length; i += 2) {
     const seg = parts[i]!.trim().replace(/^[({][ \t]*/, '').replace(WRAPPERS, '')
-    if (seg === '' || NOT_A_RUN.test(seg)) continue
+    if (seg === '' || NOT_A_RUN.test(seg) || VISUAL_RENDER.test(seg)) continue
     const hit = CHECKS.map(([re, label]) => ({ m: re.exec(seg), label })).find((c) => c.m !== null)
     if (hit === undefined) continue
     const label = hit.label(hit.m!)
@@ -196,7 +199,7 @@ export function lessonPrompt(correction: string, skill: string | null): string {
 
 // ─── usage ──────────────────────────────────────────────────────────
 
-export const emptyTally = (): Tally => ({ spawned: 0, turns: 0, skills: {}, agentTypes: {}, skillCost: {}, turnSkills: [], lastCostUsd: null })
+export const emptyTally = (): Tally => ({ spawned: 0, turns: 0, skills: {}, agentTypes: {}, skillCost: {}, models: {}, skillModels: {}, agentModels: {}, inherited: {}, turnSkills: [], lastCostUsd: null })
 
 const NAME = /^[\w:./@-]{1,80}$/
 const bump = (map: Record<string, number>, key: string, by = 1): Record<string, number> => ({ ...map, [key]: (map[key] ?? 0) + by })
@@ -208,20 +211,45 @@ export function tallySkill(t: Tally, raw: unknown): Tally {
   return { ...t, skills: bump(t.skills, name), turnSkills: t.turnSkills.includes(name) ? t.turnSkills : [...t.turnSkills, name] }
 }
 
-export function tallyAgent(t: Tally, rawType: unknown): Tally {
+// A model id as recorded: an ordinary id, or 'unknown'.
+export const modelName = (raw: unknown): string => (typeof raw === 'string' && /^[\w.:@/\[\]-]{1,60}$/.test(raw.trim()) ? raw.trim() : 'unknown')
+
+// `isInherited`: the call named no model and the agent ran on the session's own, which is
+// what the agents rule warns about (an unpinned agent on the most expensive model).
+export function tallyAgent(t: Tally, rawType: unknown, rawModel: unknown = undefined, isInherited = false): Tally {
   const type = typeof rawType === 'string' && NAME.test(rawType.trim()) ? rawType.trim() : 'general-purpose'
-  return { ...t, spawned: t.spawned + 1, agentTypes: bump(t.agentTypes, type) }
+  const model = modelName(rawModel)
+  // MAGIC: far more agent types than exist; one session's record cannot grow past this.
+  const isNew = t.agentModels[type] === undefined
+  if (isNew && Object.keys(t.agentModels).length >= 200) return { ...t, spawned: t.spawned + 1, agentTypes: bump(t.agentTypes, type) }
+  return {
+    ...t,
+    spawned: t.spawned + 1,
+    agentTypes: bump(t.agentTypes, type),
+    agentModels: { ...t.agentModels, [type]: bump(t.agentModels[type] ?? {}, model) },
+    inherited: isInherited ? bump(t.inherited, type) : t.inherited,
+  }
+}
+
+const addUse = (map: Record<string, ModelUse>, model: string, usd: number): Record<string, ModelUse> => {
+  const cur = map[model] ?? { turns: 0, usd: 0 }
+  return { ...map, [model]: { turns: cur.turns + 1, usd: cur.usd + usd } }
 }
 
 // A turn's cost is the session total's rise since the last turn end. It is counted toward
 // every skill the turn used, so two skills in one turn both show that turn's cost.
-export function tallyTurn(t: Tally, costUsd: number | null): Tally {
+export function tallyTurn(t: Tally, costUsd: number | null, rawModel: unknown = undefined): Tally {
   // With no earlier reading there is nothing to subtract from, so the turn is not priced: a
   // resumed session's whole total must not land on its first skill.
   const delta = costUsd !== null && t.lastCostUsd !== null ? Math.max(0, costUsd - t.lastCostUsd) : 0
+  const model = modelName(rawModel)
   let skillCost = t.skillCost
-  for (const s of t.turnSkills) skillCost = bump(skillCost, s, delta)
-  return { ...t, turns: t.turns + 1, skillCost, turnSkills: [], lastCostUsd: costUsd ?? t.lastCostUsd }
+  let skillModels = t.skillModels
+  for (const s of t.turnSkills) {
+    skillCost = bump(skillCost, s, delta)
+    skillModels = { ...skillModels, [s]: addUse(skillModels[s] ?? {}, model, delta) }
+  }
+  return { ...t, turns: t.turns + 1, skillCost, models: addUse(t.models, model, delta), skillModels, turnSkills: [], lastCostUsd: costUsd ?? t.lastCostUsd }
 }
 
 const usd = (n: number) => `$${n.toFixed(2)}`
@@ -257,4 +285,93 @@ export function usageText(sessions: readonly SessionRecord[], now: number, insta
     ...agentRows.map(([name, n]) => `  ${name.padEnd(width)}  ${String(n).padStart(3)}×`),
     ...(unused.length === 0 ? [] : [`Installed and not used in this period (${unused.length}): ${unused.join(', ')}`]),
   ].join('\n')
+}
+
+// ─── model advice ───────────────────────────────────────────────────
+
+export type Tier = 'fable' | 'opus' | 'sonnet' | 'haiku' | 'other'
+// The family a model id belongs to, most capable (and most expensive) first.
+export function tierOf(model: string): Tier {
+  const m = model.toLowerCase()
+  return m.includes('fable') || m.includes('mythos') ? 'fable' : m.includes('opus') ? 'opus' : m.includes('sonnet') ? 'sonnet' : m.includes('haiku') ? 'haiku' : 'other'
+}
+const RANK: Record<Tier, number> = { fable: 3, opus: 2, sonnet: 1, haiku: 0, other: -1 }
+
+// EXTERNAL: the assignments table of rules-references/agents-roster.md, `| \`agent\` | model | effort |`.
+export function parseRoster(markdown: string | null): Record<string, Tier> {
+  const out: Record<string, Tier> = {}
+  for (const line of (markdown ?? '').split('\n').slice(0, 400)) {
+    const m = /^\|\s*`([\w-]{1,60})`\s*\|\s*(fable|opus|sonnet|haiku)\b/i.exec(line)
+    if (m !== null) out[m[1]!] = m[2]!.toLowerCase() as Tier
+  }
+  return out
+}
+
+// MAGIC: a finding needs at least this much behind it, so one odd turn is not advice.
+const ADVICE_MIN_USD = 1
+const ADVICE_MIN_SPAWNS = 3
+const TOP_SHARE = 0.8
+
+// What the recorded use shows about model choice. Each line is a fact with its numbers; the
+// mod cannot tell whether a cheaper model would do the work as well, and says so.
+export function adviceText(sessions: readonly SessionRecord[], now: number, roster: Record<string, Tier> = {}): string {
+  const since = now - USAGE_DAYS * 86_400_000
+  const recent = sessions.filter((s) => s.endedAtMs >= since && s.models !== undefined)
+  if (recent.length === 0) return `No model use recorded in the last ${USAGE_DAYS} days. It is recorded from the version that added /hud advise.`
+  const models = new Map<string, ModelUse>()
+  const skills = new Map<string, Map<string, ModelUse>>()
+  const agents = new Map<string, Map<string, number>>()
+  const inherited = new Map<string, number>()
+  for (const s of recent) {
+    for (const [m, u] of Object.entries(s.models ?? {})) models.set(m, { turns: (models.get(m)?.turns ?? 0) + u.turns, usd: (models.get(m)?.usd ?? 0) + u.usd })
+    for (const [skill, per] of Object.entries(s.skillModels ?? {})) {
+      const cur = skills.get(skill) ?? new Map<string, ModelUse>()
+      for (const [m, u] of Object.entries(per)) cur.set(m, { turns: (cur.get(m)?.turns ?? 0) + u.turns, usd: (cur.get(m)?.usd ?? 0) + u.usd })
+      skills.set(skill, cur)
+    }
+    for (const [type, per] of Object.entries(s.agentModels ?? {})) {
+      const cur = agents.get(type) ?? new Map<string, number>()
+      for (const [m, n] of Object.entries(per)) cur.set(m, (cur.get(m) ?? 0) + n)
+      agents.set(type, cur)
+    }
+    for (const [type, n] of Object.entries(s.inherited ?? {})) inherited.set(type, (inherited.get(type) ?? 0) + n)
+  }
+  const totalUsd = [...models.values()].reduce((t, u) => t + u.usd, 0)
+  const totalTurns = [...models.values()].reduce((t, u) => t + u.turns, 0)
+  const share = (n: number, of: number) => (of <= 0 ? 0 : Math.round((n / of) * 100))
+  const lines: string[] = [`Last ${USAGE_DAYS} days, ${recent.length} session${recent.length === 1 ? '' : 's'}, ~${usd(totalUsd)} over ${totalTurns} turn${totalTurns === 1 ? '' : 's'}.`, 'Where the cost went, by the model the session ran on:']
+  for (const [m, u] of [...models].sort((a, b) => b[1].usd - a[1].usd)) lines.push(`  ${m}  ~${usd(u.usd)} (${share(u.usd, totalUsd)}% of cost, ${share(u.turns, totalTurns)}% of turns)`)
+
+  const findings: string[] = []
+  // 1. Agents that ran on the session's model because nothing named one.
+  // An agent the roster lists has a model in its own definition, so a call without one is fine;
+  // and inheriting a cheap session model costs nothing extra.
+  for (const [type, n] of [...inherited].sort((a, b) => b[1] - a[1])) {
+    if (n < ADVICE_MIN_SPAWNS || roster[type.split(':').pop()!] !== undefined) continue
+    const on = [...(agents.get(type) ?? new Map<string, number>())].sort((a, b) => b[1] - a[1])[0]?.[0]
+    if (on === undefined || RANK[tierOf(on)] <= RANK.sonnet) continue
+    findings.push(`${type} was spawned ${n}× with no model in the call and ran on the session's model (${on}). The agents rule asks for a model on such a call; a search or scan agent rarely needs that one.`)
+  }
+  // 2. Agents that ran above the tier the roster gives them.
+  for (const [type, per] of agents) {
+    const want = roster[type.split(':').pop()!]
+    if (want === undefined) continue
+    const above = [...per].filter(([m]) => RANK[tierOf(m)] > RANK[want])
+    const n = above.reduce((t, [, k]) => t + k, 0)
+    if (n >= ADVICE_MIN_SPAWNS) findings.push(`${type} ran ${n}× on ${above.map(([m]) => m).join(', ')}; the roster gives it ${want}.`)
+  }
+  // 3. Skills whose turns ran almost entirely on the top tier.
+  for (const [skill, per] of [...skills].sort((a, b) => [...b[1].values()].reduce((t, u) => t + u.usd, 0) - [...a[1].values()].reduce((t, u) => t + u.usd, 0))) {
+    const all = [...per.values()].reduce((t, u) => ({ turns: t.turns + u.turns, usd: t.usd + u.usd }), { turns: 0, usd: 0 })
+    const top = [...per].filter(([m]) => tierOf(m) === 'fable').reduce((t, [, u]) => ({ turns: t.turns + u.turns, usd: t.usd + u.usd }), { turns: 0, usd: 0 })
+    if (all.usd >= ADVICE_MIN_USD && all.turns > 0 && top.turns / all.turns >= TOP_SHARE) {
+      findings.push(`${skill}: ${top.turns} of ${all.turns} turns that used it were on a top-tier session model; those turns cost ~${usd(top.usd)} in all, subagents included. If its work does not need that model, switch with /model before running it.`)
+    }
+  }
+  const hasRoster = Object.keys(roster).length > 0
+  const quiet = hasRoster ? 'Nothing stands out: no agent ran on an inherited top model or above its roster tier often enough, and no skill ran mostly on the top tier.' : 'Nothing stands out: no agent ran on an inherited top model often enough, and no skill ran mostly on the top tier.'
+  lines.push(findings.length === 0 ? quiet : 'What stands out:', ...findings.map((f) => `  - ${f}`))
+  if (!hasRoster) lines.push('The roster (~/.claude/nextc-claude-references/agents-roster.md) was not found, so agents were not compared with their roster tier. nextc-core installs it with the rules.')
+  lines.push('The mod sees which model ran, not whether a cheaper one would have done as well. To find out for a skill, run its plugin evals on the cheaper model and compare.')
+  return lines.join('\n')
 }

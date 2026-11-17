@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.10.0 (2026-11-17)
+
+**The rules install themselves.** Nobody links rules by hand any more. `nextc-core` ships the rules and, on a fresh session start, copies them into `~/.claude/rules/nextc-claude` (references into `~/.claude/nextc-claude-references`) and refreshes them when the plugin updates. In the session that installs or updates them Claude is asked to read them first, so they apply right away; from the next session they load by themselves. A rule file you edited is never overwritten, and `install_rules` in `/config` turns it off. **If you linked the rules by hand before, you can delete those links after updating**; people working on this repo can keep `setup-rules.sh` for live edits.
+
+**`/product-review`: did the product hit its kill criteria?** A new skill in `nextc-product` checks a shipped product against the experiment thresholds and kill criteria in its `/product-explore` memo, and reports each as met, missed, too early or unmeasured with the numbers behind it. A script computes every number and prints the report's table and conclusion, so a kill criterion is never called from a hunch or from one early reading. It measures from BigQuery (GA4 or Firebase export), the public App Store rating and numbers you report, and needs no key. `/product-explore` now writes the criteria block it reads. The BigQuery queries are new and have not been run on real data yet.
+
+**`/flutter-visual-proof`: see a screen without a simulator.** A new skill in `nextc-flutter` renders the screens a change touched to images with one `flutter test` run, per locale and text scale, using the app's real fonts, icons and themes. Claude looks at the images, compares them with `docs/design.md`, and lists every text overflow. It adds a small render harness under `tool/visual/` on first use and takes a few seconds a run.
+
+**`/hud advise`: which model did the work?** `nextc-hud` now records which model each turn and each agent ran on. `/hud advise` shows the last 30 days by model and points at agents that ran on an Opus or Fable session because the call named no model, agents that ran above their roster tier, and skills that ran mostly on Fable.
+
 ## v1.9.0 (2026-11-17)
 
 **How much Claude asks is now a setting.** `nextc-core` has `ask_level` in `/config`: `normal` (the new default) asks before a heavy process nobody asked for, when a request can be read two ways, and before retrying a failed store upload; `less` is the behaviour of the last releases. **If you relied on that behaviour, set `ask_level` to `less` after updating.** `nextc-hud`'s follow-up messages follow the same setting. The setting is a fixed-choice option, which Claude Code supports from 2.1.271: on an older version `nextc-core` does not load, so update Claude Code first.

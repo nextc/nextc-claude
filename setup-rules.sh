@@ -5,7 +5,9 @@ set -euo pipefail
 # references into ~/.claude/nextc-claude-references/, and merges settings/user-settings.json
 # (permission allow/ask/deny rules + auto mode exceptions) into ~/.claude/settings.json.
 # Agents and skills are installed via marketplace (/plugin marketplace add + /plugin install).
-# Rules have no plugin support, so they still require this symlink.
+# Teammates do not need this script for the rules: the nextc-core plugin copies them into
+# ~/.claude at session start (nextc-core/scripts/install-rules.mjs) and leaves a linked folder
+# alone. Use this script when you work on this repo and want your edits live, or for the settings.
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
@@ -214,8 +216,8 @@ check_settings() {
 
 run_check() {
   echo "Checking nextc-claude setup (nothing will be changed)"
-  check_link "$REPO_DIR/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
-  check_link "$REPO_DIR/rules-references" "$CLAUDE_DIR/nextc-claude-references"
+  check_link "$REPO_DIR/nextc-core/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
+  check_link "$REPO_DIR/nextc-core/rules-references" "$CLAUDE_DIR/nextc-claude-references"
   if command -v jq >/dev/null 2>&1; then echo "✓ jq available"; else echo "⚠ jq not available"; fi
   check_versions
   check_settings
@@ -233,10 +235,10 @@ if [ "$MODE" = check ]; then
   exit $?
 fi
 
-link "$REPO_DIR/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
+link "$REPO_DIR/nextc-core/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
 # EXTERNAL: kept outside ~/.claude/rules/ on purpose — Claude Code loads every .md under rules/
 # (subfolders too) into every session; these are read on demand via the paths the rules cite.
-link "$REPO_DIR/rules-references" "$CLAUDE_DIR/nextc-claude-references"
+link "$REPO_DIR/nextc-core/rules-references" "$CLAUDE_DIR/nextc-claude-references"
 
 merge_settings
 

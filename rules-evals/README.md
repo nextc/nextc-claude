@@ -94,4 +94,4 @@ Read a sample of transcripts before trusting a score; a broken grader looks like
 ## Limits
 
 - Rules arrive as an appended system prompt, not in the user-instruction layer a real session uses. Both arms share this, so comparisons are fair, but absolute pass rates may differ from live sessions.
-- The child can't read `~/.claude/nextc-claude-references/` unless `setup-rules.sh` has run. Text moved out of the rules into references is then out of reach, which makes the test harsh on the "after" arm.
+- The child can't read `~/.claude/nextc-claude-references/` unless the references are installed there (by `nextc-core` at session start, or by `setup-rules.sh` for a checkout). Text moved out of the rules into references is then out of reach, which makes the test harsh on the "after" arm.

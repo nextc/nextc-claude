@@ -21,6 +21,8 @@ type World = {
   commands: string[]
   /** What settings.json holds under pluginConfigs; the default is nextc-core at asking level less. */
   pluginConfigs: Record<string, unknown>
+  /** What /model shows for the session. */
+  model: string
   agents: { status: string; id?: string; description?: string; type?: string; name?: string; teammateId?: string; parentId?: string }[]
   sessionId: string
   clock: MockClock
@@ -31,7 +33,7 @@ type World = {
 function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: boolean; isPlaced?: boolean; panes?: string[] } = {}): World {
   const w: World = {
     files: new Map(Object.entries(files)), reads: [], writes: [], toasts: [], opens: [], fills: [], submits: [], timers: [],
-    draft: '', commands: ['config', 'review'], agents: [], pluginConfigs: { 'nextc-core@nextc-claude': { options: { ask_level: 'less' } } }, sessionId: 'sess-1', clock: undefined as never,
+    draft: '', commands: ['config', 'review'], agents: [], pluginConfigs: { 'nextc-core@nextc-claude': { options: { ask_level: 'less' } } }, model: 'claude-fable-5-2', sessionId: 'sess-1', clock: undefined as never,
   }
   const childrenOf = (dir: string) => {
     const names = new Map<string, { kind: 'file' | 'dir'; mtimeMs: number }>()
@@ -68,6 +70,7 @@ function world(on: On, files: Files = {}, opts: { surfaces?: string[]; clock?: b
   })
   on('session.surfaces', () => ({ value: (opts.surfaces ?? ['terminal']) as never }))
   on('session.id', () => ({ value: w.sessionId }))
+  on('session.model', () => ({ value: w.model }))
   on('session.cwd', () => ({ value: CWD }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: { window: 200_000 }, rateLimits: [] } }))
   on('agent.list', () => ({ value: w.agents.map((a, i) => ({ id: `a${i}`, description: 'd', type: 'Explore', ...a })) as never }))
@@ -758,7 +761,7 @@ test('/hud costs sums recorded sessions; a session is recorded when a turn ends'
   await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
   // The record is stored without holding the answer up; let that finish.
   await settle()
-  expect(store.get('sessions')).toEqual([{ id: 'sess-1', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 3.1, compactions: 0, agents: 1, turns: 1, skills: {}, agentTypes: { Explore: 1 }, skillCost: {} }])
+  expect(store.get('sessions')).toEqual([{ id: 'sess-1', project: 'app', startedAtMs: NOW, endedAtMs: NOW, usd: 3.1, compactions: 0, agents: 1, turns: 1, skills: {}, agentTypes: { Explore: 1 }, skillCost: {}, models: { 'claude-fable-5-2': { turns: 1, usd: 0 } }, skillModels: {}, agentModels: { Explore: { 'resolved-model': 1 } }, inherited: {} }])
   const text = (await $.command.run(cmd('hud', 'costs'))).text ?? ''
   expect(text).toContain('app        1 session      ~$3.10  0 compactions, 1 agent')
   // No $.fs write: the history goes through the mod's own store, not a path the mod names.
@@ -1168,4 +1171,34 @@ test('an explicit follow-up option wins over the asking level', { options: { cri
   expect(w.fills).toEqual([])
   expect(w.toasts).toEqual(['1 code file changed and no check ran after the last edit.'])
   expect((await $.command.run(cmd('hud', 'status'))).text).toContain('Follow-ups: review send (set in /config), proof off (set in /config). Asking level: normal')
+})
+
+test('/hud advise reports what ran on which model: inherited agents, above-roster agents, top-tier skills', async ($, on) => {
+  const w = world(on, {
+    [`${HOME}/.claude/nextc-claude-references/agents-roster.md`]: { text: '| Agent | Model | Effort |\n|---|---|---|\n| `code-reviewer` | sonnet | high |\n', mtimeMs: NOW },
+  })
+  on('tool.call', () => ({ result: {} as never }))
+  // The engine resolves an agent with no model of its own to the session's model.
+  on('agent.spawn', (_, e) => ({ model: e.model === undefined ? e.parentModel : `claude-${e.model}-5-5`, agentId: 'a0' }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  extraHooks(on, w)
+  on('command.run', () => ({}))
+  await start($)
+  expect((await $.command.run(cmd('hud', 'advise'))).text).toContain('No model use recorded')
+  await measure($, 10_000, { usd: 1 })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't0', reason: 'answer' })
+  const args = (type: string, model: string | undefined) => ({ ...spawnArgs(type), model, parentModel: 'claude-fable-5-2' })
+  for (let i = 0; i < 3; i++) await $.agent.spawn(args('Explore', undefined) as never)
+  for (let i = 0; i < 3; i++) await $.agent.spawn(args('nextc-ecc:code-reviewer', 'opus') as never)
+  await $.tool.call({ tool: 'Skill', skill: 'nextc-core:feature-dev' } as never)
+  await measure($, 20_000, { usd: 5 })
+  await $.turn.complete({ answer: 'x', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await settle()
+  const text = (await $.command.run(cmd('hud', 'advise'))).text ?? ''
+  expect(text).toContain('claude-fable-5-2  ~$4.00 (100% of cost, 100% of turns)')
+  expect(text).toContain("Explore was spawned 3× with no model in the call and ran on the session's model (claude-fable-5-2). The agents rule asks for a model on such a call")
+  expect(text).toContain('nextc-ecc:code-reviewer ran 3× on claude-opus-5-5; the roster gives it sonnet.')
+  expect(text).toContain('nextc-core:feature-dev: 1 of 1 turns that used it were on a top-tier session model; those turns cost ~$4.00 in all, subagents included.')
+  expect(text).toContain('run its plugin evals on the cheaper model')
+  expect(w.writes).toEqual([])
 })

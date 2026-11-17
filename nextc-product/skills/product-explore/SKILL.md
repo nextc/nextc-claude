@@ -121,7 +121,7 @@ or add one line under it saying why you rejected the issue.
 ### 8. Memo (`memo`)
 
 1. If `docs/proposal.md` exists, run `S snapshot --dir D --memo docs/proposal.md` first.
-2. Write `docs/proposal.md` from `references/memo-template.md`. When there is a snapshot, run
+2. Write `docs/proposal.md` from `references/memo-template.md`, including its `## Review criteria` block (omit it for DO NOT BUILD). When there is a snapshot, run
    `S memo-diff <snapshot> docs/proposal.md` and write "What changed since the last run" from it.
 3. Run `S appendix --dir D --memo docs/proposal.md`, then
    `S memo-check --dir D --memo docs/proposal.md --words 1500` (add `--previous <snapshot>`
@@ -141,6 +141,8 @@ refuted, unverifiable), the paths to the memo and appendix, and one next step:
 | BUILD, name settled | `/flutter-kickoff` or `/unity-kickoff`. |
 | PIVOT | `/idea-explore` on the reframed problem, then a new run. |
 | DO NOT BUILD | Nothing to build. Say what evidence would reopen it. |
+
+When the memo has a `## Review criteria` block, also mention that `/product-review` checks it against real numbers once the product has users.
 
 ## Update (`--update`)
 

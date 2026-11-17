@@ -29,9 +29,26 @@ export function makeRunDirs(suffix = '') {
   return { out, work };
 }
 
+// EXTERNAL: the rules moved into the nextc-core plugin in 1.10.0 (rules/ at the root is now a link to
+// them), so a ref from before that has them at rules/nextc-claude and a later one under nextc-core/.
+const RULES_IN_PLUGIN = 'nextc-core/rules/nextc-claude';
+
 export function extractRules(ref, dest) {
   fs.mkdirSync(dest, { recursive: true });
-  execSync(`git archive ${JSON.stringify(ref)} ${RULES_DIR} | tar -x -C ${JSON.stringify(dest)}`, { cwd: REPO });
+  const has = (p) => {
+    try {
+      return execSync(`git cat-file -t ${JSON.stringify(`${ref}:${p}`)}`, { cwd: REPO, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() === 'tree';
+    } catch {
+      // The path is not a folder at that ref.
+      return false;
+    }
+  };
+  const src = has(RULES_IN_PLUGIN) ? RULES_IN_PLUGIN : RULES_DIR;
+  execSync(`git archive ${JSON.stringify(ref)} ${src} | tar -x -C ${JSON.stringify(dest)}`, { cwd: REPO });
+  if (src !== RULES_DIR) {
+    fs.mkdirSync(path.join(dest, 'rules'), { recursive: true });
+    fs.renameSync(path.join(dest, src), path.join(dest, RULES_DIR));
+  }
 }
 
 // The bundle mirrors what a session loads: every .md under rules/nextc-claude/ (subfolders too),
