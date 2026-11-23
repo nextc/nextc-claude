@@ -30,7 +30,8 @@ If the change touches none of these, say so in one line and stop.
    - What happens on the failure branch: a timeout, a retry, a duplicate request, a partial write, a crash between two steps?
    - What happens when two requests arrive at once, or in the opposite order?
    - What does the client control that the server trusts?
-   - For a migration: what happens to existing rows, to a client on the old version, and on rollback?
+   - For a migration: what happens to existing rows, to a client on the old version, and on rollback? How long does it lock or rewrite the table at its real size?
+   - For a schema change: which queries read and write the new shape, and does an index or key serve each one? Does the store itself enforce the rule (unique, foreign key, not-null, check), or only the application?
 3. Check the claim against the code or by running something small. You may run read-only commands and existing targeted tests. Do not run builds, dev servers, full test suites or migrations.
 4. Check that a test covers the rule. Name the missing case when none does; do not write the test.
 

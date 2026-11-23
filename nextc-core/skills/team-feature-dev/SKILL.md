@@ -28,10 +28,10 @@ Read the project context file, `docs/tasks.md`, `docs/spec/`, `docs/design.md`, 
 
 ## 2. Plan and decompose
 
-1. Spawn `nextc-ecc:planner` (model fable) to write `docs/spec/<slug>.md` (or reuse an existing spec) and return path, summary, and open questions.
-2. Spawn `nextc-ecc:architect` (model fable) with the path to review the plan against the code; fix CRITICAL/HIGH in the file.
-3. Decompose into a task graph in the same file. Each sub-task is file- or module-scoped with: subject, files, dependencies, acceptance criteria. Shared files (router, ARB, DI registry) go to ONE worker. Group into waves of independent tasks.
-4. Show the task graph (table of task, files, depends-on, worker type, plus waves and acceptance criteria) and ask once, batching planner open questions: approve and launch / adjust / cancel.
+1. Spawn `nextc-ecc:planner` (model fable) to write `docs/spec/<slug>.md` (or reuse an existing spec), passing every workload fact you have (data sizes, users, hot paths); it returns path, a summary that leads with the design, and open questions. The file opens with the Design section the planner's plan format defines (targets and workload, access patterns and data model, the decisions that apply, breaking point); for a reused spec without one, have the planner add it to that file before decomposition.
+2. Spawn `nextc-ecc:architect` (model fable) with the path to review the design and the steps against the code; fix CRITICAL/HIGH in the file.
+3. Decompose into a task graph in the same file. Each sub-task is file- or module-scoped with: subject, files, dependencies, acceptance criteria. Shared files (router, ARB, DI registry) go to ONE worker, and so does the schema: migrations, indexes and constraints are one worker's task that the others depend on, never split across workers. Each sub-task names the Design decisions it implements. Group into waves of independent tasks.
+4. Show the design decisions (data model and indexes, workload assumed, main trade-off) and the task graph (table of task, files, depends-on, worker type, plus waves and acceptance criteria) and ask once, batching planner open questions: approve and launch / adjust / cancel.
 
 ## 3. Design (UI features only)
 
@@ -51,13 +51,13 @@ Before spawning workers. Obey `ui-ux-design` rules: #6 whole-product consistency
 
 ## 5. Verify
 
-Run the analyzer/typecheck/lint; check each acceptance criterion; for Flutter UI with l10n, check for hardcoded strings. Builds, device runs, and the full suite run only if the user asked; otherwise tag them unverified in the report.
+Run the analyzer/typecheck/lint; check each acceptance criterion; walk the plan's Design against the code (every index, constraint and query shape it decides exists as written, and no query landed in a loop or without a limit); for Flutter UI with l10n, check for hardcoded strings. Builds, device runs, and the full suite run only if the user asked; otherwise tag them unverified in the report.
 
 Failures go back to the original implementing worker by `SendMessage` ([references/fix-loop.md](references/fix-loop.md)). Retry rule: a written diagnosis before each retry; after two diagnosed attempts on the same issue, stop and report to the user.
 
 ## 6. Review and cleanup
 
-Spawn `nextc-ecc:code-reviewer` (model sonnet) over all changed files, looking for cross-worker inconsistency; add `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data, and always `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable) when the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema). Fix CRITICAL/HIGH. Then `/cleanup <changed files>` (pipeline call, no prompt) and re-run the analyzer; revert cleanup changes that break it.
+Spawn `nextc-ecc:code-reviewer` (model sonnet) over all changed files, giving it the plan file's path so it checks the code against the Design, and looking for cross-worker inconsistency; add `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data, and always `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable) when the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema). Fix CRITICAL/HIGH. Then `/cleanup <changed files>` (pipeline call, no prompt) and re-run the analyzer; revert cleanup changes that break it.
 
 ## 7. Shut down (mandatory)
 

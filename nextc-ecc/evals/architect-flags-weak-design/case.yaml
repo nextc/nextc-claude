@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: architect-flags-weak-design
+tags: [architect, design]
+context:
+  scaffold_script: fixture.sh

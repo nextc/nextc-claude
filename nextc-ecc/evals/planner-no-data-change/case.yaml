@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: planner-no-data-change
+tags: [planner, design, guard]
+context:
+  scaffold_script: fixture.sh

@@ -11,7 +11,8 @@ allowed-tools: Agent Read Write Edit Grep Glob Bash
 > Source: concept adapted from affaan-m/ecc `skills/blueprint` (MIT). Wired to our `planner`/
 > `architect` agents and `adversarial-review` skill.
 
-Produce a construction plan where **any fresh agent can execute any step cold** — without reading
+Produce a construction plan that **decides the solution first** (workload, data model, indexes,
+failure handling) and where **any fresh agent can execute any step cold** — without reading
 prior steps or carrying session context. This is the layer *above* `/feature-dev`: `/feature-dev`
 builds one feature in one session; `blueprint` sequences many of them across PRs and sessions.
 
@@ -32,23 +33,27 @@ git remote -v; git branch --show-current
 - Without them: **direct mode** — edit-in-place steps, no branches.
 
 Read the existing project structure, any current `docs/plans/*`, `docs/tasks.md`, and `docs/spec/*`
-so the plan builds on what's there rather than reinventing it.
+so the plan builds on what's there rather than reinventing it. Read the data layer too (schema and
+migration files, models, the queries and indexes that exist): the design starts from what is stored
+and how it is read.
 
-### 2. Design (decompose)
+### 2. Design, then decompose
+
+The design comes before the steps: the targets and workload the plan is built for, the access patterns and the data model that serves them, an index for each hot query, the cost of each critical path and the limits it runs into, consistency, failure and overload handling, migration and lifecycle, how the targets will be proven, the alternative rejected, and the first thing that breaks as it grows (`engineering-bar.md`). Steps only sequence that design.
 
 For multi-file or architectural objectives, have the **planner** agent write the plan itself so it never passes through your context:
 
 ```
 Agent(subagent_type: "nextc-ecc:planner", model: "fable",
       description: "Write the blueprint plan file",
-      prompt: "Objective: <objective>. Repo context: <paths worth reading>. Write the plan to docs/plans/<slug>.md following the step template in ${CLAUDE_SKILL_DIR}/references/step-template.md (read it). Return only: the path, a summary of at most 10 lines, and open questions with recommended defaults.")
+      prompt: "Objective: <objective>. Repo context: <paths worth reading>. Workload facts you know (data sizes, users, hot paths): <facts, or 'none given: state your assumptions'>. Write the plan to docs/plans/<slug>.md following the plan template in ${CLAUDE_SKILL_DIR}/references/step-template.md (read it): its header is your own plan format (open questions, goal, Design, risks), and each step uses the template's Step block instead of your step fields. Return only: the path, a summary of at most 10 lines that leads with the design decisions, and open questions with recommended defaults.")
 ```
 
 Batch the planner's open questions into ONE question to the user, apply the answers to the file, then continue at step 4. For a small plan you may write the file yourself (step 3). Each step is one-PR-sized (3-12 typical) with dependency edges, parallel/serial ordering, a model tier, and a rollback.
 
 ### 3. Draft (write self-contained steps)
 
-Write `docs/plans/<slug>.md` using the step template in [references/step-template.md](references/step-template.md). Every step must be executable cold: it declares what it consumes and produces, and carries goal, files, verify command, exit criteria, dependencies, and a "Cannot be verified locally" note (live services, device behavior, third-party API facts, with the source or the assumption). `/autopilot` consumes these plans, and unverifiable facts are what stall its runs.
+Write `docs/plans/<slug>.md` using the plan template in [references/step-template.md](references/step-template.md): the Design header, then the steps. When you write the file yourself, you owe the same Design the planner would write; do not skip it because the plan is small. Every step must be executable cold: it declares what it consumes and produces, and carries goal, files, verify command, exit criteria, dependencies, and a "Cannot be verified locally" note (live services, device behavior, third-party API facts, with the source or the assumption). `/autopilot` consumes these plans, and unverifiable facts are what stall its runs.
 
 **A plan records decisions, not implementation.** Write signatures, assertions, values, and
 rollback; do not paste function bodies or finished code. Implementation belongs to the executing
@@ -65,14 +70,14 @@ Do not ship the plan unreviewed. Spawn the **architect** agent (fable) with the 
 ```
 Agent(subagent_type: "nextc-ecc:architect", model: "fable",
       description: "Adversarial review of the plan",
-      prompt: "Review docs/plans/<slug>.md against the repo. Return findings by severity with path:line evidence, then a verdict.")
+      prompt: "Review docs/plans/<slug>.md against the repo. Judge the design first (targets and workload, access patterns, schema and constraints, indexes, critical-path cost, limits, concurrency and overload, migration at real size, proof), then the steps. Return findings by severity with path:line evidence, then a verdict.")
 ```
 
 Fix every CRITICAL and HIGH finding in the file before finalizing.
 
 ### 5. Register and approve
 
-Add/refresh a pointer in `docs/tasks.md` and report: step count, which steps can run concurrently, and the first step to execute.
+Add/refresh a pointer in `docs/tasks.md` and report: the design decisions (data model, indexes, the main trade-off and the alternative rejected, the stated breaking point), step count, which steps can run concurrently, and the first step to execute.
 
 **Approval gate.** Point the user at the saved `docs/plans/<slug>.md` and ask them to review that
 file. No step executes until they approve the saved plan. Approving the idea or the scope earlier
@@ -99,6 +104,8 @@ the change — never let the plan drift from what's actually being built (`lates
 
 ## Anti-patterns
 
+- A plan that sequences the work without deciding the data model, the indexes and the workload it is built for. The executor will decide them by default.
+- A design no step builds: an index or constraint named in the Design with no step and no exit criterion that checks it.
 - Steps that can't be executed without reading other steps (no real context brief).
 - Steps bigger than one PR ("implement the whole backend").
 - Vague exit criteria ("works correctly") instead of observable/verifiable conditions.

@@ -217,7 +217,7 @@ No store keys are needed. Optionally you can give a path or env-var name for an 
 ```
 nextc-claude/                         (marketplace root)
 ├── .claude-plugin/marketplace.json   (lists 9 plugins)
-├── nextc-core/rules/nextc-claude/    (15 rules, installed by nextc-core at session start; about 32.8 KB always loaded; rules/ at the root links here)
+├── nextc-core/rules/nextc-claude/    (16 rules, installed by nextc-core at session start; about 35.7 KB always loaded; rules/ at the root links here)
 ├── nextc-core/rules-references/      (long-form rule references, installed to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
 ├── settings/user-settings.json       (allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)
@@ -225,7 +225,7 @@ nextc-claude/                         (marketplace root)
 ├── tests/                            (node --test 'tests/*.test.mjs'; no install, no model calls)
 ├── setup-rules.sh
 ├── nextc-core/                       (10 skills, 3 agents)
-├── nextc-ecc/                        (14 skills, 10 agents, 3 hooks)
+├── nextc-ecc/                        (14 skills, 10 agents, 3 hooks; evals/)
 ├── nextc-product/                    (3 skills, 4 agents)
 ├── nextc-project-kickoff/            (2 skills, 1 agent)
 ├── nextc-flutter/                    (9 skills, 2 agents, 1 hook)
@@ -235,9 +235,9 @@ nextc-claude/                         (marketplace root)
 └── nextc-hud/                        (mod: 1 hooks module)
 ```
 
-### Rules (15, shared across all plugins)
+### Rules (16, shared across all plugins)
 
-**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring (loads only when editing skills and agents), heavy-commands
+**All projects:** agents, safety, practices, git-workflow, agentic-awareness, project-docs, testing-policy, code-comments, verify-before-claim, stop-and-diagnose, tool-preferences, ui-ux-design, latest-spec-wins, skill-authoring (loads only when editing skills and agents), engineering-bar (design before code: targets and workload, data model, critical-path cost, limits and failure, proof), heavy-commands
 
 ---
 

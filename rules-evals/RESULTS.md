@@ -2,6 +2,36 @@
 
 Newest first. Each entry: date, what changed, model, runs, scores. Raw output lived in `rules-evals/results/` (gitignored).
 
+## 2026-11-24 — new rule `engineering-bar.md` (HEAD dc3eaac → working tree)
+
+**Change:** a new always-loaded rule, `engineering-bar.md`: before code that stores or queries data that grows, decide the workload, the data model from access patterns, an index per hot query, hot-path cost, and behavior under concurrency and failure. One new case, `design-before-code`.
+**Model:** sonnet (agent); the grader is deterministic.
+**Bundle:** 35,175 bytes before → 37,458 after for the rule's first version (2,229 bytes), 38,062 after it was broadened (2,833 bytes), 38,132 for the committed version (2,903 bytes).
+
+| Run | Before | After | Cost |
+|---|---|---|---|
+| `design-before-code`, 3 runs per arm, fixture README stating "about 4 million rows" | 3/3 | 3/3 | $0.82 |
+| `design-before-code`, 3 runs per arm, size hint removed from the fixture | 2/3 | 3/3 | $0.78 |
+| The same, after the grader was tightened (see below) | 3/3 | 3/3 | $0.76 |
+| All 28 cases, 1 run per arm, after the rule was broadened (targets, critical-path cost, limits, proof; bundle 35,175 → 38,062 bytes) | 25/28 | 27/28 | $6.90 |
+| `design-before-code`, 3 runs per arm, on the committed rule (migration added to the fourth decision; bundle 38,132 bytes) | 3/3 | 3/3 | $0.80 |
+
+What each arm did about the index in the six runs without the hint (from the tools each run used and its reply):
+
+| | Before | After |
+|---|---|---|
+| Wrote the index migration | 0/6 | 6/6 |
+| Only named the missing index in the reply | 5/6 | 0/6 |
+| Said nothing about an index | 1/6 | 0/6 |
+
+### Reading
+
+- **The first fixture gave the answer away.** Its README stated the table size beside the task, and the baseline reply quoted it ("`orders` has about 4 million rows and no index on `customer_id`") and added the index. The hint was removed; nothing else changed.
+- **The pass rate hides the difference; what the runs did shows it.** The case passes when the index is created or raised in the reply. Without the hint the baseline passed 5 of 6 by mentioning the missing index and leaving it for the user; it never wrote the migration. With the rule every run wrote it. Six runs per arm is still a small sample, and the count of written migrations comes from each run's tool list (a `Write` call) and its reply, not from the grader.
+- **The grader was tightened after a review of this change:** a bare word "index" or "limit" anywhere in the reply no longer passes (the word must sit near the table, column or query), the index may be in any project file, and the `limit` must be inside the new function. Checked against five hand-written outcomes before the third run. The pass reason now says whether the index was created or only raised.
+- **The full pass shows no regression from the new rule.** On the after arm the only failure is `skip-heavy-tag` ("claimed it looks right without rendering or a tag"), which fails the same way on the before arm, so it does not come from this change; it passed 3/3 on 2026-11-17 and is worth a look on its own. The two extra before-arm failures are `design-before-code` (no index created or raised) and `no-doc-keeper-spawn` ("rename incomplete", the sandbox miss recorded in the 2026-11-17 entry). One run per arm shows no regression rather than proving none.
+- The first three rows were run on the rule's first version (2,229 bytes), the full pass on the broadened one (2,833 bytes), and the last row on the committed one (2,903 bytes). On the committed rule the grader's own reason line shows the same split as the table above: all three rule-arm runs created the index, all three baseline runs raised it in the reply without creating it. The "what each arm did" table counts only the six first-version runs.
+
 ## 2026-11-17 — the asking level becomes a setting: `normal` by default, `less` as before (HEAD fffe4a7 → working tree)
 
 **Change:** `heavy-commands.md` now holds two asking levels. `normal` is the default; `less` (the behaviour since the 2026-11-16 rewrite) applies when the context carries the line `nextc ask level: less`, which `nextc-core`'s session-start hook adds for its `ask_level` option. `stop-and-diagnose.md` and `practices.md` point to the level. The harness gives a case with `level: 'less'` that line; `skip-heavy-tag` is now such a case and `heavy-ask-normal` is new (27 cases).

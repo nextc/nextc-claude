@@ -20,13 +20,13 @@ Proceed only if the request has a concrete anchor: a file path, an entity name, 
 
 ## 1. Scope and classify
 
-Read in parallel: the project context file (`CLAUDE.md`/`AGENTS.md`), `docs/tasks.md`, any matching `docs/spec/*`, `docs/design.md`, the stack manifest, `git log --oneline -10`.
+Read in parallel: the project context file (`CLAUDE.md`/`AGENTS.md`), `docs/tasks.md`, any matching `docs/spec/*`, `docs/design.md`, `docs/architecture.md`, the stack manifest, `git log --oneline -10`. When the feature reads or writes stored data, also read the schema or migration files, the models, and the existing queries on the tables it touches.
 
 | Size | Signal | Path |
 |------|--------|------|
 | **Spike** | Throwaway exploration | Note findings, no review, no docs |
-| **Bounded** | Inside existing patterns, no new data model or cross-layer contract | The lead plans it itself (short step list in the reply or the spec file); no planner, no architect |
-| **Architectural** | New data model, layer, or module, cross-cutting contract, hard to reverse | Planner writes the plan file; architect reviews it |
+| **Bounded** | Inside existing patterns, no schema change, no cross-layer contract | The lead plans it itself (design decisions, then a short step list, in the reply or the spec file); no planner, no architect |
+| **Architectural** | New or changed data model (table, collection, index, migration), a new store, cache or queue, a new layer or module, a cross-cutting contract, anything hard to reverse | Planner writes the plan file; architect reviews it |
 
 When unsure between two sizes, take the larger. Classify the feature **UI** (screens, widgets, navigation, theme, UX) or **backend** (models, services, APIs, logic); mixed counts as UI.
 
@@ -34,11 +34,13 @@ Show one summary (feature, size, type, scope, existing spec, whether `docs/desig
 
 ## 2. Plan
 
-- **Existing spec**: use its acceptance criteria as plan input.
-- **Bounded**: write the step list yourself, as decisions (interfaces, data shapes, constraints), not code.
-- **Architectural**: spawn `nextc-ecc:planner` (model fable) to write `docs/spec/<slug>.md`, passing the feature, context, and the path; it returns the path, a short summary, and open questions. Then spawn `nextc-ecc:architect` (model fable) with the path to review the plan against the code. Fix CRITICAL/HIGH findings in the file; if planner and architect disagree on something that is a product or design choice, put both options in the user question below.
+A plan is a solution first and a step list second (`engineering-bar.md`). Whoever writes it decides: the target and workload it is built for, every read and write the feature performs and what serves each (table or collection, index or key), the constraints the store enforces, the cost of the critical path (round trips, payload, what runs per frame or on the UI thread), the limits it can hit, what happens on a retry, two writers at once or a slow dependency, what a schema change does to existing rows and old clients, how the target will be proven, and the alternative rejected. "Data: none touched" is a valid answer when it is true and checked.
 
-The plan file is the source of truth for the rest of the run (it survives compaction). Present the plan summary and ask **once**, batching planner open questions, architect disagreements, and approval: approve / adjust / cancel. The user approves the written file, not a paraphrase.
+- **Existing spec**: use its acceptance criteria as plan input. A spec that says what to build but not how the data is stored and read still needs the design.
+- **Bounded**: write the design decisions yourself in a few lines (new queries and the existing index that serves each, pagination, failure handling), then the step list, as decisions (interfaces, data shapes, constraints), not code. If a new query has no index to serve it, the feature is Architectural.
+- **Architectural**: spawn `nextc-ecc:planner` (model fable) to write `docs/spec/<slug>.md`, passing the feature, context, the path, and every workload fact you have (data sizes, users, hot paths); it returns the path, a short summary that leads with the design, and open questions. Then spawn `nextc-ecc:architect` (model fable) with the path to review the design and the steps against the code. Fix CRITICAL/HIGH findings in the file; if planner and architect disagree on something that is a product or design choice, put both options in the user question below.
+
+The plan file is the source of truth for the rest of the run (it survives compaction). Present the plan summary and ask **once**, batching planner open questions, architect disagreements, and approval: approve / adjust / cancel. The summary shows the solution, not only the steps: the data model and indexes, the workload assumed, the main trade-off with the alternative rejected, and the stated breaking point. The user approves the written file, not a paraphrase.
 
 ## 3. Design (UI features only)
 
@@ -62,12 +64,13 @@ If a step shows the plan was wrong, adjust the plan file and tell the user.
 1. Run the analyzer/typecheck/linter after each logical group, and zero errors before moving on.
 2. Builds, simulator or device runs, dev servers, and the full test suite run only if the user asked for them in this task. Otherwise skip them and tag the claim "(unverified: needs a build/run)" in the report.
 3. Walk each acceptance criterion: verify by reading code where possible; list runtime-only criteria for the user.
-4. Tests: if the project has tests covering code you changed, update those and run only them; otherwise write none (testing-policy).
-5. Two diagnosed attempts per failing check, then stop and surface it with what you found.
+4. Walk the plan's Design against the code: every index, constraint and query shape it decides exists as written, and no query landed in a loop or without a limit. A decision the code dropped is fixed or reported, not left.
+5. Tests: if the project has tests covering code you changed, update those and run only them; otherwise write none (testing-policy).
+6. Two diagnosed attempts per failing check, then stop and surface it with what you found.
 
 ## 6. Review
 
-Skip for Spike and `--quick`. Spawn `nextc-ecc:code-reviewer` (model sonnet) on everything changed (it reads untracked files), and in parallel `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. When the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema), also spawn `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable); this one runs even for Spike and `--quick`. Fix CRITICAL and HIGH; fix MEDIUM if quick.
+Skip for Spike and `--quick`. Spawn `nextc-ecc:code-reviewer` (model sonnet) on everything changed (it reads untracked files), giving it the plan file's path (for a Bounded plan kept in the reply, the design decisions themselves) so it checks the code against the Design, and in parallel `nextc-ecc:security-reviewer` (sonnet) for auth, payments, or user data. When the change touches critical logic (auth, authorization, payments, user data, secrets, concurrency, schema), also spawn `nextc-ecc:critical-reviewer` (fable at high; opus at xhigh when Fable is unavailable); this one runs even for Spike and `--quick`. Fix CRITICAL and HIGH; fix MEDIUM if quick.
 
 ## 7. Cleanup
 
@@ -79,6 +82,7 @@ The feature is built and verified: suggest spawning `doc-keeper` (or `/update-do
 
 ## Gotchas
 
+- A feature that works on the developer's ten rows and crawls on the user's hundred thousand is not done. The plan states the size it was designed for; the code is judged at that size.
 - Do not implement UI before its data layer exists; the widgets bind to its shape.
 - New work discovered mid-implementation goes to the task list, not into the current plan.
 - Never skip verification to save time; reviews and cleanup may be skipped on request, Phase 5 may not.

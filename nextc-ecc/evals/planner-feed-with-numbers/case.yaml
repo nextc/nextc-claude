@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: planner-feed-with-numbers
+tags: [planner, design]
+context:
+  scaffold_script: fixture.sh

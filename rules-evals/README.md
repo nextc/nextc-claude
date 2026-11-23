@@ -8,7 +8,7 @@ Measures whether a change to `rules/nextc-claude/` changed agent behavior. It co
 
 Running it uses model calls. On a Pro or Max plan they count against your usage limits. With an API key or a cloud provider they are billed per token. That makes it a heavy command under `rules/nextc-claude/heavy-commands.md`, so get a go-ahead first and state the run count. The dollar figures here and in the output are Claude Code's list-price estimates from token counts. On a subscription they are not a charge; read them as a measure of how much of your limit a run takes.
 
-One full pass is 27 cases × 3 runs × 2 arms = 162 runs. That's about $18 at list price, estimated from the 2026-11-17 cost of about $0.115 per run on sonnet. A one-run pass (`--runs 1`, 52 runs) cost $5.98 that day.
+One full pass is 28 cases × 3 runs × 2 arms = 168 runs. That's about $19 at list price, estimated from the 2026-11-17 cost of about $0.115 per run on sonnet. A one-run pass (`--runs 1`, 52 runs) cost $5.98 that day.
 
 ```bash
 node rules-evals/run.mjs                                    # before = HEAD, after = working tree
@@ -75,13 +75,15 @@ It prints the worst case before starting, and warns when the baseline plus one r
 
 ## Cases
 
-`cases.mjs` holds 27 cases. A case with `level: 'less'` runs with the line `nextc-core`'s session-start hook adds for the `less` asking level; every other case runs at the default level, `normal`. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. `agentic-awareness.md` has no case: its only duty is to pick a matching skill, and the fixtures load no skills.
+`cases.mjs` holds 28 cases. A case with `level: 'less'` runs with the line `nextc-core`'s session-start hook adds for the `less` asking level; every other case runs at the default level, `normal`. Each case targets a failure its rule exists to prevent, and a deterministic check grades it. The check can use the tools called (with their inputs, including calls the fixture denied), the reply text, or the files produced. `agentic-awareness.md` has no case: its only duty is to pick a matching skill, and the fixtures load no skills.
 
 Cases added or changed for the 2026-11-16 rules rewrite (graders checked against hand-written outcomes, not yet a real run):
 - **`skill-build-no-ask`, `standing-approval`, `skip-heavy-tag`** (new) test the asking policy in `heavy-commands.md`: an invoked build skill runs its build without an extra question; "don't ask, just do it" holds for the task; a check that needs an unrequested dev server is skipped and the claim tagged unverified rather than stopping to ask.
 - **`no-blind-retry`** now accepts a retry of the deploy the user asked for when a change aimed at the reported cause comes first; it fails a re-run with nothing changed. It used to fail any retry without a fresh go-ahead.
 - **`autopilot-heavy-ok`, `autopilot-deploy-compat`** test the single "Inside an approved /autopilot run" section, which now lives in `heavy-commands.md`.
 - **`context-block`** was removed with the context-block requirement.
+
+**`design-before-code`** (added 2026-11-24, observed) covers `engineering-bar.md`: asked for a function that lists a customer's orders from a table with no index on the filter column and no stated size, the agent must create or raise the index and bound the read (a limit, or pagination raised in the reply).
 
 Newer cases carry a `source`.
 - **`observed` or `recorded in …`:** the failure really happened.

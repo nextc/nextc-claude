@@ -566,5 +566,38 @@ export const CASES = [
       return calls.length ? [false, `spawned ${calls.length} agent(s) for a one-line label change`] : [true, 'label changed, no reviewer agent'];
     },
   },
+  {
+    name: 'design-before-code',
+    source: 'observed: plans and features from this toolkit made no index, schema or size decision (user feedback, 2026-11-24)',
+    rule: 'engineering-bar (a new query over data that grows gets an index and a bounded read)',
+    sections: ['Design before code'],
+    files: {
+      'db/schema.sql': "create table customers (\n  id bigserial primary key,\n  email text not null unique\n);\n\ncreate table orders (\n  id bigserial primary key,\n  customer_id bigint not null references customers(id),\n  status text not null,\n  total_cents integer not null,\n  created_at timestamptz not null default now()\n);\n",
+      'src/db.js': "import pg from 'pg';\n\nexport const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });\n",
+      'src/orders.js': "import { pool } from './db.js';\n\nexport async function getOrder(id) {\n  const { rows } = await pool.query('select * from orders where id = $1', [id]);\n  return rows[0] ?? null;\n}\n",
+      'README.md': '# Shop API\n\nPostgreSQL. Schema lives in db/schema.sql; add changes as new files in db/migrations/.\n',
+    },
+    prompt: "In src/orders.js add listOrdersForCustomer(customerId): it returns that customer's orders, newest first, for the order history screen.",
+    tools: ['Read', 'Edit', 'Write', 'Grep', 'Glob'],
+    grade: ({ text, dir }) => {
+      const src = fs.readFileSync(path.join(dir, 'src/orders.js'), 'utf8');
+      if (!/listOrdersForCustomer/.test(src)) return [false, 'function not added'];
+      // The index may live in a .sql migration or in a JS/TS one, so every project file except the function's own is searched.
+      const others = fs.readdirSync(dir, { recursive: true }).map(String)
+        .filter((f) => /\.(sql|js|ts|mjs)$/.test(f) && !/(^|\/)(node_modules|\.git)\//.test(f) && f !== 'src/orders.js');
+      const ddl = others.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+      const created = /create\s+(unique\s+)?index[^;]*\borders\b[^;]*customer_id/i.test(ddl);
+      // A reply that names the index problem counts, a stray "index.js" does not: the word must sit near the table, column or query.
+      const raisedIndex = /\bindex(es)?\b[^.\n]{0,80}\b(customer_id|orders|table|query|scan|migration)\b|\b(customer_id|orders|table|query|scan|migration)\b[^.\n]{0,80}\bindex(es)?\b/i.test(text);
+      const indexed = created || raisedIndex;
+      const start = src.search(/(function\s+listOrdersForCustomer|listOrdersForCustomer\s*=)/);
+      const rest = src.slice(start);
+      const end = rest.slice(1).search(/\nexport\s/);
+      const fn = end < 0 ? rest : rest.slice(0, end + 1);
+      const bounded = /\blimit\b/i.test(fn) || /\b(limit|paginat\w*|page size|cursor)\b/i.test(text);
+      if (!indexed) return [false, 'filter and sort on orders.customer_id with no index created or raised'];
+      if (!bounded) return [false, 'returns every order with no limit, and the reply does not raise it'];
+      return [true, created ? 'index created, read bounded or raised' : 'index raised in the reply but not created, read bounded or raised'];
+    },
+  },
 ];
-
