@@ -1,5 +1,15 @@
 # Release Log
 
+## v1.11.0 (2026-11-24)
+
+**Plans are designed before they are sequenced.** The `planner` now writes a Design section before any step: the numeric target and workload for each critical flow, the access patterns and the data model that serves them (keys, constraints, an index per hot query), what each critical path costs on the server and on the client, the limits it runs into, concurrency and failure handling, migration, and how the target will be proven. It sizes the plan to the change, plans the request and not the neighbourhood, and adds no tests to a project that has none. `architect` judges that design before the steps, and a plan that touches stored data with no design is a HIGH finding. `code-reviewer` gained performance, data-access and design-longevity checks. `/blueprint`, `/feature-dev`, `/team-feature-dev` and the kickoff architecture guide carry the same design through to verification.
+
+**New rule: `engineering-bar`.** Always loaded (about 2.9 KB): five decisions to make before code that stores growing data, serves requests or runs every frame, plus what makes code last. Its checklist in the rule references lists the sources it was built from. The loaded rules now total about 35.7 KB.
+
+**Evals for the planner, architect and code-reviewer** (`nextc-ecc/evals/`, five cases on an invented API, run with `claude plugin eval`). They cost model calls: a planner case is about $3 to $6 a run. Each case has run once per revision, so a pass is an example and not a rate.
+
+**Default model and advisor: Opus with Fable advising.** `./setup-rules.sh` now sets `"model": "opus"` and `"advisorModel": "fable"` where you have not set them, once per machine; a later run never switches an advisor back on, and `--skip-model` declines. `enterprise/managed-settings.example.json` carries the same two keys. Claude Code gives a plugin no way to set them, so if you only install the plugins, type `/model opus` and `/advisor fable`. The advisor is experimental and its tokens bill at the advisor model's rates; a Fable advisor may bill to usage credits. Whether Opus with a Fable advisor does as well as Fable alone has not been measured here.
+
 ## v1.10.1 (2026-11-17)
 
 **The HUD row is right after an idle compaction.** Claude Code can now compact a session while it is idle. `nextc-hud` counted that compaction but kept showing the old context figure, its "heavy" label and the `[ compact ]` button until the next reply. The row now shows the size of the compacted conversation at once, or `ctx –` when Claude Code does not report one.

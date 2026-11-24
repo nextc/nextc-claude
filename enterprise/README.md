@@ -2,11 +2,11 @@
 
 Templates and guidance an admin MAY adopt to roll nextc-claude out across a company. Nothing here is enforced, installed, or switched on by the plugins. The folder is not read by any plugin, skill, hook, or script; if you ignore it, plugin behavior is unchanged for everyone.
 
-Every settings key in the JSON templates was checked against the official docs on 2026-10-15 (sources per section). JSON cannot hold comments, so all caveats are in this file. Replace every `your-org`, `example.com`, and placeholder before use. Deliver the files via server-managed settings (claude.ai admin console), MDM, or `managed-settings.json` at `/Library/Application Support/ClaudeCode/` (macOS), `/etc/claude-code/` (Linux/WSL), or `C:\Program Files\ClaudeCode\` (Windows) ([managed-settings](https://code.claude.com/docs/en/managed-settings)).
+Every settings key in the JSON templates was checked against the official docs on 2026-10-15 (sources per section); `model` and `advisorModel` were added and checked on 2026-11-24. JSON cannot hold comments, so all caveats are in this file. Replace every `your-org`, `example.com`, and placeholder before use. Deliver the files via server-managed settings (claude.ai admin console), MDM, or `managed-settings.json` at `/Library/Application Support/ClaudeCode/` (macOS), `/etc/claude-code/` (Linux/WSL), or `C:\Program Files\ClaudeCode\` (Windows) ([managed-settings](https://code.claude.com/docs/en/managed-settings)).
 
 | File | Purpose |
 |---|---|
-| `managed-settings.example.json` | Distribution only: register marketplace, enable plugins |
+| `managed-settings.example.json` | Distribution: register marketplace, enable plugins; optional default model and advisor |
 | `managed-settings.policy.example.json` | Stricter policy layer (only if you want enforcement) |
 | `otel-env.example.json` | OpenTelemetry env block |
 | `ci/validate-plugins.example.yml` | PR validation for a fork of this marketplace |
@@ -21,6 +21,15 @@ Notes:
 - Managed `enabledPlugins` set to `false` blocks a plugin at every scope.
 - By default only one managed source applies on a machine (server-managed first, then MDM, then file). `managedSourcesBehavior: "merge"` applies all (verified in the same page; not in the templates).
 - The template sets `autoUpdate: false`, which keeps users on what they have and makes the update a deliberate admin action. `true` refreshes in the background. If the managed entry sets the field, users cannot toggle it.
+
+**Default model and advisor (optional; delete both keys if you do not want them).** The template sets `"model": "opus"` and `"advisorModel": "fable"`: sessions start on Opus, and Opus can consult Fable through the advisor tool when it decides it needs to. Checked on 2026-11-24 against [settings-reference](https://code.claude.com/docs/en/settings-reference), [settings](https://code.claude.com/docs/en/settings), [model-config](https://code.claude.com/docs/en/model-config) and [advisor](https://code.claude.com/docs/en/advisor):
+- Both keys are listed as settable in any settings file, managed included.
+- A managed `model` is a starting default, not a lock: a developer can still run `/model`, and the managed value applies again in each new session. The locks are `availableModels` and `deniedModels` (section 4).
+- The advisor tool is experimental. An advisor must rank at or above the session's main model; one that ranks below is not attached. An advisor that `availableModels` excludes is not used.
+- Cost: on API billing the advisor's tokens are charged at the advisor model's rates. On subscription plans they count toward the plan's limits, except that a Fable advisor bills to usage credits on plans where Fable usage does, and on some plans it stays off until the developer accepts that once with `/model fable`.
+- It runs on the Anthropic API, Claude Platform on AWS and Claude Models on Google Cloud, not on Amazon Bedrock, Google Cloud's Agent Platform or Microsoft Foundry. Outside those two cloud platforms it needs a feature flag fetched from Anthropic, so a session with `DISABLE_TELEMETRY` set does not get it. `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` switches it off entirely.
+- Not verified: what a developer's `/advisor off` does while a managed `advisorModel` is present. Test it on one machine before rolling out.
+- This repo's `planner`, `architect`, `critical-reviewer`, `autopilot-decider` and `product-collision-analyst` pin Fable in their own definitions, so they run on Fable whatever the session model is.
 
 **Pinning and channels** ([host-marketplace](https://code.claude.com/docs/en/plugins/host-marketplace)):
 - Users can pin a marketplace to a branch or tag with `owner/repo#<ref>` on `claude plugin marketplace add`.

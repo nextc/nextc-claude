@@ -3,7 +3,8 @@ set -euo pipefail
 
 # nextc-claude setup — symlinks rules into ~/.claude/rules/nextc-claude/ and their long-form
 # references into ~/.claude/nextc-claude-references/, and merges settings/user-settings.json
-# (permission allow/ask/deny rules + auto mode exceptions) into ~/.claude/settings.json.
+# (permission allow/ask/deny rules + auto mode exceptions, and once per machine the default
+# model and advisor) into ~/.claude/settings.json.
 # Agents and skills are installed via marketplace (/plugin marketplace add + /plugin install).
 # Teammates do not need this script for the rules: the nextc-core plugin copies them into
 # ~/.claude at session start (nextc-core/scripts/install-rules.mjs) and leaves a linked folder
@@ -16,22 +17,29 @@ SHIPPED="$REPO_DIR/settings/user-settings.json"
 SETTINGS="$CLAUDE_DIR/settings.json"
 MARKETPLACE="$REPO_DIR/.claude-plugin/marketplace.json"
 INSTALLED_PLUGINS="$CLAUDE_DIR/plugins/installed_plugins.json"
+MODEL_RECORD="$CLAUDE_DIR/nextc-claude-setup.json"
 
 MODE=apply
 SKIP_GIT_HOOKS=0
+SKIP_MODEL=0
 DRIFT=0
 
 usage() {
   cat <<'USAGE'
-Usage: setup-rules.sh [--check] [--skip-git-hooks] [--help]
+Usage: setup-rules.sh [--check] [--skip-model] [--skip-git-hooks] [--help]
 
   (no flags)         Symlink the rules and references into ~/.claude/ and merge
                      settings/user-settings.json into ~/.claude/settings.json.
                      Safe to re-run; it never removes or reorders your settings entries.
+                     The first run also sets the shipped "model" and "advisorModel" where
+                     you have not set them. That happens once per machine: a later run
+                     leaves both alone, so /model and /advisor off stay your choice.
   --check            Change nothing. Report whether the symlinks point at this checkout,
                      this checkout's version against the installed nextc-claude plugins,
                      which shipped settings entries are missing from ~/.claude/settings.json,
                      and whether jq is available. Exits 1 when any drift is found.
+  --skip-model       Do not set "model" or "advisorModel", now or on later runs (recorded in
+                     ~/.claude/nextc-claude-setup.json; delete that file to be offered again).
   --skip-git-hooks   Do not set this checkout's git core.hooksPath to .githooks.
   --help, -h         Show this help.
 
@@ -45,6 +53,7 @@ for arg in "$@"; do
   case "$arg" in
     --check) MODE=check ;;
     --skip-git-hooks) SKIP_GIT_HOOKS=1 ;;
+    --skip-model) SKIP_MODEL=1 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown option: $arg" >&2; usage >&2; exit 2 ;;
   esac
@@ -73,6 +82,7 @@ JQ_DEFS='
         else miss([]; $ship.autoMode.allow) end)
     };
   def append($path; $items): if ($items | length) > 0 then setpath($path; (getpath($path) // []) + $items) else . end;
+  def model_unset($ship): . as $have | ["model", "advisorModel"] | map(select(. as $k | ($ship | has($k)) and ($have[$k] == null)));
 '
 
 settings_json() {
@@ -123,26 +133,82 @@ check_link() {
   fi
 }
 
+model_values() {
+  jq -r '"model=\(.model // "not set"), advisorModel=\(.advisorModel // "not set")"' "$SETTINGS"
+}
+
+model_record_date() {
+  jq -r '.modelDefaults.at // "an earlier run"' "$MODEL_RECORD" 2>/dev/null || echo "an earlier run"
+}
+
+# EXTERNAL: `/advisor off` deletes advisorModel from settings.json instead of storing "off"
+# (read in Claude Code 2.1.331), so an absent key cannot tell "never set" from "turned off".
+# This record is what stops a later run from switching a billed advisor back on.
+record_model_defaults() {
+  printf '{"modelDefaults":{"result":"%s","set":"%s","at":"%s"}}\n' "$1" "$2" "$(date +%Y-%m-%d)" > "$MODEL_RECORD"
+}
+
+report_model_defaults() {
+  local applying="$1" set_keys="$2"
+  if [ "$SKIP_MODEL" -eq 1 ]; then
+    if [ -f "$MODEL_RECORD" ]; then
+      echo "✓ Model defaults left alone (--skip-model; already handled on $(model_record_date)). Now: $(model_values)"
+    else
+      record_model_defaults skipped ""
+      echo "✓ Model defaults skipped (--skip-model) and recorded, so later runs leave them alone. Now: $(model_values)"
+    fi
+  elif [ "$applying" = true ]; then
+    record_model_defaults applied "$set_keys"
+    if [ -z "$set_keys" ]; then
+      echo "✓ Model defaults: you had already set both keys, nothing changed. Now: $(model_values)"
+    else
+      echo "✓ Model defaults set: $set_keys. Now: $(model_values)"
+      echo "  The advisor is experimental and its tokens bill at the advisor model's rates. A Fable"
+      echo "  advisor stays off until Fable is accepted on your plan (run /model fable once)."
+      echo "  Change either with /model and /advisor (or /advisor off). Later runs leave both alone."
+    fi
+  else
+    echo "✓ Model defaults were handled on $(model_record_date); left alone. Now: $(model_values)"
+  fi
+}
+
 # Merges settings/user-settings.json into ~/.claude/settings.json: appends missing permissions.allow,
 # permissions.ask, permissions.deny and autoMode.allow entries, never removes or reorders yours.
+# Sets "model" and "advisorModel" only where unset, and only on the first run (see MODEL_RECORD).
 # Backs up the file before any change.
 merge_settings() {
   if ! command -v jq >/dev/null 2>&1; then
     echo "⚠ jq not found — skipped the settings merge. Add the entries in $SHIPPED to $SETTINGS by hand."
+    if [ "$SKIP_MODEL" -eq 1 ] && [ ! -f "$MODEL_RECORD" ]; then
+      mkdir -p "$CLAUDE_DIR"
+      record_model_defaults skipped ""
+      echo "✓ --skip-model recorded: later runs leave model and advisorModel alone."
+    fi
     return 0
   fi
   local existed=1
   [ -f "$SETTINGS" ] || { existed=0; mkdir -p "$CLAUDE_DIR"; echo '{}' > "$SETTINGS"; }
+  # An empty file makes jq print nothing and succeed, which would read as "nothing to merge".
+  if ! jq -e 'type == "object"' "$SETTINGS" >/dev/null 2>&1; then
+    echo "✗ $SETTINGS is empty or not a JSON object; left it unchanged."
+    return 1
+  fi
+  local applying=false set_keys=""
+  if [ "$SKIP_MODEL" -eq 0 ] && [ ! -f "$MODEL_RECORD" ]; then applying=true; fi
   local merged
-  if ! merged="$(jq --slurpfile ship "$SHIPPED" "$JQ_DEFS"'
+  if ! merged="$(jq --slurpfile ship "$SHIPPED" --argjson applyModel "$applying" "$JQ_DEFS"'
       . as $orig | ($orig | missing($ship[0])) as $m
       | append(["permissions","allow"]; $m["permissions.allow"])
       | append(["permissions","ask"]; $m["permissions.ask"])
       | append(["permissions","deny"]; $m["permissions.deny"])
       | append(["autoMode","allow"]; $m["autoMode.allow"])
+      | if $applyModel then reduce ($orig | model_unset($ship[0]))[] as $k (.; .[$k] = $ship[0][$k]) else . end
     ' "$SETTINGS")"; then
     echo "✗ Could not parse $SETTINGS; left it unchanged."
     return 1
+  fi
+  if [ "$applying" = true ]; then
+    set_keys="$(jq -r --slurpfile ship "$SHIPPED" "$JQ_DEFS"'model_unset($ship[0]) | join(", ")' "$SETTINGS")"
   fi
   if [ "$merged" = "$(jq . "$SETTINGS")" ]; then
     echo "✓ $SETTINGS already has every entry from settings/user-settings.json"
@@ -152,6 +218,7 @@ merge_settings() {
     printf '%s\n' "$merged" > "$SETTINGS"
     echo "✓ Merged settings/user-settings.json into $SETTINGS (backup: $backup)"
   fi
+  report_model_defaults "$applying" "$set_keys"
 }
 
 check_versions() {
@@ -198,6 +265,10 @@ check_settings() {
     drift "jq not found — cannot verify $SETTINGS; install jq (brew install jq) and re-run"
     return 0
   fi
+  if ! settings_json | jq -e 'type == "object"' >/dev/null 2>&1; then
+    drift "$SETTINGS is empty or not a JSON object"
+    return 0
+  fi
   local rows
   if ! rows="$(settings_json | jq -r --slurpfile ship "$SHIPPED" "$JQ_DEFS"'
       missing($ship[0]) | to_entries[] | .key as $k | .value[] | "\($k)\t\(.)"' 2>&1)"; then
@@ -214,6 +285,23 @@ check_settings() {
   done <<< "$rows"
 }
 
+check_model_defaults() {
+  command -v jq >/dev/null 2>&1 || return 0
+  if [ -f "$MODEL_RECORD" ]; then
+    echo "✓ model defaults handled on $(model_record_date)"
+    return 0
+  fi
+  # check_settings has already reported a settings file that does not parse.
+  settings_json | jq -e 'type == "object"' >/dev/null 2>&1 || return 0
+  local unset_keys
+  unset_keys="$(settings_json | jq -r --slurpfile ship "$SHIPPED" "$JQ_DEFS"'model_unset($ship[0]) | join(", ")')"
+  if [ -n "$unset_keys" ]; then
+    drift "model defaults not applied yet: $unset_keys (./setup-rules.sh sets them once; --skip-model declines)"
+  else
+    echo "✓ model and advisorModel are already set"
+  fi
+}
+
 run_check() {
   echo "Checking nextc-claude setup (nothing will be changed)"
   check_link "$REPO_DIR/nextc-core/rules/nextc-claude" "$CLAUDE_DIR/rules/nextc-claude"
@@ -221,6 +309,7 @@ run_check() {
   if command -v jq >/dev/null 2>&1; then echo "✓ jq available"; else echo "⚠ jq not available"; fi
   check_versions
   check_settings
+  check_model_defaults
   echo ""
   if [ "$DRIFT" -eq 0 ]; then
     echo "No drift found."

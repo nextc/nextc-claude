@@ -49,6 +49,90 @@ test('empty home: links both folders and merges every shipped entry', { skip: !H
   assert.deepEqual(s.permissions.deny, SHIPPED.permissions.deny);
   assert.deepEqual(s.autoMode.allow, SHIPPED.autoMode.allow);
   assert.equal(s.autoMode.allow[0], '$defaults');
+  assert.equal(s.model, SHIPPED.model);
+  assert.equal(s.advisorModel, SHIPPED.advisorModel);
+  assert.match(r.stdout, /Model defaults set: model, advisorModel/);
+});
+
+test('model defaults: a model the user chose is kept and only the missing advisor is set', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  writeSettings({ model: 'sonnet' });
+  const r = setup();
+  assert.equal(r.status, 0, r.stderr);
+  const s = readSettings();
+  assert.equal(s.model, 'sonnet');
+  assert.equal(s.advisorModel, SHIPPED.advisorModel);
+  assert.match(r.stdout, /Model defaults set: advisorModel\./);
+  assert.match(r.stdout, /model=sonnet/);
+});
+
+test('model defaults: an advisor the user chose is kept, and a null value counts as unset', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  writeSettings({ model: null, advisorModel: 'opus' });
+  const r = setup();
+  assert.equal(r.status, 0, r.stderr);
+  const s = readSettings();
+  assert.equal(s.advisorModel, 'opus');
+  assert.equal(s.model, SHIPPED.model);
+  assert.match(r.stdout, /Model defaults set: model\./);
+});
+
+test('model defaults: a settings file that is empty or does not parse is left alone and nothing is recorded', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  for (const body of ['', '{bad', '[]']) {
+    fs.mkdirSync(claude(), { recursive: true });
+    fs.writeFileSync(claude('settings.json'), body);
+    for (const args of [[], ['--skip-model']]) {
+      const r = setup(args);
+      assert.equal(r.status, 1, `${JSON.stringify(body)} ${args}\n${r.stdout}`);
+      assert.equal(fs.readFileSync(claude('settings.json'), 'utf8'), body);
+      assert.equal(fs.existsSync(claude('nextc-claude-setup.json')), false, 'no record for a run that applied nothing');
+    }
+    const checked = setup(['--check']);
+    assert.equal(checked.status, 1);
+    assert.doesNotMatch(checked.stdout, /already set/);
+  }
+});
+
+test('model defaults: an advisor turned off after setup is not switched back on by a later run', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  setup();
+  const s = readSettings();
+  // EXTERNAL: Claude Code's `/advisor off` removes the key rather than storing "off".
+  delete s.advisorModel;
+  delete s.model;
+  writeSettings(s);
+  const r = setup();
+  assert.equal(r.status, 0, r.stderr);
+  const after = readSettings();
+  assert.equal('advisorModel' in after, false);
+  assert.equal('model' in after, false);
+  assert.match(r.stdout, /Model defaults were handled on \d{4}-\d{2}-\d{2}; left alone/);
+  assert.equal(setup(['--check']).status, 0);
+});
+
+test('--skip-model sets neither key, is remembered, and --check then reports no drift', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  const r = setup(['--skip-model']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Model defaults skipped/);
+  assert.equal('model' in readSettings(), false);
+  assert.equal('advisorModel' in readSettings(), false);
+  assert.equal(setup().status, 0);
+  assert.equal('advisorModel' in readSettings(), false, 'a later run without the flag must not set it');
+  const checked = setup(['--check']);
+  assert.equal(checked.status, 0, checked.stdout);
+});
+
+test('--check reports model defaults that were never applied, and nothing when both keys are set', { skip: !HAS_JQ && 'jq not installed' }, () => {
+  setup();
+  fs.rmSync(claude('nextc-claude-setup.json'));
+  const s = readSettings();
+  delete s.advisorModel;
+  writeSettings(s);
+  const drifted = setup(['--check']);
+  assert.equal(drifted.status, 1);
+  assert.match(drifted.stdout, /model defaults not applied yet: advisorModel /);
+  writeSettings({ ...s, advisorModel: 'opus' });
+  const clean = setup(['--check']);
+  assert.equal(clean.status, 0, clean.stdout);
+  assert.match(clean.stdout, /model and advisorModel are already set/);
+  assert.equal(fs.existsSync(claude('nextc-claude-setup.json')), false, '--check must not write');
 });
 
 test('existing settings keep the user entries, in order, and gain the shipped ones', { skip: !HAS_JQ && 'jq not installed' }, () => {
@@ -162,4 +246,9 @@ test('without jq: the merge is skipped with a hint and --check reports drift', (
   const checked = setup(['--check'], env);
   assert.equal(checked.status, 1);
   assert.match(checked.stdout, /jq not found — cannot verify/);
+  assert.equal(fs.existsSync(claude('nextc-claude-setup.json')), false);
+  const skipped = setup(['--skip-model'], env);
+  assert.equal(skipped.status, 0, skipped.stderr);
+  assert.match(skipped.stdout, /--skip-model recorded/);
+  assert.equal(JSON.parse(fs.readFileSync(claude('nextc-claude-setup.json'), 'utf8')).modelDefaults.result, 'skipped');
 });

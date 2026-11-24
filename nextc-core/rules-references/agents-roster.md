@@ -32,6 +32,10 @@ Decision rule: leads the whole effort → Fable (closed list below); deep reason
 
 For an `Agent()` call the model comes from: the call's `model` parameter, then the agent definition's `model:`, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the parent session's model. So a call to a built-in or general-purpose type without `model` runs on the parent's model, often the most expensive one.
 
+## Session model and advisor
+
+The pairing this repo ships as a default is Opus for the session with Fable as the advisor (`"model": "opus"`, `"advisorModel": "fable"`; the user's decision, 2026-11-24). `setup-rules.sh` sets the two keys once where they are unset, and `enterprise/managed-settings.example.json` carries them for a company rollout. The Claude Code docs give a plugin no way to set either. The advisor is not an agent, so the closed Fable list below does not cover it; agents that pin `model:` keep their own model, and subagents inherit the configured advisor.
+
 ## Cost rules
 
 1. Use the lowest sufficient tier: not opus where sonnet works, not fable where opus works.

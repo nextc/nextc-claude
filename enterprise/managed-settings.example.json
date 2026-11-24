@@ -8,5 +8,7 @@
   "enabledPlugins": {
     "nextc-core@nextc-claude": true,
     "nextc-ecc@nextc-claude": true
-  }
+  },
+  "model": "opus",
+  "advisorModel": "fable"
 }

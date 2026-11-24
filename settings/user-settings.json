@@ -1,4 +1,6 @@
 {
+  "model": "opus",
+  "advisorModel": "fable",
   "permissions": {
     "allow": [
       "Bash(flutter build apk *)",

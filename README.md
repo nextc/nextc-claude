@@ -44,12 +44,13 @@ cd ~/code/nextc/nextc-claude && ./setup-rules.sh
 ```
 
 `setup-rules.sh` links the rules and rule references from your checkout into `~/.claude/` (so your edits are live, and the plugin's installer leaves them alone) and merges `settings/user-settings.json` into `~/.claude/settings.json` (it needs `jq`, and backs the file up first). The merge only appends what is missing and never removes or reorders your entries:
+- `model` and `advisorModel`: the default pairing, Opus for the session with Fable as the advisor (`"model": "opus"`, `"advisorModel": "fable"`). Each is set only where you have not set it, and only on the first run: the run is recorded in `~/.claude/nextc-claude-setup.json`, so a later run leaves both alone and `/model` or `/advisor off` stays your choice (`/advisor off` removes the key, so without the record a re-run would switch a billed advisor back on). `--skip-model` declines and is recorded too; delete the record to be offered again. The advisor is an experimental Claude Code feature: its tokens bill at the advisor model's rates, a Fable advisor bills to usage credits on plans where Fable does and stays off until you accept Fable once with `/model fable`, and it is not available on Amazon Bedrock, Google Cloud's Agent Platform or Microsoft Foundry ([advisor docs](https://code.claude.com/docs/en/advisor)). The Claude Code docs give a plugin no way to set either key, so people who only install the plugins set them with `/model opus` and `/advisor fable`.
 - `permissions.allow`: narrow rules for release builds and the TestFlight fastlane lanes.
 - `permissions.ask`: recursive deletes, `git reset --hard`, `git clean`, `git checkout --`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push` and `sudo` prompt you instead of running.
 - `permissions.deny`: reading `.env*` (except `.env.example` / `.env.sample`), `*.p12`, `*.pem`, `*.keystore`, `*.jks`, `AuthKey_*.p8` and `service-account*.json`.
 - `autoMode.allow`: an exception that pre-authorizes TestFlight uploads and release builds you asked for. The shipped list starts with `"$defaults"`; it is added only when you have no `autoMode.allow` list yet. If you already own one, your list stays yours: the shipped exception text is appended if missing, but `"$defaults"` is not, so a list without it keeps replacing Claude Code's built-in exceptions exactly as it did before.
 
-Other flags: `./setup-rules.sh --check` changes nothing and reports drift (symlinks, this checkout's version against the installed plugins, shipped settings entries missing from your settings, `jq` availability) and exits 1 when it finds any; `--skip-git-hooks` leaves this checkout's `core.hooksPath` alone; `--help` lists them. A real file or directory at a link destination is moved to `~/.claude/backups/`, never into `~/.claude/rules/`.
+Other flags: `./setup-rules.sh --check` changes nothing and reports drift (symlinks, this checkout's version against the installed plugins, shipped settings entries missing from your settings, model defaults never applied, `jq` availability) and exits 1 when it finds any; `--skip-model` leaves `model` and `advisorModel` alone for good; `--skip-git-hooks` leaves this checkout's `core.hooksPath` alone; `--help` lists them. A real file or directory at a link destination is moved to `~/.claude/backups/`, never into `~/.claude/rules/`.
 
 **How much Claude asks.** `nextc-core` has one setting, `ask_level`, in `/config`:
 
@@ -220,7 +221,7 @@ nextc-claude/                         (marketplace root)
 ├── nextc-core/rules/nextc-claude/    (16 rules, installed by nextc-core at session start; about 35.7 KB always loaded; rules/ at the root links here)
 ├── nextc-core/rules-references/      (long-form rule references, installed to ~/.claude/nextc-claude-references; read on demand)
 ├── rules-evals/                      (before/after behavioral evals and automated rule tuning; costs model calls)
-├── settings/user-settings.json       (allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)
+├── settings/user-settings.json       (default model and advisor, allow/ask/deny rules + auto mode exceptions, merged into ~/.claude/settings.json)
 ├── scripts/bump-version.mjs          (sets one version across the marketplace and all plugin manifests)
 ├── tests/                            (node --test 'tests/*.test.mjs'; no install, no model calls)
 ├── setup-rules.sh
@@ -249,7 +250,7 @@ Three things reach a developer's machine, by three routes:
 |------|-------------------|----------------------|
 | **Rules** and rule references | `nextc-core` copies them into `~/.claude/` at session start | Versioned with the plugin: an update reaches you when `nextc-core` updates; Claude reads the changed rules in that session and Claude Code loads them by itself from the next one. People working on this repo can link a checkout instead with `./setup-rules.sh` for live edits. |
 | **Plugins** (skills, agents, hooks) | The marketplace (`claude plugin install ...`) | Versioned: an update reaches you when the plugin version changes, after `claude plugin marketplace update nextc-claude` and a reinstall. |
-| **Settings** (permission rules, auto mode exception) | `./setup-rules.sh` merges `settings/user-settings.json` into `~/.claude/settings.json` | Re-run `./setup-rules.sh` after pulling; it only appends. `./setup-rules.sh --check` reports drift without changing anything. |
+| **Settings** (default model and advisor, permission rules, auto mode exception) | `./setup-rules.sh` merges `settings/user-settings.json` into `~/.claude/settings.json`; a company can ship the model and advisor in managed settings instead (`enterprise/managed-settings.example.json`) | Re-run `./setup-rules.sh` after pulling; it only appends, and sets the model and advisor once. `./setup-rules.sh --check` reports drift without changing anything. |
 
 Notes for rolling it out:
 - **Plan and seats.** The planner, architect, collision analyst and autopilot decider are pinned to Fable. When Fable is unavailable on a seat, out of usage, or would bill to usage credits, they run on Opus instead (the rule is in `rules/nextc-claude/agents.md`, the roster in `rules-references/agents-roster.md`). Nothing else uses Fable.
