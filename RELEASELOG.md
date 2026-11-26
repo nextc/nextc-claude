@@ -1,5 +1,9 @@
 # Release Log
 
+## v1.11.1 (2026-11-26)
+
+**Housekeeping: Claude Code worktrees are gitignored.** `.claude/worktrees/`, where Claude Code keeps per-session working copies, no longer shows up as untracked in this repo. Nothing in the plugins changed; updating is optional.
+
 ## v1.11.0 (2026-11-24)
 
 **Plans are designed before they are sequenced.** The `planner` now writes a Design section before any step: the numeric target and workload for each critical flow, the access patterns and the data model that serves them (keys, constraints, an index per hot query), what each critical path costs on the server and on the client, the limits it runs into, concurrency and failure handling, migration, and how the target will be proven. It sizes the plan to the change, plans the request and not the neighbourhood, and adds no tests to a project that has none. `architect` judges that design before the steps, and a plan that touches stored data with no design is a HIGH finding. `code-reviewer` gained performance, data-access and design-longevity checks. `/blueprint`, `/feature-dev`, `/team-feature-dev` and the kickoff architecture guide carry the same design through to verification.
