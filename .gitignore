@@ -4,6 +4,7 @@
 # Claude Code — ignore personal files, commit the rest
 .claude/settings.local.json
 .claude/.mcp.json
+.claude/worktrees/
 
 # Reference/vendor OSS code
 reference-oss/

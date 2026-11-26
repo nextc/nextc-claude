@@ -2,6 +2,11 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-11-26
+
+### Changed
+- **`.claude/worktrees/` is gitignored.** Claude Code keeps session worktrees there; they are per-machine working copies, and the folder showed up as untracked in every `git status`.
+
 ## 2026-11-24
 
 ### Added
