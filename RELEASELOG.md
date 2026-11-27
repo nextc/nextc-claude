@@ -1,5 +1,11 @@
 # Release Log
 
+## v1.11.3 (2026-11-28)
+
+**A proof gate in `nextc-ecc`.** When Claude ends a turn having changed code with no passing check since, a new hook sends it back once to run the analyzer or tests that cover the change and report each command with its result; a task an agent marks done with its own unchecked edits stays open once. It runs nothing itself, never blocks a tool, skips docs, the session's scratchpad and files deleted since, and stays quiet while a subagent is still working, when Claude ends with a question, inside `/autopilot` runs, and with `PROOF_GATE=off`. `nextc-hud` stops sending its own proof follow-up while the gate is active, so you get one nudge, not two. Update `nextc-ecc` and `nextc-hud` together.
+
+**`CLAUDE.md` is now short.** It keeps what Claude needs when working on this repo (5.6 KB, down from 38.7 KB); the full plugin reference, repository layout and rules list moved unchanged to `docs/plugins.md`, linked from the README. The README also lists the `nextc-claude-toolbox` install command.
+
 ## v1.11.2 (2026-11-28)
 
 **Stronger shipped permission settings.** `settings/user-settings.json` now denies Claude's file tools access to more project secrets (`key.properties`, `secrets.json`, `credentials.json`, Firebase admin keys, `ApiKey_*.p8`, `*.pfx`, the Unity licence), to signing keys anywhere on disk, and to home-folder credentials (SSH keys, cloud CLIs, package registries, git and GitHub CLI, Docker, Gradle, fastlane). Force pushes are denied, and `git checkout .`, `git checkout -f` and `git stash clear` now prompt. These reach you only when you run `./setup-rules.sh`, which appends what is missing and backs your settings up first; installing or updating the plugins does not change your settings.
