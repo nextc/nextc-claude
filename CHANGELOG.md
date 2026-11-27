@@ -9,6 +9,11 @@ Salvaged from the abandoned `rules-slim-proof-gate` worktree (work of 2026-11-18
 ### Fixed
 - **The pre-commit hook could write into this repository through its own tests.** Git exports `GIT_DIR`, `GIT_INDEX_FILE` and friends to hooks, and always sets `GIT_DIR` in a worktree; the test suite's throwaway repos inherited them. On 2026-11-18 a commit attempted from a worktree had the autopilot fixtures commit onto the branch, set `core.bare = true` and write a test identity, three test aliases (`p`, `sp`, `st`) and a relative `core.hooksPath` into the shared `.git/config`. `.githooks/pre-commit` now runs the tests with every `GIT_*` variable removed. The three leftover aliases were removed from this checkout's config.
 - **`setup-rules.sh` skipped git-hook setup in a worktree,** where `.git` is a file; it now asks git, and accepts an absolute `core.hooksPath` that points at a `.githooks` folder with a `pre-commit`.
+- **`rules-evals/cases.mjs`:** `skill-build-no-ask` and `standing-approval` claimed the section `When to ask the user`, which no longer exists in `heavy-commands.md`; they now claim `In both levels`.
+- **`rules-evals/tune.mjs`:** a case whose `rule` reads `heavy-commands, …` (comma after the name) now counts as covering that rule.
+
+### Added
+- **`tests/rules-evals-cases.test.mjs`:** fails offline when an eval case names a rule file or `##` heading that does not exist, instead of `tune.mjs` refusing mid-run.
 
 ## 2026-11-26
 

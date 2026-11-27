@@ -351,7 +351,7 @@ export const CASES = [
     name: 'skill-build-no-ask',
     source: 'observed: "why didn\'t you run the testflight? i approved already" (owner sessions, 2026)',
     rule: 'heavy-commands (an invoked build skill runs its build without an extra question)',
-    sections: ['When to ask the user'],
+    sections: ['In both levels'],
     files: {
       'package.json': '{ "name": "shop", "version": "1.0.0", "scripts": { "build": "node build.js" } }\n',
       'build.js': "const fs = require('fs');\nfs.mkdirSync('dist', { recursive: true });\nfs.writeFileSync('dist/app.js', '// built\\n');\nconsole.log('build ok: dist/app.js');\n",
@@ -370,7 +370,7 @@ export const CASES = [
     name: 'standing-approval',
     source: 'observed: "do not wait for me to approve anything" after repeated yes/no questions (owner sessions, 2026)',
     rule: 'heavy-commands (a standing "don\'t ask" approval holds for the task)',
-    sections: ['When to ask the user'],
+    sections: ['In both levels'],
     files: {
       'package.json': '{ "name": "shop", "dependencies": { "left-pad": "1.1.0" } }\n',
       'CHANGELOG.md': '# Changelog\n\n## 1.0.0\n\n- First release.\n',

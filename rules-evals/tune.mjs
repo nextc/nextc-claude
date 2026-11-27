@@ -71,8 +71,9 @@ function sections(text) {
 // Returns the rule's tuning context, or { skip } explaining why it can't be tuned in this run.
 function prepareRule(name) {
   const rel = path.join(RULES_DIR, `${name}.md`);
-  // ASSUMPTION: each case's free-text `rule` starts with the rule file's name (see cases.mjs).
-  const covering = cases.filter((c) => c.rule.startsWith(`${name} `) || c.rule === name);
+  // ASSUMPTION: each case's free-text `rule` starts with the rule file's name, then a space, comma or nothing
+  // (see cases.mjs; tests/rules-evals-cases.test.mjs checks the same split).
+  const covering = cases.filter((c) => c.rule.split(/[ ,(]/)[0] === name);
   if (covering.length === 0) return { name, skip: 'no selected case covers it; add one to cases.mjs' };
   const original = fs.readFileSync(path.join(REPO, rel), 'utf8');
   const originalSections = sections(original);
