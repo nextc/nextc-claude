@@ -680,8 +680,10 @@ test('an agent the engine drops from its list is not counted as still working', 
 const typed = ($: Engine, text = 'do the work') => $.prompt.submit({ text, origin: { kind: 'composer' } } as never)
 
 // Work the mod starts without holding an answer up (the check, the history) finishes here.
+// The after-turn work runs detached; this lets its chain of awaits finish. The proof gate's ledger lookup
+// (isGateOn) added a few awaits to that chain, so the budget leaves room to spare.
 const settle = async () => {
-  for (let i = 0; i < 400; i++) await Promise.resolve()
+  for (let i = 0; i < 2000; i++) await Promise.resolve()
 }
 
 function checkModel(on: On, reply: string) {
@@ -961,6 +963,19 @@ test('code changed with no check is "not checked": the line under the answer say
   expect(w.submits.length).toBe(2)
   expect(w.submits[1]).toContain('Code changed with no check run after the last edit: `lib/widgets/card.dart`. Verify the work now and show the proof')
   expect((await $.command.run(cmd('hud', 'proof'))).text).toContain('Code changed and no check has run since the last edit.')
+})
+
+test("while nextc-ecc's proof gate keeps a ledger for the session, the mod sends no proof ask; the proof line stays", async ($, on) => {
+  const w = world(on, { [`${HOME}/.claude/nextc-proof-gate/sess-1.json`]: { text: '{"v":2,"edits":[],"checks":[],"unseen":[]}', mtimeMs: NOW } })
+  crewHooks(on)
+  await start($)
+  await typed($)
+  await $.tool.call({ tool: 'Edit', file_path: `${CWD}/lib/widgets/card.dart`, old_string: 'a', new_string: 'b' } as never)
+  const done = await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(done.text).toBe('not checked · 1 code file changed, no check ran after the last edit')
+  await settle()
+  expect(w.submits.some((s) => s.includes('Verify the work now and show the proof'))).toBe(false)
+  expect(w.fills).toEqual([])
 })
 
 test('a passing check after the last edit is proof; an edit after it makes the proof stale; a failing check shows', async ($, on) => {

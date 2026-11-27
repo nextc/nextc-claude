@@ -46,6 +46,9 @@ const WRAPPERS = /^(?:(?:\w+=\S*|fvm|time|env|npx|bunx|command|bundle[ \t]+exec)
 export type Check = { label: string; isTrusted: boolean }
 
 // Quoted text is not a command: a commit message that mentions "npm test" runs nothing.
+// Command separators. A lone `&` backgrounds the command before it, so its status is not the check's;
+// `&&` stays a separator, and the `&` of `2>&1` or `&>file` is not one.
+const SEPARATORS = /(\|\||&&|(?<![>&])&(?![&>])|;|\||\n)/
 const unquote = (command: string): string => command.replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, '""')
 
 // The checks a command runs. `isTrusted` says whether the command's own exit status is the
@@ -55,7 +58,7 @@ const unquote = (command: string): string => command.replace(/"(?:[^"\\]|\\.)*"|
 export function checksOf(command: unknown, extra: RegExp | null = null): Check[] {
   if (typeof command !== 'string' || command.length > 4000) return []
   const plain = unquote(command)
-  const parts = plain.split(/(\|\||&&|;|\||\n)/)
+  const parts = plain.split(SEPARATORS)
   const out: Check[] = []
   for (let i = 0; i < parts.length; i += 2) {
     const seg = parts[i]!.trim().replace(/^[({][ \t]*/, '').replace(WRAPPERS, '')
@@ -74,12 +77,22 @@ export function checksOf(command: unknown, extra: RegExp | null = null): Check[]
   return out
 }
 
+// EXTERNAL: nextc-ecc's proof-gate hook (hooks/scripts/proof-gate.js, ledgerPath) writes one ledger file
+// per session here once it has seen a code edit or a check; its existence means the gate is on for the
+// session, so this mod leaves the follow-up to it. The id check mirrors the hook's.
+export function gateLedgerPath(home: string, sessionId: unknown): string | null {
+  return typeof sessionId === 'string' && /^[\w.-]{1,128}$/.test(sessionId) && !/^\.+$/.test(sessionId) ? `${home}/.claude/nextc-proof-gate/${sessionId}.json` : null
+}
+
 export const checkLabel = (command: unknown, extra: RegExp | null = null): string | null => checksOf(command, extra)[0]?.label ?? null
 
 // Shell commands that change source files without an edit tool: an in-place sed, a formatter
 // or fixer that writes, and the git commands that replace the working tree's files.
-const SHELL_EDIT = /(^|\|\||&&|;|\||\n)[ \t]*(?:\w+=\S*[ \t]+)*(sed[ \t]+(?:-\w+[ \t]+)*-i|git[ \t]+(?:checkout|restore|stash|apply|merge|rebase|pull|reset|revert|cherry-pick)(?![\w-])|dart[ \t]+(?:format|fix[ \t]+--apply)|\S+(?:[ \t]+\S+)*[ \t]+(?:--fix|--write)(?![\w-]))/
-export const isShellEdit = (command: unknown): boolean => typeof command === 'string' && command.length <= 4000 && SHELL_EDIT.test(unquote(command))
+const SHELL_EDIT = /(^|\|\||&&|;|\||\n)[ \t]*(?:\w+=\S*[ \t]+)*(sed[ \t]+(?:-\w+[ \t]+)*-i|git[ \t]+(?:checkout(?![ \t]+-[bB](?![\w-]))|stash(?![ \t]+(?:list|show)(?![\w-]))|restore|apply|merge|rebase|pull|reset|revert|cherry-pick)(?![\w-])|dart[ \t]+(?:format|fix[ \t]+--apply)|\S+(?:[ \t]+\S+)*[ \t]+(?:--fix|--write)(?![\w-]))/
+// A command that only checks or previews (`git apply --check`, `--dry-run`) changes no file.
+const NO_EDIT = /(^|[ \t])(--check|--dry-run)(?=[ \t=]|$)/
+export const isShellEdit = (command: unknown): boolean =>
+  typeof command === 'string' && command.length <= 4000 && unquote(command).split(SEPARATORS).some((seg, i) => i % 2 === 0 && SHELL_EDIT.test(seg) && !NO_EDIT.test(seg))
 export const SHELL_EDIT_NAME = '(files changed by a shell command)'
 
 export function extraChecks(option: unknown): RegExp | null {

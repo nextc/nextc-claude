@@ -17,6 +17,7 @@ What this adds: an accurate map of what is and is not enforced, and the exact pe
 | `block-no-verify` hook | nextc-ecc hooks | Blocks `--no-verify`, `git commit -n`, `core.hooksPath` overrides |
 | `config-protection` hook | nextc-ecc hooks | Blocks edits to linter/formatter config |
 | `pre-commit-quality` hook | nextc-ecc hooks | Blocks commits that stage secrets or `debugger` statements |
+| `proof-gate` hook | nextc-ecc hooks | Not a safety guard: sends Claude back once at the end of a turn when code changed and no check passed since. It never blocks a tool call |
 | `permissions.ask` | `settings/user-settings.json`, merged by `setup-rules.sh` | Prompts for `rm -r*`, `git reset --hard`, `git clean`, `git checkout -- *`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push`, `git checkout .`, `git checkout -f`, `git stash clear`, `sudo` |
 | `permissions.deny` | same | Blocks reading (and so editing) project secrets (`.env*` except the examples, `.pem`, service-account and Firebase admin keys, `secrets.json`, `credentials.json`, `key.properties`), signing keys anywhere on disk (`.p12`, `.pfx`, `.keystore`, `.jks`, `AuthKey_*.p8`, `ApiKey_*.p8`) and home-folder credentials (SSH keys, cloud CLIs, registries, git and GitHub CLI, Docker, fastlane); blocks force pushes |
 | Upload guard | nextc-flutter hook | Denies a fastlane upload lane that would re-upload a recorded build number or run outside the project |

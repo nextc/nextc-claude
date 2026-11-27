@@ -27,6 +27,7 @@ import {
   emptyProof,
   emptyTally,
   extraChecks,
+  gateLedgerPath,
   lessonPrompt,
   noteCheck,
   noteCodeEdit,
@@ -215,7 +216,20 @@ test('a check is trusted only when the command\'s exit status is the check\'s', 
 
 test('shell commands that rewrite files count as edits; reading commands do not', () => {
   for (const c of ["sed -i '' -e 's/a/b/' lib/a.dart", 'cd app && dart format lib', 'git checkout -- lib/a.dart', 'git stash pop', 'npx eslint --fix src', 'prettier --write .']) expect(isShellEdit(c)).toBe(true)
-  for (const c of ['sed -n 1,5p lib/a.dart', 'git status', 'git log -3', 'git commit -m "git checkout later"', 'dart analyze', 'ls', 42]) expect(isShellEdit(c)).toBe(false)
+  for (const c of ['sed -n 1,5p lib/a.dart', 'git status', 'git log -3', 'git commit -m "git checkout later"', 'dart analyze', 'ls', 'git checkout -b feature', 'git checkout -B feature', 'git stash list', 'git stash show -p', 'git apply --check p.diff', 'git merge --dry-run x', 42]) expect(isShellEdit(c)).toBe(false)
+})
+
+test('a lone & backgrounds a check, so its result is not trusted; && and 2>&1 do not', () => {
+  expect(checksOf('npm test &')).toEqual([{ label: 'npm test', isTrusted: false }])
+  expect(checksOf('npm run lint && npm test &').map((c) => c.isTrusted)).toEqual([false, false])
+  expect(checksOf('npm test 2>&1')).toEqual([{ label: 'npm test', isTrusted: true }])
+  expect(checksOf('npm test &> out.log')).toEqual([{ label: 'npm test', isTrusted: true }])
+  expect(isShellEdit('npm test & sed -i s/a/b/ a.ts')).toBe(true)
+})
+
+test('the proof gate ledger path is built only from a plain session id', () => {
+  expect(gateLedgerPath('/home/u', 'abc-123.x_9')).toBe('/home/u/.claude/nextc-proof-gate/abc-123.x_9.json')
+  for (const bad of ['', '..', '.', '../x', 'a/b', 'a b', undefined, 7, 'x'.repeat(129)]) expect(gateLedgerPath('/home/u', bad)).toBe(null)
 })
 
 test('a hostile tasks file with a very long line is parsed in bounded time', () => {

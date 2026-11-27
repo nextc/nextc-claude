@@ -2,14 +2,14 @@
 
 Claude Code marketplace — workflow pipelines, product exploration, project scaffolding, Flutter tooling, and ASO optimization.
 
-**[Release Log](RELEASELOG.md)**
+**[Release Log](RELEASELOG.md)** · **[Plugin reference](docs/plugins.md)** (every skill with its arguments, agents, hooks, options, the repository layout and the rules)
 
 ## Plugins
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
 | **nextc-core** | clarify, feature-dev, team-feature-dev, bug-fix, cleanup, update-docs, blueprint, finishing-branch, interface-polish, autopilot | Development workflow pipelines that chain into each other |
-| **nextc-ecc** | strategic-compact, session-handoff, search-first, verification-loop, council, adversarial-review, production-audit, +7 more | Core agents (planner, architect, code-reviewer, security-reviewer and more), quality tools and three guard hooks, migrated from Everything Claude Code |
+| **nextc-ecc** | strategic-compact, session-handoff, search-first, verification-loop, council, adversarial-review, production-audit, +7 more | Core agents (planner, architect, code-reviewer, security-reviewer and more), quality tools, three guard hooks, and a proof gate that sends Claude back once to run checks when a turn ends with unchecked code, migrated from Everything Claude Code |
 | **nextc-product** | product-explore, idea-explore, product-review | Idea to a sourced decision memo (recommendation, cheapest test, kill criteria), a lens-based explorer that shares its evidence, and a review of the shipped product against that memo's thresholds and kill criteria with real numbers |
 | **nextc-project-kickoff** | flutter-kickoff, unity-kickoff | Proposal to a scaffolded Flutter or Unity project with product-specific architecture and task docs |
 | **nextc-flutter** | flutter-build, flutter-l10n (7 sub-skills), flutter-visual-proof | Flutter build/TestFlight pipeline (with an upload guard hook), localization, and screens rendered to images without a simulator so a UI change can be looked at |
@@ -93,6 +93,11 @@ claude plugin install nextc-unity@nextc-claude --scope local
 **App Store Optimization:**
 ```bash
 claude plugin install nextc-aso@nextc-claude --scope local
+```
+
+**Authoring and checking plugins, skills and rules:**
+```bash
+claude plugin install nextc-claude-toolbox@nextc-claude --scope local
 ```
 
 ### Third-Party Skills (all optional)
@@ -232,7 +237,7 @@ nextc-claude/                         (marketplace root)
 ├── tests/                            (node --test 'tests/*.test.mjs'; no install, no model calls)
 ├── setup-rules.sh
 ├── nextc-core/                       (10 skills, 3 agents)
-├── nextc-ecc/                        (14 skills, 10 agents, 3 hooks; evals/)
+├── nextc-ecc/                        (14 skills, 10 agents, 4 hooks; evals/)
 ├── nextc-product/                    (3 skills, 4 agents)
 ├── nextc-project-kickoff/            (2 skills, 1 agent)
 ├── nextc-flutter/                    (9 skills, 2 agents, 1 hook)

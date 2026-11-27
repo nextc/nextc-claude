@@ -117,6 +117,7 @@ import {
   emptyProof,
   emptyTally,
   extraChecks,
+  gateLedgerPath,
   lessonPrompt,
   isShellEdit,
   noteCheck,
@@ -618,6 +619,19 @@ async function askLevel($: $): Promise<AskLevel> {
   }
 }
 
+// True when nextc-ecc's proof gate keeps a ledger for this session: it asks Claude for proof itself,
+// so the mod's own follow-up would ask twice. The proof line under answers stays.
+async function isGateOn($: $): Promise<boolean> {
+  try {
+    const home = await homeOf($)
+    const file = home === null ? null : gateLedgerPath(home, await $.session.id())
+    return file !== null && (await readFile($, file)) !== null
+  } catch (err) {
+    debug($, 'proof gate ledger', err)
+    return false
+  }
+}
+
 // The check after a turn: one small model call reads what the turn changed and says which
 // files hold critical logic, judged by what the code does. A file whose path says "critical"
 // counts whatever the model answers, so a reply cannot talk the check out of it. When files
@@ -646,7 +660,8 @@ async function afterTurnCheck($: $, work: readonly Change[], shown: Proof) {
   const state = await read($, review)
   const level = await askLevel($)
   const criticalAsk = { nudge: reviewNudge(state), mode: resolveFollowup(followup, level), text: followupText(state), isCritical: true }
-  const proofAskFor = { nudge: isProofOn ? proofNudge(shown) : null, mode: resolveFollowup(proofFollowup, level), text: proofAsk(shown), isCritical: false }
+  const isGated = isProofOn && proofNudge(shown) !== null && (await isGateOn($))
+  const proofAskFor = { nudge: isProofOn && !isGated ? proofNudge(shown) : null, mode: resolveFollowup(proofFollowup, level), text: proofAsk(shown), isCritical: false }
   const asks = [criticalAsk, proofAskFor].filter((a): a is { nudge: string; mode: Followup; text: string; isCritical: boolean } => a.nudge !== null)
   if (asks.length === 0) return
   if (asks.some((a) => a.isCritical)) await update($, review, (r) => ({ ...(r ?? emptyReview()), isNudged: true }))
