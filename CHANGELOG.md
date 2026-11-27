@@ -2,6 +2,14 @@
 
 All notable changes to nextc-claude are documented here, grouped by date.
 
+## 2026-11-28
+
+Salvaged from the abandoned `rules-slim-proof-gate` worktree (work of 2026-11-18, never committed; full copy kept outside the repo). Only the pieces that main still lacked and that agree with the later decisions were taken: the default model and advisor, the engineering-bar rule and the planner redesign stay as they are.
+
+### Fixed
+- **The pre-commit hook could write into this repository through its own tests.** Git exports `GIT_DIR`, `GIT_INDEX_FILE` and friends to hooks, and always sets `GIT_DIR` in a worktree; the test suite's throwaway repos inherited them. On 2026-11-18 a commit attempted from a worktree had the autopilot fixtures commit onto the branch, set `core.bare = true` and write a test identity, three test aliases (`p`, `sp`, `st`) and a relative `core.hooksPath` into the shared `.git/config`. `.githooks/pre-commit` now runs the tests with every `GIT_*` variable removed. The three leftover aliases were removed from this checkout's config.
+- **`setup-rules.sh` skipped git-hook setup in a worktree,** where `.git` is a file; it now asks git, and accepts an absolute `core.hooksPath` that points at a `.githooks` folder with a `pre-commit`.
+
 ## 2026-11-26
 
 ### Changed

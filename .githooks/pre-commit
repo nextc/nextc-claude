@@ -68,7 +68,9 @@ if [ "$NEEDS_TESTS" -eq 1 ]; then
     echo "[pre-commit] SKIP_TESTS=1 set — skipping tests"
   else
     EXIT=0
-    OUTPUT="$(cd "$REPO_ROOT" && node --test 'tests/*.test.mjs' 2>&1)" || EXIT=$?
+    # WORKAROUND: git exports GIT_DIR, GIT_INDEX_FILE and friends to hooks (GIT_DIR always in a worktree).
+    # Tests that build throwaway repos would inherit them and commit, init and write config into this repository.
+    OUTPUT="$(cd "$REPO_ROOT" && env $(env | sed -n 's/^\(GIT_[A-Za-z_]*\)=.*/-u \1/p') node --test 'tests/*.test.mjs' 2>&1)" || EXIT=$?
     if [ "$EXIT" -ne 0 ]; then
       echo "$OUTPUT" | tail -40
       echo ""

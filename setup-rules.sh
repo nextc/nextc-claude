@@ -332,10 +332,12 @@ link "$REPO_DIR/nextc-core/rules-references" "$CLAUDE_DIR/nextc-claude-reference
 merge_settings
 
 # Configure repo-local git hooks (pre-commit runs validate.js and the script tests)
-if [ "$SKIP_GIT_HOOKS" -eq 0 ] && [ -d "$REPO_DIR/.git" ] && [ -d "$REPO_DIR/.githooks" ]; then
+# WORKAROUND: in a git worktree .git is a file, not a directory, so ask git instead of testing for .git/.
+if [ "$SKIP_GIT_HOOKS" -eq 0 ] && git -C "$REPO_DIR" rev-parse --git-dir >/dev/null 2>&1 && [ -d "$REPO_DIR/.githooks" ]; then
   current="$(git -C "$REPO_DIR" config core.hooksPath || true)"
-  if [ "$current" = ".githooks" ]; then
-    echo "✓ git core.hooksPath already set to .githooks"
+  # An absolute path to a checkout's .githooks (git config is shared by every worktree) works the same.
+  if [ "$current" = ".githooks" ] || { [ "$(basename "$current")" = ".githooks" ] && [ -f "$current/pre-commit" ]; }; then
+    echo "✓ git core.hooksPath already set to $current"
   else
     git -C "$REPO_DIR" config core.hooksPath .githooks
     echo "✓ Configured git core.hooksPath → .githooks (pre-commit will run validate.js)"
