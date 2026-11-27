@@ -1,6 +1,6 @@
 {
   "name": "nextc-hud",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "description": "Heads-up display mod: an always-on row above the prompt (context, compactions, cost estimate, rate limits, agents, live runs) with /hud actions that prepare a /compact or a handoff in the prompt box, a project run monitor for builds, explores, ASO and kickoff runs (/hud watch), an autopilot run monitor (/autopilot-watch), an agents pane (/hud agents), a critical-review check that asks for the reviewer when a turn changed critical logic, a proof tracker that shows whether the code was checked after the last edit, a project pane (/hud project), skill and agent usage (/hud usage), lesson capture, a handoff written at the right moment, a build card, a done chime, a # task typeahead, session cost history (/hud costs) and a 'used this turn' line. It mostly observes; three optional parts do more: one small model call per turn that changed code, one follow-up message per prompt asking for a review or for proof, and one model pass that writes the handoff file.",
   "author": {
     "name": "nextc"

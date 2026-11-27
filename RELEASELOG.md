@@ -1,5 +1,11 @@
 # Release Log
 
+## v1.11.2 (2026-11-28)
+
+**Stronger shipped permission settings.** `settings/user-settings.json` now denies Claude's file tools access to more project secrets (`key.properties`, `secrets.json`, `credentials.json`, Firebase admin keys, `ApiKey_*.p8`, `*.pfx`, the Unity licence), to signing keys anywhere on disk, and to home-folder credentials (SSH keys, cloud CLIs, package registries, git and GitHub CLI, Docker, Gradle, fastlane). Force pushes are denied, and `git checkout .`, `git checkout -f` and `git stash clear` now prompt. These reach you only when you run `./setup-rules.sh`, which appends what is missing and backs your settings up first; installing or updating the plugins does not change your settings.
+
+**Fixes for people working on this repo.** The pre-commit hook no longer lets its tests write commits, aliases and `core.bare` into the repository when you commit from a git worktree, and `setup-rules.sh` sets up the git hooks inside a worktree too. Two rule eval cases pointed at a heading that no longer exists, and a new offline test catches that. The plugins themselves only change version; updating is optional.
+
 ## v1.11.1 (2026-11-26)
 
 **Housekeeping: Claude Code worktrees are gitignored.** `.claude/worktrees/`, where Claude Code keeps per-session working copies, no longer shows up as untracked in this repo. Nothing in the plugins changed; updating is optional.
