@@ -17,8 +17,8 @@ What this adds: an accurate map of what is and is not enforced, and the exact pe
 | `block-no-verify` hook | nextc-ecc hooks | Blocks `--no-verify`, `git commit -n`, `core.hooksPath` overrides |
 | `config-protection` hook | nextc-ecc hooks | Blocks edits to linter/formatter config |
 | `pre-commit-quality` hook | nextc-ecc hooks | Blocks commits that stage secrets or `debugger` statements |
-| `permissions.ask` | `settings/user-settings.json`, merged by `setup-rules.sh` | Prompts for `rm -r*`, `git reset --hard`, `git clean`, `git checkout -- *`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push`, `sudo` |
-| `permissions.deny` | same | Blocks reading `.env*`, `.p12`, `.pem`, `.keystore`, `.jks`, `AuthKey_*.p8`, `service-account*.json` |
+| `permissions.ask` | `settings/user-settings.json`, merged by `setup-rules.sh` | Prompts for `rm -r*`, `git reset --hard`, `git clean`, `git checkout -- *`, `git restore`, `git stash drop`, `git branch -D`, `git tag -d`, `git push`, `git checkout .`, `git checkout -f`, `git stash clear`, `sudo` |
+| `permissions.deny` | same | Blocks reading (and so editing) project secrets (`.env*` except the examples, `.pem`, service-account and Firebase admin keys, `secrets.json`, `credentials.json`, `key.properties`), signing keys anywhere on disk (`.p12`, `.pfx`, `.keystore`, `.jks`, `AuthKey_*.p8`, `ApiKey_*.p8`) and home-folder credentials (SSH keys, cloud CLIs, registries, git and GitHub CLI, Docker, fastlane); blocks force pushes |
 | Upload guard | nextc-flutter hook | Denies a fastlane upload lane that would re-upload a recorded build number or run outside the project |
 | Autopilot guard | nextc-core, `/autopilot` runs only | Sandbox plus file-tool guard; never pushes or uploads |
 

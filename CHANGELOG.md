@@ -14,6 +14,13 @@ Salvaged from the abandoned `rules-slim-proof-gate` worktree (work of 2026-11-18
 
 ### Added
 - **`tests/rules-evals-cases.test.mjs`:** fails offline when an eval case names a rule file or `##` heading that does not exist, instead of `tune.mjs` refusing mid-run.
+- **Shipped permission settings** (`settings/user-settings.json`, merged by `setup-rules.sh`; reviewed by critical-reviewer on 2026-11-18, SAFE TO SHIP):
+  - Deny rules for more project secrets: `key.properties`, `secrets.json`, `credentials.json`, `*-service-account.json`, Firebase admin SDK keys, `ApiKey_*.p8`, `*.pfx` and the Unity licence.
+  - Signing keys (`*.p12`, `*.pfx`, `*.keystore`, `*.jks`, `AuthKey_*.p8`, `ApiKey_*.p8`) are denied anywhere on disk with `//**/…`, not only under the current folder.
+  - Home-folder credential files denied: SSH private keys by suffix, AWS, Azure, gcloud, Supabase, kube, GnuPG, `.netrc`, git and GitHub CLI credentials, Docker, npm, yarn, PyPI, RubyGems, Cargo, pub, Gradle, Maven, Terraform, fastlane and `~/.fastlane-nextc` signing config.
+  - Force-push forms denied, including combined flags (`-fu`) and `+ref` refspecs.
+  - New ask rules for `git checkout .`, `git checkout -f` and `git stash clear`.
+  - README, `CLAUDE.md` and `/safety-guard` list the new rules.
 
 ## 2026-11-26
 
